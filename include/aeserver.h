@@ -48,6 +48,7 @@ struct _aeServer
 {
    char* listen_ip;
    int   port;
+   void *ptr2;
 
    void (*runForever )( aeServer* serv );
    void (*onConnect)( aeServer* serv , userClient *c );

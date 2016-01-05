@@ -37,7 +37,7 @@ extern zend_module_entry appnet_module_entry;
 #ifdef ZTS
 #include "TSRM.h"
 #endif
-
+#include "include/aeserver.h"
 /*
   	Declare any global variables you may need between the BEGIN
 	and END macros here:
@@ -52,6 +52,7 @@ ZEND_END_MODULE_GLOBALS(appnet)
    You are encouraged to rename these macros something shorter, see
    examples in any other php module directory.
 */
+/*
 #define APPNET_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(appnet, v)
 
 #if defined(ZTS) && defined(COMPILE_DL_APPNET)
@@ -59,7 +60,6 @@ ZEND_TSRMLS_CACHE_EXTERN();
 #endif
 
 #endif	/* PHP_APPNET_H */
-
 
 /*
  * Local variables:
@@ -76,9 +76,32 @@ zend_class_entry *appTcpServer;
 ZEND_METHOD( appTcpServer , __construct );
 ZEND_METHOD( appTcpServer , on );
 ZEND_METHOD( appTcpServer , run );
+ZEND_METHOD( appTcpServer , send );
+ZEND_METHOD( appTcpServer , close );
 
-
-void appnetTcpServInit( char* serv_host , int serv_port );
+aeServer* appnetTcpServInit( char* serv_host , int serv_port );
 void appnetTcpServRun();
  
- 
+
+
+ZEND_BEGIN_MODULE_GLOBALS(appnet)
+        aeServer* appserv;
+ZEND_END_MODULE_GLOBALS(appnet)
+
+extern ZEND_DECLARE_MODULE_GLOBALS(appnet);
+/*
+#ifdef ZTS
+#define APPNET_G(v) TSRMG(appnet_globals_id, zend_appnet_globals *, v)
+#else
+#define APPNET_G(v) (appnet_globals.v)
+#endif
+*/
+
+
+#define APPNET_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(appnet, v)
+
+#if defined(ZTS) && defined(COMPILE_DL_APPNET)
+ZEND_TSRMLS_CACHE_EXTERN();
+#endif
+
+#endif  /* PHP_APPNET_H */

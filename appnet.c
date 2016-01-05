@@ -33,7 +33,7 @@ ZEND_DECLARE_MODULE_GLOBALS(appnet)
 
 /* True global resources - no need for thread safety here */
 static int le_appnet;
-
+ZEND_DECLARE_MODULE_GLOBALS(appnet)
 /* {{{ PHP_INI
  */
 /* Remove comments and fill if you need to have entries in php.ini
@@ -94,7 +94,14 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_tcpserver_on, 0, 0, 2 )
     ZEND_ARG_INFO(0, cb)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_tcpserver_send, 0, 0, 2 )
+    ZEND_ARG_INFO(0, fd)
+    ZEND_ARG_INFO(0, buffer)
+ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_tcpserver_close, 0, 0, 1 )
+    ZEND_ARG_INFO(0, fd )
+ZEND_END_ARG_INFO()
 
 /* {{{ appnet_functions[]
  *
@@ -105,10 +112,18 @@ const zend_function_entry appnet_functions[] = {
     PHP_ME(appTcpServer,    __construct,   arginfo_tcpserver_construct ,   ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
     PHP_ME(appTcpServer,    on,            arginfo_tcpserver_on , ZEND_ACC_PUBLIC )
     PHP_ME(appTcpServer,    run,           NULL ,                 ZEND_ACC_PUBLIC )
+    PHP_ME(appTcpServer,    send,          arginfo_tcpserver_send , ZEND_ACC_PUBLIC )
+    PHP_ME(appTcpServer,    close,         arginfo_tcpserver_close , ZEND_ACC_PUBLIC )
 	{NULL, NULL, NULL} 
 };
 /* }}} */
 
+
+
+static void php_appnet_init_globals(zend_appnet_globals* appnet_globals)
+{  
+
+}
 
 /* {{{ PHP_MINIT_FUNCTION
  */
@@ -117,6 +132,9 @@ PHP_MINIT_FUNCTION(appnet)
 	/* If you have INI entries, uncomment these lines
 	REGISTER_INI_ENTRIES();
 	*/
+        ZEND_INIT_MODULE_GLOBALS( appnet , php_appnet_init_globals , NULL);
+
+
 	zend_class_entry ce;
 	INIT_CLASS_ENTRY( ce , "appTcpServer" , appnet_functions );
 	appTcpServer = zend_register_internal_class( &ce TSRMLS_CC );

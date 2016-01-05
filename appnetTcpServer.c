@@ -9,9 +9,9 @@
 #include "php_appnet.h"
 
 #include <stdio.h>
-#include "include/aeserver.h"
+//#include "include/aeserver.h"
 
-#define APPNET_TCP_SERVER_CALLBACK_NUM             	4
+#define APPNET_TCP_SERVER_CALLBACK_NUM              4
 #define APPNET_TCP_SERVER_CB_onConnect              0 //accept new connection(worker)
 #define APPNET_TCP_SERVER_CB_onReceive              1 //receive data(worker)
 #define APPNET_TCP_SERVER_CB_onClose                2 //close tcp connection(worker)
@@ -32,15 +32,45 @@ ZEND_METHOD( appTcpServer , __construct )
     {
         return;
     }
-	
-    appnetTcpServInit( serv_host , serv_port );
-    php_printf( "I am __construct method port=%d \n" , serv_port );
+
+    aeServer* appserv = appnetTcpServInit( serv_host , serv_port );
+    //save to global var
+    appserv->ptr2 = getThis();
+    APPNET_G( appserv ) = appserv;
 }
 
 ZEND_METHOD( appTcpServer , run )
 {
+   //serv->ptr2 = getThis();
    appnetTcpServRun();
 }
+
+ZEND_METHOD( appTcpServer , send )
+{
+   size_t len = 0;
+   long fd;
+   char* buffer;
+   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ls", &fd,&buffer,&len ) == FAILURE)
+   {
+        return;
+   }
+   aeServer* appserv = APPNET_G( appserv );
+   int sendlen; 
+   sendlen = appserv->send( fd , buffer , len );
+}
+
+
+ZEND_METHOD( appTcpServer , close )
+{
+   int fd;
+   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd   ) == FAILURE)
+   {
+        return;
+   }
+//   serv->close( fd );
+}
+
+
 
 ZEND_METHOD( appTcpServer , on )
 {
@@ -82,20 +112,18 @@ static int appnet_set_callback(int key, zval* cb TSRMLS_DC)
     }
     *(appnet_tcpserv_callback[key]) =  *cb;
     zval_copy_ctor( appnet_tcpserv_callback[key]);
-    printf( "callback.....%x\n" , &appnet_tcpserv_callback[key] );
+    //printf( "callback.....%x\n" , &appnet_tcpserv_callback[key] );
     return AE_OK;
 }
 
 
 void appnetServerRecv( aeServer* s , userClient *c , int len )
 {
-
-      printf( "appnetServerRecv %d.............\n" , len );
      zval retval;
      zval args[3];
-     zval *cb_serv = ( zval*)s;
+     zval* zserv = (zval*)s->ptr2;
 
-     ZVAL_COPY_VALUE(&args[0], cb_serv );
+     args[0] = *zserv;
      ZVAL_LONG( &args[1] , c->fd );
      ZVAL_STRING(&args[2], c->recv_buffer );
 
@@ -154,12 +182,13 @@ void appnetServerConnect( aeServer* s , userClient *c )
 }
 
 
-void appnetTcpServInit( char* listen_ip , int port  )
+aeServer* appnetTcpServInit( char* listen_ip , int port  )
 {
      serv = aeServerCreate( listen_ip , port );
      serv->onConnect = 	&appnetServerConnect;
      serv->onRecv = 	&appnetServerRecv;
      serv->onClose = 	&appnetServerClose;
+     return serv;
 }
 
 void appnetTcpServRun()
