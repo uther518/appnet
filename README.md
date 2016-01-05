@@ -12,8 +12,10 @@ $server->on('connect', function( $serv , $fd ){
 
 
 $server->on('receive', function( $serv , $fd , $buffer ){
+    
     echo "Client Recv:[{$buffer}][{$fd}] \n";
     $server->send( $fd , "xxxxxxxx" );
+
 });
 
 
