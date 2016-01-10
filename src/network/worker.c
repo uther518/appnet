@@ -22,8 +22,6 @@ void initWorkerOnLoopStart( aeEventLoop *l)
 //子进程接收请求。。
 void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask)
 {
-    //不断的通知啊，要人命，考虑把listenfd改为阻塞模式,或者在主进程接收，将fd传给子进程,这样比较稳妥
-    //printf( "Worker acceptTcpHandler callback fd =%d , listenfd=%d........\n" , fd , aEvBase.listenfd );
     int client_port, client_fd, max = 1;
     char client_ip[46];
     char neterr[1024];
@@ -44,19 +42,27 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask)
 //子进程中
 void acceptCommonHandler( aeEventLoop *el,int fd,char* client_ip,int client_port, int flags)
 {
-    userClient* c;
-    if ((c = newClient( el ,fd)) == NULL)
-    {
-       	printf( "Worker Error registering fd event for the new client\n" );
-        close(fd); /* May be already closed, just ignore errors */
-        return;
+     if (fd != -1) {
+        anetNonBlock(NULL,fd);
+        anetEnableTcpNoDelay(NULL,fd);
+        /*
+        if (server.tcpkeepalive)
+            anetKeepAlive(NULL,fd,server.tcpkeepalive);
+        */
+        if (aeCreateFileEvent( el,fd,AE_READABLE,readFromClient, fd ) == -1 )
+        {
+            printf( "Worker createFileEvent error fd =%d  \n" ,fd );
+            close(fd);
+        }
     }
    
-    c->client_ip = client_ip;
-    c->client_port = client_port;
-    c->flags |= flags;
-
-    aEvBase.serv->onConnect( aEvBase.serv , c );
+    aEvBase.serv->connlist[fd].client_ip = client_ip;
+    aEvBase.serv->connlist[fd].client_port = client_port;
+    aEvBase.serv->connlist[fd].flags |= flags;
+    aEvBase.serv->connlist[fd].fd = fd;
+    
+//    aEvBase.serv->connlist[fd] = c;
+    aEvBase.serv->onConnect( aEvBase.serv , fd );
     
 }
 
@@ -95,15 +101,18 @@ void freeClient( userClient* c  )
 	aeDeleteFileEvent( aWorker.el,c->fd,AE_WRITABLE);
 	close(c->fd);
    } 
-   zfree(c); 
+   //zfree(c); 
 }
 
 
 void readFromClient(aeEventLoop *el, int fd, void *privdata, int mask)
 {
-    userClient *c = (userClient*) privdata;
+    printf( "readfromclient fd=%d.........\n" , fd );
     int nread, readlen,bufflen;
     readlen = 1024;
+
+    userClient* c = &aEvBase.serv->connlist[fd];
+
     memset( c->recv_buffer , 0 , sizeof(c->recv_buffer) );
     c->recv_length = 0;
     //if there use "read" need loop
@@ -112,16 +121,16 @@ void readFromClient(aeEventLoop *el, int fd, void *privdata, int mask)
         if (errno == EAGAIN) {
             nread = 0;
         } else {
-	 aEvBase.serv->onClose( aEvBase.serv, c );
+	 aEvBase.serv->onClose( aEvBase.serv,  &aEvBase.serv->connlist[fd] );
             return;
         }
     } else if (nread == 0) {
-        aEvBase.serv->onClose( aEvBase.serv , c );
+        aEvBase.serv->onClose( aEvBase.serv ,  &aEvBase.serv->connlist[fd] );
         return;
     }
 	
-	c->recv_length = nread;
-    aEvBase.serv->onRecv( aEvBase.serv, c ,nread );
+    c->recv_length = nread;
+    aEvBase.serv->onRecv( aEvBase.serv, &aEvBase.serv->connlist[fd] ,nread );
 }
 
 
@@ -213,5 +222,7 @@ void runWorkerProcess( int pidx ,int pipefd )
 	aeMain(aWorker.el);
 	aeDeleteEventLoop(aWorker.el);
         close( pipefd );
+        
+	shm_free( aEvBase.serv->connlist );
         printf( "Worker pid=%d exit...\n" , aWorker.pid );
 }

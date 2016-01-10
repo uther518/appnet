@@ -163,6 +163,7 @@ aeServer* aeServerCreate( char* ip,int port )
     bzero( &aEvBase , sizeof( aEvBase ));
     aEvBase.serv = serv;    
 
+
     if( aEvBase.running )
     {
 	  exit( 0 );
@@ -170,6 +171,8 @@ aeServer* aeServerCreate( char* ip,int port )
     aEvBase.running = 1;
     aEvBase.pid = getpid();
     aEvBase.usable_cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
+    serv->connlist = shm_calloc( 1024 , sizeof( userClient ));
+
 
     aEvBase.el = aeCreateEventLoop( 1024 );
     aeSetBeforeSleepProc(aEvBase.el,initOnLoopStart );
@@ -227,5 +230,6 @@ int startServer( aeServer* serv )
 	installWorkerProcess();	
 	runMasterLoop();
 	puts("Master Exit ,Everything is ok !!!\n");
+	shm_free( serv->connlist );
 	return 0;
 }

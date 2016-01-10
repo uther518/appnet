@@ -62,12 +62,25 @@ ZEND_METHOD( appTcpServer , send )
 
 ZEND_METHOD( appTcpServer , close )
 {
-   int fd;
+   long fd;
    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd   ) == FAILURE)
    {
         return;
    }
-//   serv->close( fd );
+
+   if( fd <= 0 )
+   {
+      printf( "app close fd=%d error \n" , fd );
+      return;
+  }
+
+   aeServer* appserv = APPNET_G( appserv );
+   userClient* uc = &appserv->connlist[fd];
+   if( uc == NULL )
+   {
+       return;
+   }
+   appserv->close( uc );
 }
 
 
@@ -117,56 +130,138 @@ static int appnet_set_callback(int key, zval* cb TSRMLS_DC)
 }
 
 
+#define SW_MAKE_STD_ZVAL(p)             zval _stack_zval_##p; p = &(_stack_zval_##p)
+#define sw_zval_add_ref(p)   Z_TRY_ADDREF_P(*p)
+#define sw_call_user_function_ex(function_table, object_pp, function_name, retval_ptr_ptr, param_count, params, no_separation, ymbol_table)\
+    ({zval  real_params[param_count];\
+    int i=0;\
+    for(;i<param_count;i++){\
+       real_params[i] = **params[i];\
+    }\
+    zval phpng_retval;\
+    *retval_ptr_ptr = &phpng_retval;\
+    call_user_function_ex(function_table,NULL,function_name,&phpng_retval,param_count,real_params,no_separation,NULL);})
+#define sw_zval_ptr_dtor(p)  zval_ptr_dtor(*p)
+	
+
 void appnetServerRecv( aeServer* s , userClient *c , int len )
 {
+    zval *zserv = (zval *) s->ptr2;
+    zval **args[3];
+
+    zval *zfd;
+    zval *zdata;
+    zval *retval = NULL;
+	
+    SW_MAKE_STD_ZVAL(zfd);
+    SW_MAKE_STD_ZVAL(zdata);
+
+    ZVAL_LONG(zfd, (long ) c->fd);
+
+    char* xx = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+    //ZVAL_STRINGL( zdata , xx , 5 );
+    ZVAL_STRINGL( zdata , c->recv_buffer, len );
+
+    args[0] = &zserv;
+    args[1] = &zfd;
+    args[2] = &zdata;
+
+     if (sw_call_user_function_ex(EG(function_table), NULL, appnet_tcpserv_callback[APPNET_TCP_SERVER_CB_onReceive] , &retval, 3, args, 0, NULL TSRMLS_CC) == FAILURE)
+    {
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "swoole_server: onReceive handler error");
+    }
+    if (EG(exception))
+    {
+        zend_exception_error(EG(exception), E_ERROR TSRMLS_CC);
+    }
+    sw_zval_ptr_dtor(&zfd);
+    sw_zval_ptr_dtor(&zdata);
+    if (retval != NULL)
+    {
+        sw_zval_ptr_dtor(&retval);
+    }
+}
+
+
+
+void appnetServerRecv3( aeServer* s , userClient *c , int len )
+{
+     aeServer* appserv = APPNET_G( appserv );
+
+//   int sendlen;
+//   sendlen = appserv->send( c->fd , c->recv_buffer  , len );
+//   printf( "sendlen=%d \n" , sendlen );
+
      zval retval;
      zval args[3];
-     zval* zserv = (zval*)s->ptr2;
+     zval *zserv = (zval*)appserv->ptr2;
+     zval zdata;
+     zval zfd;
+
+     php_printf( "appnetServerRecv===%s \n" , c->recv_buffer  );
+
+     ZVAL_LONG( &zfd , (long)c->fd );
+     ZVAL_STRINGL( &zdata , c->recv_buffer, len );
 
      args[0] = *zserv;
-     ZVAL_LONG( &args[1] , c->fd );
-     ZVAL_STRING(&args[2], c->recv_buffer );
+     args[1] = zfd;
+     args[2] = zdata;
 
-     if (call_user_function_ex(EG(function_table), NULL, 
-		appnet_tcpserv_callback[APPNET_TCP_SERVER_CB_onReceive] ,
-		&retval, 3, args, 0, NULL TSRMLS_CC) == SUCCESS TSRMLS_CC )
+     if (call_user_function_ex(EG(function_table), NULL, appnet_tcpserv_callback[APPNET_TCP_SERVER_CB_onReceive],&retval, 3, args, 0, NULL) == FAILURE )
+     {
+	 php_error_docref(NULL TSRMLS_CC, E_WARNING, "call_user_function_ex recv error");
+     } 
+
+     if (EG(exception))
+     {
+	php_error_docref(NULL, E_WARNING, "bind recv callback failed");
+     }
+
+     zval_ptr_dtor(&zfd);
+     zval_ptr_dtor(&zdata);
+	
+     if ( &retval != NULL)
      {
         zval_ptr_dtor(&retval);
-     } else {
-         php_error_docref(NULL, E_WARNING, "bind recv callback failed");
      }
- //    zval_ptr_dtor(&args[3]);
+     php_printf( "call_user_function_ex recv over \n");
+
 }
 
 void appnetServerClose( aeServer* s ,userClient *c )
 {
+    printf( "appnetServerClose fd=%d.....\n" , c->fd );
     zval retval;
     zval args[2];
-    zval *cb_serv = ( zval*)s;
-
-    ZVAL_COPY_VALUE(&args[0], cb_serv );
+    zval* zserv = (zval*)s->ptr2;
+    args[0] = *zserv;
     ZVAL_LONG( &args[1] , c->fd );
 
-    if (call_user_function_ex(EG(function_table), NULL, appnet_tcpserv_callback[APPNET_TCP_SERVER_CB_onClose] , &retval, 2 , args, 0, NULL) == SUCCESS )
+    if (call_user_function_ex(EG(function_table), NULL, appnet_tcpserv_callback[APPNET_TCP_SERVER_CB_onClose] ,
+  		 &retval, 2 , args, 0, NULL TSRMLS_CC) == SUCCESS )
     {
 		zval_ptr_dtor(&retval);
     }else{     
 		php_error_docref(NULL, E_WARNING, "bind close callback failed");
     }
     printf( "Worker Client closed  = %d  \n", c->fd );
-    serv->close( c );
+    s->close( c );
 }
 
-void appnetServerConnect( aeServer* s , userClient *c )
+void appnetServerConnect( aeServer* s ,int fd )
 {
-     printf( "New Client Connected fd =%d \n" , c->fd );
+     userClient c = s->connlist[fd];
+     printf( "New Client Connected fd =%d \n" , c.fd );
+   
      zval retval;
      zval args[2];
-     zval* cb_serv = (zval*)s;     
-     args[0] = *cb_serv;
-     ZVAL_LONG( &args[1],  c->fd  );
 
-     if( call_user_function_ex(EG(function_table), NULL, appnet_tcpserv_callback[APPNET_TCP_SERVER_CB_onConnect] , &retval, 2 , args , 0, NULL TSRMLS_CC) == SUCCESS )
+     zval* zserv = (zval*)s->ptr2;
+     args[0] = *zserv;
+     ZVAL_LONG( &args[1],  c.fd  );
+
+     if( call_user_function_ex(EG(function_table), NULL, appnet_tcpserv_callback[APPNET_TCP_SERVER_CB_onConnect] , 
+		&retval, 2 , args , 0, NULL TSRMLS_CC) == SUCCESS )
      {
          zval_ptr_dtor(&retval);
      } else {

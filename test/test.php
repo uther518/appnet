@@ -1,4 +1,5 @@
 <?php
+
 $server = new appTcpServer( "0.0.0.0" , 3011 );
 
 $server->on('connect', function( $serv , $fd ){ 
@@ -14,7 +15,6 @@ $server->on( 'close' , function( $serv , $fd ){
 });
 
 $server->run();
-
 
 
 

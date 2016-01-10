@@ -122,7 +122,7 @@ const zend_function_entry appnet_functions[] = {
 
 static void php_appnet_init_globals(zend_appnet_globals* appnet_globals)
 {  
-
+	printf( "php_appnet_init_globals....\n");
 }
 
 /* {{{ PHP_MINIT_FUNCTION
@@ -148,6 +148,7 @@ PHP_MINIT_FUNCTION(appnet)
  */
 PHP_MSHUTDOWN_FUNCTION(appnet)
 {
+	 printf( "PHP_MSHUTDOWN_FUNCTION....\n");
 	/* uncomment this line if you have INI entries
 	UNREGISTER_INI_ENTRIES();
 	*/

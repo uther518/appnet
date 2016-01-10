@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h> 
 #include "ae.h"
+#include "share_memory.h"
 #define MAXFD 1024
 #define WORKER_PROCESS_COUNT 3
 
@@ -49,9 +50,10 @@ struct _aeServer
    char* listen_ip;
    int   port;
    void *ptr2;
+   userClient* connlist;
 
    void (*runForever )( aeServer* serv );
-   void (*onConnect)( aeServer* serv , userClient *c );
+   void (*onConnect)( aeServer* serv , int fd );
    void (*onRecv)( aeServer *serv, userClient* client , int len );
    void (*onClose)( aeServer *serv , userClient *c );
    int  (*send)(  int fd, char* data , int len );

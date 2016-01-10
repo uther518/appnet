@@ -83,7 +83,6 @@ aeServer* appnetTcpServInit( char* serv_host , int serv_port );
 void appnetTcpServRun();
  
 
-
 ZEND_BEGIN_MODULE_GLOBALS(appnet)
         aeServer* appserv;
 ZEND_END_MODULE_GLOBALS(appnet)
@@ -97,9 +96,7 @@ extern ZEND_DECLARE_MODULE_GLOBALS(appnet);
 #endif
 */
 
-
 #define APPNET_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(appnet, v)
-
 #if defined(ZTS) && defined(COMPILE_DL_APPNET)
 ZEND_TSRMLS_CACHE_EXTERN();
 #endif
