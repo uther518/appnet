@@ -144,7 +144,7 @@ static int appnet_set_callback(int key, zval* cb TSRMLS_DC)
 #define sw_zval_ptr_dtor(p)  zval_ptr_dtor(*p)
 	
 
-void appnetServerRecv( aeServer* s , userClient *c , int len )
+void appnetServerRecv2( aeServer* s , userClient *c , int len )
 {
     zval *zserv = (zval *) s->ptr2;
     zval **args[3];
@@ -184,7 +184,7 @@ void appnetServerRecv( aeServer* s , userClient *c , int len )
 
 
 
-void appnetServerRecv3( aeServer* s , userClient *c , int len )
+void appnetServerRecv( aeServer* s , userClient *c , int len )
 {
      aeServer* appserv = APPNET_G( appserv );
 
@@ -193,19 +193,19 @@ void appnetServerRecv3( aeServer* s , userClient *c , int len )
 //   printf( "sendlen=%d \n" , sendlen );
 
      zval retval;
-     zval args[3];
+     zval *args;
      zval *zserv = (zval*)appserv->ptr2;
      zval zdata;
      zval zfd;
 
      php_printf( "appnetServerRecv===%s \n" , c->recv_buffer  );
+     args = safe_emalloc(sizeof(zval),3, 0);
 
      ZVAL_LONG( &zfd , (long)c->fd );
      ZVAL_STRINGL( &zdata , c->recv_buffer, len );
-
-     args[0] = *zserv;
-     args[1] = zfd;
-     args[2] = zdata;
+     ZVAL_COPY(&args[0], zserv  );
+     ZVAL_COPY(&args[1], &zfd  );
+     ZVAL_COPY(&args[2], &zdata  );
 
      if (call_user_function_ex(EG(function_table), NULL, appnet_tcpserv_callback[APPNET_TCP_SERVER_CB_onReceive],&retval, 3, args, 0, NULL) == FAILURE )
      {
