@@ -199,7 +199,7 @@ void appnetServerRecv( aeServer* s , userClient *c , int len )
      zval zfd;
 
      php_printf( "appnetServerRecv===%s \n" , c->recv_buffer  );
-     args = safe_emalloc(sizeof(zval),3, 0);
+     args = safe_emalloc(sizeof(zval),3, 1024 );
 
      ZVAL_LONG( &zfd , (long)c->fd );
      ZVAL_STRINGL( &zdata , c->recv_buffer, len );
@@ -217,9 +217,15 @@ void appnetServerRecv( aeServer* s , userClient *c , int len )
 	php_error_docref(NULL, E_WARNING, "bind recv callback failed");
      }
 
+
      zval_ptr_dtor(&zfd);
-     zval_ptr_dtor(&zdata);
-	
+     zval_ptr_dtor(&zdata);   
+
+     zval_ptr_dtor(&args[1]);
+     zval_ptr_dtor(&args[2]);
+
+     //zval_ptr_dtor(&zfd);
+     //zval_ptr_dtor(&zdata);	
      if ( &retval != NULL)
      {
         zval_ptr_dtor(&retval);
