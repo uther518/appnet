@@ -129,7 +129,7 @@ static int appnet_set_callback(int key, zval* cb TSRMLS_DC)
     return AE_OK;
 }
 
-
+/*
 #define SW_MAKE_STD_ZVAL(p)             zval _stack_zval_##p; p = &(_stack_zval_##p)
 #define sw_zval_add_ref(p)   Z_TRY_ADDREF_P(*p)
 #define sw_call_user_function_ex(function_table, object_pp, function_name, retval_ptr_ptr, param_count, params, no_separation, ymbol_table)\
@@ -182,7 +182,7 @@ void appnetServerRecv2( aeServer* s , userClient *c , int len )
     }
 }
 
-
+*/
 
 void appnetServerRecv( aeServer* s , userClient *c , int len )
 {
