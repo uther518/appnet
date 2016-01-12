@@ -10,13 +10,13 @@
 
 #include <stdio.h>
 //#include "include/aeserver.h"
-
+/*
 #define APPNET_TCP_SERVER_CALLBACK_NUM              4
 #define APPNET_TCP_SERVER_CB_onConnect              0 //accept new connection(worker)
 #define APPNET_TCP_SERVER_CB_onReceive              1 //receive data(worker)
 #define APPNET_TCP_SERVER_CB_onClose                2 //close tcp connection(worker)
 #define APPNET_TCP_SERVER_CB_onTimer                3 //timer call(master)
-
+*/
 zval* appnet_tcpserv_callback[APPNET_TCP_SERVER_CALLBACK_NUM];
 static int appnet_set_callback(int key, zval* cb TSRMLS_DC);
 aeServer* serv;
@@ -199,7 +199,7 @@ void appnetServerRecv( aeServer* s , userClient *c , int len )
      zval zfd;
 
      php_printf( "appnetServerRecv===%s \n" , c->recv_buffer  );
-     args = safe_emalloc(sizeof(zval),3, 1024 );
+     args = safe_emalloc(sizeof(zval),3, 0 );
 
      ZVAL_LONG( &zfd , (long)c->fd );
      ZVAL_STRINGL( &zdata , c->recv_buffer, len );
@@ -221,11 +221,9 @@ void appnetServerRecv( aeServer* s , userClient *c , int len )
      zval_ptr_dtor(&zfd);
      zval_ptr_dtor(&zdata);   
 
-     zval_ptr_dtor(&args[1]);
-     zval_ptr_dtor(&args[2]);
-
-     //zval_ptr_dtor(&zfd);
-     //zval_ptr_dtor(&zdata);	
+     //zval_ptr_dtor(&args[1]);
+     //zval_ptr_dtor(&args[2]);
+     efree( args );
      if ( &retval != NULL)
      {
         zval_ptr_dtor(&retval);

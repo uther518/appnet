@@ -25,7 +25,7 @@ int shareMemory_sysv_free(shareMemory *object, int rm);
 int shareMemory_mmap_free(shareMemory *object);
 
 void* shm_malloc(size_t size);
-void  shm_free(void *ptr);
+void  shm_free(void *ptr , int rm );
 void* shm_calloc(size_t num, size_t _size);
 void* shm_realloc(void *ptr, size_t new_size);
 

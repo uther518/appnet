@@ -223,6 +223,6 @@ void runWorkerProcess( int pidx ,int pipefd )
 	aeDeleteEventLoop(aWorker.el);
         close( pipefd );
         
-	shm_free( aEvBase.serv->connlist );
+	shm_free( aEvBase.serv->connlist , 0 );
         printf( "Worker pid=%d exit...\n" , aWorker.pid );
 }

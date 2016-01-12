@@ -49,7 +49,7 @@ void* shm_calloc(size_t num, size_t _size)
     }
 }
 
-void shm_free(void *ptr)
+void shm_free(void *ptr ,int rm )
 {
     //object对象在头部，如果释放了错误的对象可能会发生段错误
     shareMemory *object = ptr - sizeof(shareMemory);
@@ -61,7 +61,7 @@ void shm_free(void *ptr)
 #ifdef SHM_TYPE_MMAP 
     shareMemory_mmap_free(object);
 #else
-    shareMemory_sysv_free( object, 1 );
+    shareMemory_sysv_free( object, rm );
 #endif
 }
 
@@ -81,7 +81,7 @@ void* shm_realloc(void *ptr, size_t new_size)
     else
     {
         memcpy(new_ptr, ptr, object->size);
-        shm_free(ptr);
+        shm_free(ptr , 1 );
         return new_ptr;
     }
 }
@@ -164,10 +164,12 @@ void *shareMemory_sysv_create(shareMemory *object, int size, int key)
 
 int shareMemory_sysv_free(shareMemory *object, int rm)
 {
+    int shmid = object->shmid;
     int ret = shmdt(object->mem);
     if (rm == 1)
     {
-      //  shmctl(object->shmid, IPC_RMID, NULL);
+	printf( "shm free RMID shmid=%d.. \n", shmid );
+        shmctl( shmid, IPC_RMID, NULL);
     }
     return ret;
 }

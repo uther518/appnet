@@ -71,6 +71,14 @@ ZEND_TSRMLS_CACHE_EXTERN();
  */
 
 
+#define APPNET_TCP_SERVER_CALLBACK_NUM              4
+#define APPNET_TCP_SERVER_CB_onConnect              0 //accept new connection(worker)
+#define APPNET_TCP_SERVER_CB_onReceive              1 //receive data(worker)
+#define APPNET_TCP_SERVER_CB_onClose                2 //close tcp connection(worker)
+#define APPNET_TCP_SERVER_CB_onTimer                3 //timer call(master)
+extern zval* appnet_tcpserv_callback[APPNET_TCP_SERVER_CALLBACK_NUM];
+
+
 zend_class_entry *appTcpServer;
 
 ZEND_METHOD( appTcpServer , __construct );

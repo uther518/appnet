@@ -139,7 +139,7 @@ PHP_MINIT_FUNCTION(appnet)
 	INIT_CLASS_ENTRY( ce , "appTcpServer" , appnet_functions );
 	appTcpServer = zend_register_internal_class( &ce TSRMLS_CC );
 	
-	zend_declare_property_null(appTcpServer, "serv_ip", strlen("serv_ip"), ZEND_ACC_PUBLIC TSRMLS_CC);
+	//zend_declare_property_null(appTcpServer, "serv_ip", strlen("serv_ip"), ZEND_ACC_PUBLIC TSRMLS_CC);
 	return SUCCESS;
 }
 /* }}} */
@@ -173,7 +173,18 @@ PHP_RINIT_FUNCTION(appnet)
  */
 PHP_RSHUTDOWN_FUNCTION(appnet)
 {
-	return SUCCESS;
+    //zval* appnet_tcpserv_callback[APPNET_TCP_SERVER_CALLBACK_NUM];
+    int i;
+    for (i = 0; i < APPNET_TCP_SERVER_CALLBACK_NUM ; i++)
+    {
+        if ( appnet_tcpserv_callback[i] != NULL)
+        {
+            zval_dtor( appnet_tcpserv_callback[i] );
+            efree(appnet_tcpserv_callback[i]);
+	    php_printf( "efree request shutdown..\n ");
+        }
+    }
+    return SUCCESS;
 }
 /* }}} */
 

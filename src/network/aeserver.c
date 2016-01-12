@@ -60,7 +60,7 @@ void onReadableEvent(aeEventLoop *el, int fd, void *privdata, int mask)
 						pid_t pid;
 						int stat,pidx;
 						//WNOHANG
-						while ( ( pid = waitpid( -1, &stat, WNOHANG ) ) > 0 )
+						while ( ( pid = waitpid( -1, &stat, 0 ) ) > 0 )
 						{
 							for( pidx = 0; pidx < WORKER_PROCESS_COUNT; ++pidx )
 							{
@@ -230,6 +230,10 @@ int startServer( aeServer* serv )
 	installWorkerProcess();	
 	runMasterLoop();
 	puts("Master Exit ,Everything is ok !!!\n");
-	shm_free( serv->connlist );
+	shm_free( serv->connlist,1 );
+	if( serv != NULL )
+	{
+	   zfree( serv );
+	}
 	return 0;
 }
