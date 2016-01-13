@@ -28,7 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
+#include <errno.h>
 #include <sys/epoll.h>
 #include "ae.h"
 
@@ -85,7 +85,13 @@ static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
     if (mask & AE_WRITABLE) ee.events |= EPOLLOUT;
     ee.data.u64 = 0; /* avoid valgrind warning */
     ee.data.fd = fd;
-    if (epoll_ctl(state->epfd,op,fd,&ee) == -1)return -1;
+    if (epoll_ctl(state->epfd,op,fd,&ee) == -1)
+   {
+
+	printf( "[epoll_ctr1111 error epfd=%d,op=%d,fd=%d,errno=%d,error=%s]\n" , state->epfd , op , fd,errno,strerror(errno)  );
+	return -1;
+
+ }
     return 0;
 }
 

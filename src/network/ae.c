@@ -137,12 +137,13 @@ int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask,
 {
     if (fd >= eventLoop->setsize) {
         errno = ERANGE;
-        return AE_ERR;
+       return AE_ERR;
     }
     aeFileEvent *fe = &eventLoop->events[fd];
 
     if (aeApiAddEvent(eventLoop, fd, mask) == -1)
     {
+	printf( "aeApiAddEvent error...\n");
         return AE_ERR;
     }
     fe->mask |= mask;

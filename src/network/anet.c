@@ -444,6 +444,19 @@ int anetRead(int fd, char *buf, int count)
     return totlen;
 }
 
+int anetRecv(int fd, char *buf, int count)
+{
+    int nread, totlen = 0;
+    while(totlen != count) {
+        nread = recv(fd,buf,count-totlen,0);
+        if (nread == 0) return totlen;
+        if (nread == -1) return -1;
+        totlen += nread;
+        buf += nread;
+    }
+    return totlen;
+}
+
 /* Like write(2) but make sure 'count' is read before to return
  * (unless error is encountered) */
 int anetWrite(int fd, char *buf, int count)
@@ -563,6 +576,7 @@ static int anetGenericAccept(char *err, int s, struct sockaddr *sa, socklen_t *l
         }
         break;
     }
+   printf( "accept fd = %d \n" , fd );
     return fd;
 }
 

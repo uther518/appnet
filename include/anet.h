@@ -55,6 +55,7 @@ int anetTcpNonBlockBestEffortBindConnect(char *err, char *addr, int port, char *
 int anetUnixConnect(char *err, char *path);
 int anetUnixNonBlockConnect(char *err, char *path);
 int anetRead(int fd, char *buf, int count);
+int anetRecv(int fd, char *buf, int count);
 int anetResolve(char *err, char *host, char *ipbuf, size_t ipbuf_len);
 int anetResolveIP(char *err, char *host, char *ipbuf, size_t ipbuf_len);
 int anetTcpServer(char *err, int port, char *bindaddr, int backlog);
