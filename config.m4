@@ -46,7 +46,7 @@ if test "$PHP_APPNET" != "no"; then
   dnl # --with-appnet -> check for lib and symbol presence
   dnl LIBNAME=appnet # you may want to change this
   dnl LIBSYMBOL=appnet # you most likely want to change this 
-
+  
   dnl PHP_CHECK_LIBRARY($LIBNAME,$LIBSYMBOL,
   dnl [
   dnl   PHP_ADD_LIBRARY_WITH_PATH($LIBNAME, $APPNET_DIR/$PHP_LIBDIR, APPNET_SHARED_LIBADD)
@@ -58,12 +58,17 @@ if test "$PHP_APPNET" != "no"; then
   dnl ])
   dnl
   dnl PHP_SUBST(APPNET_SHARED_LIBADD)
+  
+  PHP_ADD_LIBRARY(pthread)
+  PHP_SUBST(APPNET_SHARED_LIBADD)
+  
   app_source="src/network/aeserver.c \
 	src/network/ae_epoll.c \
 	src/network/anet.c \
 	src/network/worker.c \
 	src/network/ae.c \
 	src/network/zmalloc.c \
+	src/network/ring_buffer.c \
 	src/network/share_memory.c"
-  PHP_NEW_EXTENSION(appnet, $app_source appnet.c appnetTcpServer.c,  $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1)
+  PHP_NEW_EXTENSION(appnet, $app_source appnet.c appnet_server.c,  $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1)
 fi

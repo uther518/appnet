@@ -32,7 +32,6 @@ ZEND_METHOD( appTcpServer , __construct )
 
 ZEND_METHOD( appTcpServer , run )
 {
-   //serv->ptr2 = getThis();
    appnetTcpServRun();
 }
 
@@ -67,16 +66,14 @@ ZEND_METHOD( appTcpServer , close )
   }
 
    aeServer* appserv = APPNET_G( appserv );
-   userClient* uc = &appserv->connlist[fd];
+   aeConnection* uc = &appserv->connlist[fd];
    if( uc == NULL )
    {
        php_printf( "close error,client obj is null");
        RETURN_FALSE;
    }
-  // appserv->close( uc );
-   //uc->close( fd );
-   uc->flags = 5;
-   php_printf( "close %d ok add=%ox" , fd , uc->close );
+   
+   appserv->close( fd );
    RETURN_TRUE;
 }
 
@@ -126,40 +123,31 @@ static int appnet_set_callback(int key, zval* cb TSRMLS_DC)
     return AE_OK;
 }
 
-
-void appnetServerRecv( aeServer* s , userClient *c , int len )
+void appnetServer_onRecv( aeServer* s, aeConnection *c, char* buff , int len )
 {
      aeServer* appserv = APPNET_G( appserv );
-
-//   int sendlen;
-//   sendlen = appserv->send( c->fd , c->recv_buffer  , len );
-//   printf( "sendlen=%d \n" , sendlen );
-
      zval retval;
      zval *args;
      zval *zserv = (zval*)appserv->ptr2;
      zval zdata;
      zval zfd;
-
-     php_printf( "appnetServerRecv===%s len=%d flags=%d \n" , c->recv_buffer , len ,c->flags );
      args = safe_emalloc(sizeof(zval),3, 0 );
 
      ZVAL_LONG( &zfd , (long)c->fd );
-     ZVAL_STRINGL( &zdata , c->recv_buffer, len );
+     ZVAL_STRINGL( &zdata , buff , len );
      ZVAL_COPY(&args[0], zserv  );
      ZVAL_COPY(&args[1], &zfd  );
      ZVAL_COPY(&args[2], &zdata  );
 
      if (call_user_function_ex(EG(function_table), NULL, appnet_tcpserv_callback[APPNET_TCP_SERVER_CB_onReceive],&retval, 3, args, 0, NULL) == FAILURE )
      {
-	 php_error_docref(NULL TSRMLS_CC, E_WARNING, "call_user_function_ex recv error");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "call_user_function_ex recv error");
      } 
-
+	 
      if (EG(exception))
      {
-	php_error_docref(NULL, E_WARNING, "bind recv callback failed");
+		php_error_docref(NULL, E_WARNING, "bind recv callback failed");
      }
-
 
      zval_ptr_dtor(&zfd);
      zval_ptr_dtor(&zdata);   
@@ -174,7 +162,7 @@ void appnetServerRecv( aeServer* s , userClient *c , int len )
 
 }
 
-void appnetServerClose( aeServer* s , userClient *c )
+void appnetServer_onClose( aeServer* s , aeConnection *c )
 {
    aeServer* appserv = APPNET_G( appserv );
    zval retval;
@@ -203,35 +191,12 @@ void appnetServerClose( aeServer* s , userClient *c )
    {
      zval_ptr_dtor(&retval);
    } 
-   s->close( c );
+   //s->close( c );
 }
 
 
-
-
-void appnetServerClose2( aeServer* s ,userClient *c )
+void appnetServer_onConnect( aeServer* s ,int fd )
 {
-    printf( "appnetServerClose fd=%d.....\n" , c->fd );
-    zval retval;
-    zval args[2];
-    zval* zserv = (zval*)s->ptr2;
-    args[0] = *zserv;
-    ZVAL_LONG( &args[1] , c->fd );
-
-    if (call_user_function_ex(EG(function_table), NULL, appnet_tcpserv_callback[APPNET_TCP_SERVER_CB_onClose] ,
-  		 &retval, 2 , args, 0, NULL TSRMLS_CC) == SUCCESS )
-    {
-		zval_ptr_dtor(&retval);
-    }else{     
-		php_error_docref(NULL, E_WARNING, "bind close callback failed");
-    }
-    printf( "Worker Client closed  = %d  \n", c->fd );
-    s->close( c );
-}
-
-void appnetServerConnect( aeServer* s ,int fd )
-{
-   printf( "New Client Connected fd =%d \n\n" , fd );
    aeServer* appserv = APPNET_G( appserv );
    zval retval;
    zval *args;
@@ -265,9 +230,9 @@ void appnetServerConnect( aeServer* s ,int fd )
 aeServer* appnetTcpServInit( char* listen_ip , int port  )
 {
      serv = aeServerCreate( listen_ip , port );
-     serv->onConnect = 	&appnetServerConnect;
-     serv->onRecv = 	&appnetServerRecv;
-     serv->onClose = 	&appnetServerClose;
+     serv->onConnect = 	&appnetServer_onConnect;
+     serv->onRecv = 	&appnetServer_onRecv;
+     serv->onClose = 	&appnetServer_onClose;
      return serv;
 }
 

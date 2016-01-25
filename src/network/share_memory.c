@@ -1,5 +1,6 @@
 
 #include "share_memory.h"
+#define SHM_TYPE_MMAP 1
 
 void* shm_malloc(size_t size)
 {
@@ -33,7 +34,7 @@ void* shm_calloc(size_t num, size_t _size)
 #ifdef SHM_TYPE_MMAP
     mem = shareMemory_mmap_create(&object, size, NULL);
 #else
-	mem = shareMemory_sysv_create(&object, size, 0 );
+   mem = shareMemory_sysv_create(&object, size, 0 );
 #endif
    if (mem == NULL)
     {
@@ -168,7 +169,6 @@ int shareMemory_sysv_free(shareMemory *object, int rm)
     int ret = shmdt(object->mem);
     if (rm == 1)
     {
-	printf( "shm free RMID shmid=%d.. \n", shmid );
         shmctl( shmid, IPC_RMID, NULL);
     }
     return ret;

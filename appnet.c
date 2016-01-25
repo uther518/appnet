@@ -122,7 +122,6 @@ const zend_function_entry appnet_functions[] = {
 
 static void php_appnet_init_globals(zend_appnet_globals* appnet_globals)
 {  
-	printf( "php_appnet_init_globals....\n");
 }
 
 /* {{{ PHP_MINIT_FUNCTION
@@ -181,7 +180,6 @@ PHP_RSHUTDOWN_FUNCTION(appnet)
         {
             zval_dtor( appnet_tcpserv_callback[i] );
             efree(appnet_tcpserv_callback[i]);
-	    php_printf( "efree request shutdown..\n ");
         }
     }
     return SUCCESS;

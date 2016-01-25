@@ -576,7 +576,6 @@ static int anetGenericAccept(char *err, int s, struct sockaddr *sa, socklen_t *l
         }
         break;
     }
-   printf( "accept fd = %d \n" , fd );
     return fd;
 }
 

@@ -6,108 +6,178 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdlib.h>
-#include <string.h> 
+#include <string.h>
+#include <pthread.h>
 #include "ae.h"
 #include "share_memory.h"
+#include "ring_buffer.h"
+
+
 #define MAXFD 1024
 #define WORKER_PROCESS_COUNT 3
+#define REACTOR_THREAD_COUNT 2
+
+#define TMP_BUFFER_LENGTH  65535
+#define RECV_BUFFER_LENGTH  65535
+#define SEND_BUFFER_LENGTH  65535
+
+#define __SLEEP_WAIT__	usleep( 10000 )
 
 
 
 struct aeEventLoop;
-typedef struct _userClient
+typedef struct _aeConnection
 {
   int flags;
   int fd;
-  char recv_buffer[10240];
-  int  recv_length; //last recv length
-  int  read_index;
+  char disable; 
   char* client_ip;
   int client_port;
-}userClient;
+  ringBuffer* recv_buffer;
+  //ringBuffer* send_buffer;
+}aeConnection;
 
+typedef struct _aeServer aeServer;
+typedef struct _aeReactor aeReactor;
+typedef struct _reactorThreadParam reactorThreadParam;
 
-typedef struct _workerInfo
+//reactor结构体
+struct _aeReactor
+{
+	void *object;
+    void *ptr;  //reserve
+	aeEventLoop *eventLoop;
+	
+	int epfd;
+	int id;
+	int event_num;
+    int max_event_num;
+    int running :1;
+};
+
+typedef struct _aeWorkerProcess
 {
     pid_t pid;
     int pipefd[2];
-}workerInfo;
+	//这里是自旋锁好，还是mutex好
+	pthread_mutex_t w_mutex;
+	pthread_mutex_t r_mutex;
+		
+}aeWorkerProcess;
 
-typedef struct _workerBase
+typedef struct _aeWorker
 {
-	int   pidx; //主进程中分的编号0-x
+	int pidx; //主进程中分的编号0-x
 	pid_t pid;
 	int pipefd;
 	int running;
+	int maxEvent;
 	aeEventLoop *el;
-	int maxClient;
-	//clientList.. zlist
-}aWorkerBase;
+}aeWorker;
 
-typedef struct _aeServer aeServer;
+typedef struct _aeReactorThread
+{
+    pthread_t thread_id;
+    aeReactor reactor;
+    reactorThreadParam* param;
+    //swLock lock;
+} aeReactorThread;
+
+typedef enum
+{
+	PIPE_EVENT_CONNECT = 1,
+	PIPE_EVENT_MESSAGE,
+	PIPE_EVENT_CLOSE,
+}PipeEventType;	
+
 struct _aeServer
 {
    char* listen_ip;
+   int listenfd;
    int   port;
+   int   running;
    void *ptr2;
-   userClient* connlist;
-
-   void (*runForever )( aeServer* serv );
-   void (*onConnect)( aeServer* serv , int fd );
-   void (*onRecv)( aeServer *serv, userClient* client , int len );
-   void (*onClose)( aeServer *serv , userClient *c );
+   int reactorNum;
+   int workerNum;
+   int maxConnect;
+   int connectNum;
+   
+   aeReactor* mainReactor;
+   aeConnection* connlist;
+   aeReactorThread *reactorThreads;
+   //pthread_barrier_t barrier;
+   aeWorkerProcess *workers; //主进程中保存的worker相关信息数组。
+   aeWorker* worker;	//子进程中的全局变量,子进程是独立空间，所以只要一个标识当前进程
+   int sigPipefd[2];
+   //reactor->client
+   int  (*sendToClient)(  int fd, char* data , int len );
+   void (*closeClient)( aeConnection *c  );
+   //worker->reactor
    int  (*send)(  int fd, char* data , int len );
-   void (*close)(   userClient *c  );
+   int  (*close)( int fd );
+   
+   void (*onConnect)( aeServer* serv ,int fd );
+   void (*onRecv)( aeServer *serv, aeConnection* c , char* buff , int len );
+   void (*onClose)( aeServer *serv , aeConnection *c );
+   void (*runForever )( aeServer* serv );
 };
 
-typedef struct _aEventBase
+struct _reactorThreadParam
 {
-	int listenfd;
-	int listenIPv6fd;
-	int evfd; //epollfd
-	pid_t pid;
-	int usable_cpu_num;
-	
-	aeEventLoop *el; 
-	int sig_pipefd[2];
-	workerInfo worker_process[ WORKER_PROCESS_COUNT ];
-	int running;
-    int worker_process_counter;
-	aeServer *serv;
-}aEventBase;
+	int thid;
+	aeServer* serv;
+};
 
+#define PIPE_DATA_LENG 1024
+#define PIPE_DATA_HEADER_LENG 1+2*sizeof(int)
 
-void initOnLoopStart( aeEventLoop *el );
-void onReadableEvent(aeEventLoop *el, int fd, void *privdata, int mask);
-void installWorkerProcess();
-void runMasterLoop();
+#pragma pack(1)
+typedef struct _aePipeData
+{
+	char type;
+	int len;
+	int connfd;
+	char data[PIPE_DATA_LENG];
+}aePipeData;
+
+void readFromWorker( aeEventLoop *el, int fd, void *privdata, int mask);
+void initOnLoopStart(struct aeEventLoop *el);
+void initThreadOnLoopStart( struct aeEventLoop *el );
+void onSignEvent( aeEventLoop *el, int fd, void *privdata, int mask);
+void freeClient( aeConnection* c  );
+void onReadDataFromClient( aeServer* serv , aeConnection* conn , int len  );
+void onCloseByClient( aeServer* serv , aeConnection* conn  );
+void readFromClient(aeEventLoop *el, int fd, void *privdata, int mask);
+int reactorSend2Worker(  aeServer* serv , int fd , aePipeData data );
+void acceptCommonHandler( aeServer* serv ,int fd,char* client_ip,int client_port, int flags);
+void onAcceptEvent( aeEventLoop *el, int fd, void *privdata, int mask);
+void runMainReactor( aeServer* serv );
 void masterSignalHandler( int sig );
-void installMasterSignal( aeEventLoop *l );
-aeServer* aeServerCreate( char* ip , int port );
+void addSignal( int sig, void(*handler)(int), int restart  );
+void installMasterSignal( aeServer* serv );
+aeServer* aeServerCreate( char* ip,int port );
+void createReactorThreads( aeServer* serv  );
+aeReactorThread getReactorThread( aeServer* serv, int i );
+void readFromWorkerPipe( aeEventLoop *el, int fd, void *privdata, int mask);
+void *reactorThreadRun(void *arg);
+int socketSetBufferSize(int fd, int buffer_size);
+void createWorkerProcess( aeServer* serv );
+void stopReactorThread( aeServer* serv  );
+void destroyServer( aeServer* serv );
 int startServer( aeServer* serv );
 
-//=============child process============
-
-userClient *newClient( aeEventLoop *el , int fd);
-void readFromClient(aeEventLoop *el, int fd, void *privdata, int mask);
 void initWorkerOnLoopStart( aeEventLoop *l);
-void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask);
-//======
-userClient* newClient( aeEventLoop *el , int fd);
-void freeClient( userClient* c  );
-//======
-void onRecv( userClient *c , int len );
-void onClose( userClient *c );
-//int onTimer(struct aeEventLoop *l,long long id,void *data);
-//======
-void acceptCommonHandler( aeEventLoop *el,int fd,char* client_ip,int client_port, int flags);
-void readFromClient(aeEventLoop *el, int fd, void *privdata, int mask);
+int sendMessageToReactor( int connfd , char* buff , int len );
+int sendCloseEventToReactor( int connfd  );
+
+int socketWrite(int __fd, void *__data, int __len);
+int send2ReactorThread( int connfd , aePipeData data );
+void recvFromPipe( aeEventLoop *el, int fd, void *privdata, int mask );
 int timerCallback(struct aeEventLoop *l,long long id,void *data);
-void finalCallback( struct aeEventLoop *l,void *data );
-void addSignal( int sig, void(*handler)(int), int restart );
+void finalCallback(struct aeEventLoop *l,void *data);
+void childTermHandler( int sig );
+void childChildHandler( int sig );
 void runWorkerProcess( int pidx ,int pipefd );
 
-
-aEventBase aEvBase;
-aWorkerBase aWorker;
+aeServer*  servG;
 #endif
