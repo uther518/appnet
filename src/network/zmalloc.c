@@ -202,7 +202,6 @@ void zfree(void *ptr) {
     void *realptr;
     size_t oldsize;
 #endif
-
     if (ptr == NULL) return;
 #ifdef HAVE_MALLOC_SIZE
     update_zmalloc_stat_free(zmalloc_size(ptr));

@@ -44,6 +44,8 @@ ringBuffer *ringBuffer_create(int length , int use_shm )
 	{
 		buffer->buffer = zcalloc(buffer->length);
 	}
+	
+
     return buffer;
 }
 

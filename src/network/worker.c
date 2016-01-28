@@ -15,35 +15,88 @@ void initWorkerOnLoopStart( aeEventLoop *l)
     //puts("worker Event Loop Init!!! \n");
 }
 
-
 int sendMessageToReactor( int connfd , char* buff , int len )
 {
-    aePipeData data;
-    data.type = PIPE_EVENT_MESSAGE;
-    data.connfd = connfd;
-    data.len = len;
-    memcpy( &data.data , buff , len );
-    return send2ReactorThread( connfd , data );
+    	aePipeData data = {0};
+    	data.type = PIPE_EVENT_MESSAGE;
+    	data.connfd = connfd;
+    	data.len = len;
+	
+	if (sdslen( servG->worker->send_buffer ) == 0 && len != 0 )
+	{
+		aeCreateFileEvent( servG->worker->el,
+				servG->worker->pipefd , AE_WRITABLE,
+				onWorkerPipeWritable,NULL );
+	}
+	
+	//append header
+    	servG->worker->send_buffer = sdscatlen( servG->worker->send_buffer , &data, PIPE_DATA_HEADER_LENG );
+	//append data
+	servG->worker->send_buffer = sdscatlen( servG->worker->send_buffer ,buff, len );
+}
+
+void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
+{
+	int pos = PIPE_DATA_HEADER_LENG;
+	int readlen = 0;
+	int needlen = ( data.len > PIPE_DATA_LENG ) ? PIPE_DATA_LENG : data.len;
+	int bodylen = 0;
+
+	if( data.len <= 0 )
+	{
+	    return;
+	}
+	
+  	memset( data.data ,0,sizeof( data.data )); 
+	readlen = read( pipe_fd , data.data  , needlen );
+	//printf( "readWorkerBodyFromPipe pipefd=%d, needlen=%d, len=%d , data=%s \n" , pipe_fd, needlen , readlen , data.data  );
+	if( servG->onRecv )
+	{
+		//将真实数据返回，去除包头
+		//如果一个请求是多个包发送过来的，会有问题吗
+		servG->onRecv( servG , &servG->connlist[data.connfd] , data.data , readlen  );
+	}
 }
 
 
-void recvFromPipe( aeEventLoop *el, int fd, void *privdata, int mask )
+void onWorkerPipeWritable( aeEventLoop *el, int fd, void *privdata, int mask )
 {
+    ssize_t nwritten;
+    nwritten = write( fd, servG->worker->send_buffer, sdslen(servG->worker->send_buffer));
+    if (nwritten <= 0) {
+        printf( "Worker I/O error writing to worker: %s", strerror(errno));
+		//退出吗，自杀..
+        return;
+    }
+
+	//offset
+    sdsrange(servG->worker->send_buffer,nwritten,-1);
+	
+	///if send_buffer no data need send, remove writable event
+    if (sdslen(servG->worker->send_buffer) == 0)
+    {
+        aeDeleteFileEvent( el, fd, AE_WRITABLE);
+    }
+	
+}
+
+//读取后要写到接收缓冲区吗,不需要。。,
+void onWorkerPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
+{
+    aePipeData data;
     int readlen =0;
-    char buf[PIPE_DATA_LENG+PIPE_DATA_HEADER_LENG];
-    
+
     //此处如果要把数据读取到大于包长的缓冲区中，不要用anetRead，否则就掉坑里了
-    readlen = anetRead( fd, buf, sizeof( buf )  );
+    //readlen = anetRead( fd, data, PIPE_DATA_HEADER_LENG  );
+    readlen = read(fd, &data , PIPE_DATA_HEADER_LENG );
     if( readlen == 0 )
     {
         close( fd );
     }
-    else if( readlen > 0 )
+    else if( readlen == PIPE_DATA_HEADER_LENG )
     {
-        aePipeData data;
-        memcpy( &data , &buf ,sizeof( data ) );
-       
-        //connect,read,close
+    	//printf( "onWorkerPipeReadable len=%d \n" , readlen );
+	    //connect,read,close
         if( data.type == PIPE_EVENT_CONNECT )
         {
             if( servG->onConnect )
@@ -53,10 +106,7 @@ void recvFromPipe( aeEventLoop *el, int fd, void *privdata, int mask )
         }
         else if( data.type == PIPE_EVENT_MESSAGE )
         {
-            if( servG->onRecv )
-            {
-                servG->onRecv( servG , &servG->connlist[data.connfd] , data.data , data.len  );
-            }
+	    readWorkerBodyFromPipe(  fd ,data );
         }
         else if( data.type == PIPE_EVENT_CLOSE )
         {
@@ -72,8 +122,6 @@ void recvFromPipe( aeEventLoop *el, int fd, void *privdata, int mask )
     }
 }
 
-
-
 int sendCloseEventToReactor( int connfd  )
 {
     aePipeData data;
@@ -82,7 +130,6 @@ int sendCloseEventToReactor( int connfd  )
     data.len = 0;
     return send2ReactorThread( connfd , data );
 }
-
 
 int socketWrite(int __fd, void *__data, int __len)
 {
@@ -116,14 +163,12 @@ int socketWrite(int __fd, void *__data, int __len)
 
 int send2ReactorThread( int connfd , aePipeData data )
 {
-    int sendlen;
-    int pipefd =  servG->worker->pipefd;
-    sendlen = socketWrite( pipefd , &data , sizeof( data ) );
-    if( sendlen < 0 )
-    {
-        printf( "send2ReactorThread error errno=%d \n" , errno );
-    }
-	return sendlen;
+	if (sdslen( servG->worker->send_buffer ) == 0 && data.len != 0 )
+		aeCreateFileEvent( servG->worker->el,
+				servG->worker->pipefd , AE_WRITABLE,
+				onWorkerPipeWritable,NULL );
+					
+    servG->worker->send_buffer = sdscatlen( servG->worker->send_buffer ,&data, PIPE_DATA_HEADER_LENG );
 }
 
 
@@ -162,7 +207,6 @@ void childChildHandler( int sig )
  */
 void runWorkerProcess( int pidx ,int pipefd )
 {
-
     //每个进程私有的。
     aeWorker* worker = zmalloc( sizeof( aeWorker ));
     worker->pid = getpid();
@@ -180,28 +224,27 @@ void runWorkerProcess( int pidx ,int pipefd )
     aeSetBeforeSleepProc( worker->el,initWorkerOnLoopStart );
     int res;
     
+	worker->send_buffer = sdsempty();
 
     //监听父进程管道事件
     res = aeCreateFileEvent( worker->el,
-                            worker->pipefd,
-                            AE_READABLE,
-                            recvFromPipe,NULL
+                             worker->pipefd,
+                             AE_READABLE,
+                             onWorkerPipeReadable,NULL
                             );
-    
-
 	printf("Worker Run pid=%d and listen pipefd=%d is ok? [%d]\n",worker->pid,pipefd,res==0 );
 	
 	
     //定时器
     //res = aeCreateTimeEvent(el,5*1000,timerCallback,NULL,finalCallback);
     //printf("create time event is ok? [%d]\n",!res);
-    
     aeMain(worker->el);
     aeDeleteEventLoop(worker->el);
     close( pipefd );
 	
 	printf( "Worker pid=%d exit...\n" , worker->pid );
-    zfree( worker );    
+    sdsfree( worker->send_buffer );
+	zfree( worker );   
     shm_free( servG->connlist , 0 );
 	exit( 0 );
    
