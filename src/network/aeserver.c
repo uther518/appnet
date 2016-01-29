@@ -504,7 +504,7 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
         else if( data.type == PIPE_EVENT_CLOSE )
         {
             //close client socket
-	    printf( "onMasterPipeReadable PIPE_EVENT_CLOSE fd=%d \n" , data.connfd  );
+			printf( "onMasterPipeReadable PIPE_EVENT_CLOSE fd=%d \n" , data.connfd  );
             if( servG->closeClient )
             {
            	if( sdslen( servG->connlist[data.connfd].send_buffer ) == 0 )
@@ -530,7 +530,7 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
         }
         else
         {
-            printf( "Reactor Recv errno=%d,errstr=%s \n" , errno , strerror( errno ));
+            //printf( "Reactor Recv errno=%d,errstr=%s \n" , errno , strerror( errno ));
         }
     }	
 }

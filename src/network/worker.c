@@ -240,12 +240,12 @@ void runWorkerProcess( int pidx ,int pipefd )
     //printf("create time event is ok? [%d]\n",!res);
     aeMain(worker->el);
     aeDeleteEventLoop(worker->el);
-    close( pipefd );
-	
+    
 	printf( "Worker pid=%d exit...\n" , worker->pid );
     sdsfree( worker->send_buffer );
 	zfree( worker );   
     shm_free( servG->connlist , 0 );
+	close( pipefd );
 	exit( 0 );
    
 }
