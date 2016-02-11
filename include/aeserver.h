@@ -11,7 +11,13 @@
 #include "ae.h"
 #include "share_memory.h"
 #include "sds.h"
+#include "dict.h"
+#include "http_request.h"
+#include "websocket.h"
 
+
+#define AE_TRUE        1
+#define AE_FALSE       0
 
 #define MAXFD 1024
 #define WORKER_PROCESS_COUNT 3
@@ -22,7 +28,6 @@
 #define SEND_BUFFER_LENGTH  65535
 
 #define __SLEEP_WAIT__	usleep( 10000 )
-
 struct aeEventLoop;
 
 typedef struct _aeConnection
@@ -32,8 +37,13 @@ typedef struct _aeConnection
   char disable; 
   char* client_ip;
   int client_port;
-  sds send_buffer;
-  sds recv_buffer;
+  handshake hs; //websocket握手数据
+  httpHeader hh; //http/websocket header
+  sds send_buffer; //发送给客户端的缓冲区
+  sds recv_buffer; //接收缓冲区
+  
+//  aeEventLoop *el;
+  char protoType;
 }aeConnection;
 
 typedef struct _aeServer aeServer;
@@ -71,8 +81,12 @@ typedef struct _aeWorker
 	int pipefd;
 	int running;
 	int maxEvent;
+        int connfd;
+        int start;
 	aeEventLoop *el;
 	sds send_buffer;
+	sds recv_buffer;
+
 }aeWorker;
 
 typedef struct _aeReactorThread
@@ -90,6 +104,16 @@ typedef enum
 	PIPE_EVENT_CLOSE,
 }PipeEventType;	
 
+
+typedef enum
+{
+	PROTOCOL_TYPE_TCP_ONLY = 0,
+	PROTOCOL_TYPE_HTTP_ONLY,
+	PROTOCOL_TYPE_WEBSOCKET_ONLY,
+	PROTOCOL_TYPE_HTTP_MIX,
+	PROTOCOL_TYPE_WEBSOCKET_MIX,
+}ProtocolType;	
+
 struct _aeServer
 {
    char* listen_ip;
@@ -101,6 +125,7 @@ struct _aeServer
    int workerNum;
    int maxConnect;
    int connectNum;
+   int protocolType;
    
    aeReactor* mainReactor;
    aeConnection* connlist;
@@ -119,6 +144,9 @@ struct _aeServer
    void (*onConnect)( aeServer* serv ,int fd );
    void (*onRecv)( aeServer *serv, aeConnection* c , char* buff , int len );
    void (*onClose)( aeServer *serv , aeConnection *c );
+   void (*onStart)( aeServer *serv  );
+   void (*onFinal)( aeServer *serv  );
+
    void (*runForever )( aeServer* serv );
 };
 
@@ -130,6 +158,13 @@ struct _reactorThreadParam
 
 #define PIPE_DATA_LENG 1024
 #define PIPE_DATA_HEADER_LENG 1+2*sizeof(int)
+
+
+#define  CONTINUE_RECV 1
+#define  BREAK_RECV  2
+#define  CLOSE_CONNECT  3
+
+
 
 #pragma pack(1)
 typedef struct _aePipeData
@@ -184,7 +219,10 @@ void finalCallback(struct aeEventLoop *l,void *data);
 void childTermHandler( int sig );
 void childChildHandler( int sig );
 void runWorkerProcess( int pidx ,int pipefd );
+void createWorkerTask(  int connfd , char* buffer , int len , int eventType , char* from );
+aeEventLoop* getThreadEventLoop( int connfd );
 
+void timerAdd( int ms , void* cb , void* params  );
 
 aeServer*  servG;
 #endif

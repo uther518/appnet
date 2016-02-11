@@ -45,7 +45,7 @@ void onSignEvent( aeEventLoop *el, int fd, void *privdata, int mask)
         {
             return;
         }
-        else if( ret == 0 )
+       else if( ret == 0 )
         {
             return;
         }
@@ -105,18 +105,20 @@ void onSignEvent( aeEventLoop *el, int fd, void *privdata, int mask)
     }
 }
 
-//关闭连接，并移除监听事件
+//关闭连接，并移除监听事件;
 void freeClient( aeConnection* c  )
 {
     if (c->fd != -1)
     {
         c->disable = 1;
+	//zfree( c->hs );
         int reactor_id = c->fd%servG->reactorNum;
         aeEventLoop* el = servG->reactorThreads[reactor_id].reactor.eventLoop;
         aeDeleteFileEvent( el ,c->fd,AE_READABLE);
         aeDeleteFileEvent( el,c->fd,AE_WRITABLE);
-		sdsfree( c->send_buffer );	
-		servG->connectNum -= 1;
+	sdsfree( c->send_buffer );
+	sdsfree( c->recv_buffer );	
+	servG->connectNum -= 1;
         close(c->fd);
     }
     //zfree(c);
@@ -135,16 +137,12 @@ void onCloseByClient(  aeEventLoop *el, void *privdata , aeServer* serv , aeConn
     data.len = 0;    
     int worker_id = conn->fd % servG->workerNum;
  
-    if( privdata == NULL )
-    {
-		printf( "Privdata NULL in onCloseByClient \n");
-    }  
-
     setPipeWritable( el , privdata , worker_id );	
     pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
     servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer, &data, PIPE_DATA_HEADER_LENG );
     pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
-	
+
+    //如果这里施放了，子进程要用共享内存，就没法用了	
     freeClient( conn );
 }
 
@@ -157,6 +155,12 @@ void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask )
 		return;
 	}
 
+	if( sdslen( servG->connlist[fd].send_buffer ) <=0 )
+	{
+		aeDeleteFileEvent( el, fd , AE_WRITABLE);
+		return;
+	}
+
 	nwritten = write( fd, servG->connlist[fd].send_buffer, sdslen(servG->connlist[fd].send_buffer));
 	if (nwritten <= 0)
 	{
@@ -166,65 +170,163 @@ void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask )
 	}
 	
 	//offset
-    sdsrange(servG->connlist[fd].send_buffer,nwritten,-1);
-	
+       sdsrange(servG->connlist[fd].send_buffer,nwritten,-1);
+  //     sdsclear( servG->connlist[fd].send_buffer );	
 	///if send_buffer no data need send, remove writable event
     if (sdslen(servG->connlist[fd].send_buffer) == 0)
     {
         aeDeleteFileEvent( el, fd, AE_WRITABLE);
-		if( servG->connlist[fd].disable == 2 )
-		{
-		   freeClient( &servG->connlist[fd] );
-		}
+	if( servG->connlist[fd].disable == 2 || servG->connlist[fd].protoType == HTTP )
+	{
+		freeClient( &servG->connlist[fd] );
+	}
     }
 }
 
-//recv from client,write to worker pipe buffer,
+
+void createWorkerTask(  int connfd , char* buffer , int len , int eventType , char* from )
+{
+	aePipeData  data = {0};
+	unsigned int datalen;
+	
+	data.len = len;
+	data.type = eventType;
+        data.connfd = connfd;
+        if( len > 0 )
+	{	
+		memcpy( data.data , buffer , len  );
+	}
+	datalen = PIPE_DATA_HEADER_LENG + data.len;
+	
+	//获取当前线程的el事件循环句柄
+	aeEventLoop* reactor_el = getThreadEventLoop( connfd );
+	int worker_id  = connfd % servG->workerNum;
+	
+	setPipeWritable( reactor_el , worker_id , worker_id  );
+	//append
+	pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
+	servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , &data, datalen );
+	pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
+	
+}
+
+
+//解析包头，是否需要循环recv,
+//http,websocket不完整，才需要继续收，其它直接发送给客户端
+//http,websocket 将包体解析出来，只把body发送给客户端
+//tcp直接投递给客户端
+int parseRequestMessage( int connfd , sds buffer , int len )
+{
+	//判断服务器开启可接受的协议类型
+	//如果服务器设置只接收tcp，那么全部以tcp协议处理，是半包还是粘包，交由逻辑处理
+	int ret;
+	if( servG->protocolType == PROTOCOL_TYPE_TCP_ONLY )
+	{
+		servG->connlist[connfd].protoType = TCP;
+		createWorkerTask( connfd , buffer , len , PIPE_EVENT_MESSAGE , "PROTOCOL_TYPE_TCP_ONLY" );
+		return BREAK_RECV;
+	}
+	else
+	{
+		//当前包如果是http协议，或者是websocket协议
+		if( isHttpProtocol( buffer  , 8 ) == AE_TRUE  //如果是第一个请求，会走这里
+			|| servG->connlist[connfd].protoType == WEBSOCKET  //半包的websocket或第一个握手后的请求会走这里
+			|| servG->connlist[connfd].protoType == HTTP  //半包的http走这里，
+		 )
+		{
+			if( servG->connlist[connfd].protoType != WEBSOCKET  )
+			{
+				servG->connlist[connfd].protoType = HTTP;
+				//其实websocket握手的时候，也是做为http处理，因为此时只能根据GET推断出，是http协议
+				//在解析的过程中，才可以推断出是websocket,所以握手后的recv的消息就是websocket
+				//返回是否需要继续收包
+				memset( &servG->connlist[connfd].hh , 0 , sizeof( httpHeader ));
+				ret = httpRequestParse(  connfd , buffer , sdslen( buffer ) );
+				
+			}
+			else
+			{
+				ret = wesocketRequestRarse(  connfd , 
+					buffer , len , 
+					&servG->connlist[connfd].hh ,  
+					&servG->connlist[connfd].hs
+				);
+
+			}
+			
+			return ret;
+		}
+		//若是tcp直接返回
+		else
+		{
+			 servG->connlist[connfd].protoType = TCP;
+                	 createWorkerTask( connfd , buffer , len , PIPE_EVENT_MESSAGE , "PROTOCOL_TYPE_TCP" );
+			 return BREAK_RECV;
+		}
+	}
+}
+
+
 void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
 {
-    aeServer* serv = servG; 
-    aePipeData  data = {0};
-    data.type = PIPE_EVENT_MESSAGE;
-    data.connfd = fd;
-
-    ssize_t nread;
-    unsigned int readlen, rcvbuflen ,datalen;
-    readlen = sizeof(data.data);
-    int worker_id = fd % serv->workerNum;
-	
 	//
 	//worker send_buffer
 	//sndbuf ->|----c1----|---c2------|--c3-----|-----c2---|---c3-------|
 	//c1  	 ->|---header---|--------body------------|
 	//client recv buffer
-
+	
+	//通常情况下，这个pos应该是0,如果包完整,并copy到send_buffer中后，将其清空
+	//如果http,websocket下包没收全，则不要清空
+    aeServer* serv = servG;
+    ssize_t nread;
+    unsigned int readlen, rcvbuflen ,datalen;
+    int worker_id = fd % serv->workerNum;
+    char buffer[1024];
+	
     while(1) {
-        rcvbuflen = sdslen( servG->workers[worker_id].send_buffer );
-        nread = read(fd, &data.data ,readlen);
-		
+       // rcvbuflen = sdslen( servG->workers[worker_id].send_buffer );
+    	nread = 0;
+	memset( &buffer , 0 , sizeof( buffer )  );
+        nread = read(fd, &buffer , sizeof( buffer ));
+
         if (nread == -1 && errno == EAGAIN) return; /* No more data ready. */
         if (nread == 0 )
-		{
-			onCloseByClient(  el , privdata , serv,  &serv->connlist[fd] );
+        {
+            onCloseByClient(  el , privdata , serv,  &serv->connlist[fd] );
             return;
-        } 
-		else
-		{
-            		/* Read data and recast the pointer to the new buffer. */
-			// |--header--|-------data-------|
-			data.len = nread;
-			datalen = PIPE_DATA_HEADER_LENG + data.len;
-	
-			setPipeWritable( el , privdata , worker_id  );
-			pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
-			//append
-			servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , &data, datalen );
-			pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
-			
-			rcvbuflen += datalen;
-			return;
         }
+        else if( nread > 0 )
+        {
+		//此处必须的是sdscatlen 保证binnary安全，而不能是sdscat，
+		servG->connlist[fd].recv_buffer = sdscatlen( servG->connlist[fd].recv_buffer , &buffer , nread );
+		int ret = parseRequestMessage( fd , servG->connlist[fd].recv_buffer  , sdslen( servG->connlist[fd].recv_buffer ) );
+			
+		if( ret == BREAK_RECV )
+		{
+			sdsrange( servG->connlist[fd].recv_buffer ,  nread , -1);
+			nread = 0;
+				//此处只清理一个完整包长度，要考虑粘包情况header->complet_length，
+				//TODO::
+			        //sdsclear(  servG->connlist[fd].recv_buffer );
+				break;
+			}
+			else if( ret == CONTINUE_RECV )
+			{
+				printf( "Continue recv...\n");
+				continue;
+			}
+			else
+			{
+				return;
+			}
+                        return;
+        }
+	else
+	{
+		printf( "Recv Errno=%d,Err=%s \n" , errno, strerror( errno ) );
+	}
     }
+
 }
 
 //此函数必须在写入send_buffer前执行
@@ -238,6 +340,16 @@ void setPipeWritable( aeEventLoop *el , void *privdata ,  int worker_id  )
 			onMasterPipeWritable, worker_id );
 	}			
 }
+
+
+
+
+aeEventLoop* getThreadEventLoop( int connfd )
+{
+	int reactor_id = connfd % servG->reactorNum;	
+	return servG->reactorThreads[reactor_id].reactor.eventLoop;
+}
+
 
 
 void acceptCommonHandler( aeServer* serv ,int fd,char* client_ip,int client_port, int flags)
@@ -262,7 +374,10 @@ void acceptCommonHandler( aeServer* serv ,int fd,char* client_ip,int client_port
 	serv->connlist[fd].fd = fd;
 	serv->connlist[fd].disable = 0;
 	serv->connlist[fd].send_buffer = sdsempty();
-	
+	serv->connlist[fd].recv_buffer = sdsempty();
+	serv->connlist[fd].protoType = 0;
+	bzero( & serv->connlist[fd].hs , sizeof( handshake  ) );
+		
 	int reactor_id = fd % serv->reactorNum;
 	int worker_id  = fd % serv->workerNum;
 
@@ -272,6 +387,8 @@ void acceptCommonHandler( aeServer* serv ,int fd,char* client_ip,int client_port
         anetEnableTcpNoDelay(NULL,fd);
 
 		aeEventLoop* el = serv->reactorThreads[reactor_id].reactor.eventLoop;
+		
+		
         if (aeCreateFileEvent( el ,fd,AE_READABLE, 
 				onClientReadable, &fd ) == AE_ERR )
         {
@@ -285,6 +402,7 @@ void acceptCommonHandler( aeServer* serv ,int fd,char* client_ip,int client_port
     	data.len = 0;
 		serv->connectNum += 1;	
 		setPipeWritable( el , NULL , worker_id );
+	//	serv->connlist[fd].el = el;
 
 		int sendlen = PIPE_DATA_HEADER_LENG;	
 		pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
@@ -387,22 +505,22 @@ aeServer* aeServerCreate( char* ip,int port )
 {
     aeServer* serv = (aeServer*)zmalloc( sizeof(aeServer ));
     serv->runForever = startServer;
-	serv->send =  sendMessageToReactor;
+    serv->send =  sendMessageToReactor;
     serv->close = sendCloseEventToReactor;
-	serv->sendToClient = anetWrite;
-	serv->closeClient = freeClient;
+    serv->sendToClient = anetWrite;
+    serv->closeClient = freeClient;
     serv->listen_ip = ip;
     serv->port = port;
-	serv->connectNum = 0;
+    serv->connectNum = 0;
+    serv->protocolType = PROTOCOL_TYPE_WEBSOCKET_MIX;
     serv->reactorNum = 2;
     serv->workerNum = 3;
-	serv->maxConnect = 1024;
+    serv->maxConnect = 1024;
 	
     serv->connlist = shm_calloc( serv->maxConnect , sizeof( aeConnection ));
     serv->reactorThreads = zmalloc( serv->reactorNum * sizeof( aeReactorThread  ));
     serv->workers = zmalloc( serv->workerNum * sizeof(aeWorkerProcess));
     serv->mainReactor = zmalloc( sizeof( aeReactor ));
-    
     serv->mainReactor->eventLoop = aeCreateEventLoop( 10 );
     aeSetBeforeSleepProc( serv->mainReactor->eventLoop ,initOnLoopStart );
     
@@ -458,7 +576,6 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 	}
 	
 	nread = read( fd , data.data , needlen );
-	//if (nread == -1 && errno == EAGAIN) return;
 	if( nread < 0 )
 	{
 	 	if (nread == -1 && errno == EAGAIN) return;
@@ -474,8 +591,8 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 			onClientWritable,
 			NULL 
 		);
-	}			
-	servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer ,data.data, nread );
+	}
+	servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , data.data, nread );
 }
 
 //recv from pipe
@@ -498,24 +615,24 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
         {
             if( servG->sendToClient )
             {
-		readBodyFromPipe( el, fd , data );
+				readBodyFromPipe( el, fd , data );
             }
         }
         else if( data.type == PIPE_EVENT_CLOSE )
         {
             //close client socket
 			printf( "onMasterPipeReadable PIPE_EVENT_CLOSE fd=%d \n" , data.connfd  );
-            if( servG->closeClient )
-            {
-           	if( sdslen( servG->connlist[data.connfd].send_buffer ) == 0 )
-		{
-	           servG->closeClient( &servG->connlist[data.connfd] );
-		}
-		else
-		{
-		   servG->connlist[data.connfd].disable = 2;
-		}
-            }
+			if( servG->closeClient )
+			{
+				if( sdslen( servG->connlist[data.connfd].send_buffer ) == 0 )
+				{
+					servG->closeClient( &servG->connlist[data.connfd] );
+				}
+				else
+				{
+					servG->connlist[data.connfd].disable = 2;
+				}
+			}
         }
         else
         {
@@ -543,18 +660,17 @@ void onMasterPipeWritable(  aeEventLoop *el, int pipe_fd, void *privdata, int ma
  
     pthread_mutex_lock( &servG->workers[worker_id].r_mutex );
     nwritten = write( pipe_fd , servG->workers[worker_id].send_buffer, sdslen(servG->workers[worker_id].send_buffer));
-    
-	//pipe fd error...
-    if (nwritten <= 0) {
-        printf( "I/O error writing to pipefd: %s", strerror(errno));
-		close( pipe_fd );
+    //pipe fd error...
+    if (nwritten <= 0)
+    {
+	close( pipe_fd );
         return;
     }
    
-	//offset
+    //offset
     sdsrange(servG->workers[worker_id].send_buffer,nwritten,-1);
 	
-	///if send_buffer no data need send, remove writable event
+    ///if send_buffer no data need send, remove writable event
     if (sdslen(servG->workers[worker_id].send_buffer) == 0)
     {
         aeDeleteFileEvent( el, pipe_fd , AE_WRITABLE);
@@ -702,6 +818,8 @@ int freeConnectBuffers( aeServer* serv )
 		if( serv->connlist[i].disable == 0 )
 		{
 			sdsfree( serv->connlist[i].send_buffer );
+			sdsfree( serv->connlist[i].recv_buffer );
+			//zfree( serv->connlist[i].hs );
 			count++;
 		}
 		if( count ==  serv->connectNum )
@@ -718,19 +836,19 @@ void destroyServer( aeServer* serv )
     //1,停止,释放线程
     stopReactorThread( serv );
     
-	//释放收发缓冲区
+    //释放收发缓冲区
     freeConnectBuffers( serv );
 	
-	//2,释放共享内存
-	shm_free( serv->connlist,1 );
+    //2,释放共享内存
+    shm_free( serv->connlist,1 );
     
     //3,释放由zmalloc分配的内存
     if( serv->reactorThreads )
     {
         zfree( serv->reactorThreads );
     }
-	//4,释放N个woker缓冲区
-	freeWorkerBuffer( serv );
+    //4,释放N个woker缓冲区
+    freeWorkerBuffer( serv );
 	
     if( serv->workers )
     {

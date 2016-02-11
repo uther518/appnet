@@ -69,6 +69,11 @@ if test "$PHP_APPNET" != "no"; then
 	src/network/ae.c \
 	src/network/zmalloc.c \
 	src/network/sds.c \
+	src/network/dict.c \
+	src/network/http_request.c \
+	src/network/sha1.c \
+	src/network/base64.c \
+	src/network/websocket.c \
 	src/network/share_memory.c"
   PHP_NEW_EXTENSION(appnet, $app_source appnet.c appnet_server.c,  $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1)
 fi

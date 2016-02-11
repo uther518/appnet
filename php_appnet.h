@@ -71,24 +71,29 @@ ZEND_TSRMLS_CACHE_EXTERN();
  */
 
 
-#define APPNET_TCP_SERVER_CALLBACK_NUM              4
-#define APPNET_TCP_SERVER_CB_onConnect              0 //accept new connection(worker)
-#define APPNET_TCP_SERVER_CB_onReceive              1 //receive data(worker)
-#define APPNET_TCP_SERVER_CB_onClose                2 //close tcp connection(worker)
-#define APPNET_TCP_SERVER_CB_onTimer                3 //timer call(master)
-extern zval* appnet_tcpserv_callback[APPNET_TCP_SERVER_CALLBACK_NUM];
+#define APPNET_SERVER_CALLBACK_NUM              6
+#define APPNET_SERVER_CB_onConnect              0 //accept new connection(worker)
+#define APPNET_SERVER_CB_onReceive              1 //receive data(worker)
+#define APPNET_SERVER_CB_onClose                2 //close tcp connection(worker)
+#define APPNET_SERVER_CB_onStart		3
+#define APPNET_SERVER_CB_onFinal		4
+#define APPNET_SERVER_CB_onTimer                5 //timer call(master)
 
+extern zval* appnet_serv_callback[APPNET_SERVER_CALLBACK_NUM];
 
-zend_class_entry *appTcpServer;
+zend_class_entry *appnetServer;
 
-ZEND_METHOD( appTcpServer , __construct );
-ZEND_METHOD( appTcpServer , on );
-ZEND_METHOD( appTcpServer , run );
-ZEND_METHOD( appTcpServer , send );
-ZEND_METHOD( appTcpServer , close );
+ZEND_METHOD( appnetServer , __construct );
+ZEND_METHOD( appnetServer , on );
+ZEND_METHOD( appnetServer , run );
+ZEND_METHOD( appnetServer , send );
+ZEND_METHOD( appnetServer , close );
+ZEND_METHOD( appnetServer , getHeader );
+ZEND_METHOD( appnetServer , timerAdd  );
+ZEND_METHOD( appnetServer , timerRemove  );
 
-aeServer* appnetTcpServInit( char* serv_host , int serv_port );
-void appnetTcpServRun();
+aeServer* appnetServInit( char* serv_host , int serv_port );
+void appnetServRun();
  
 
 ZEND_BEGIN_MODULE_GLOBALS(appnet)
