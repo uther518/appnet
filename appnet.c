@@ -113,12 +113,17 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_server_timer_remove, 0, 0, 1 )
     ZEND_ARG_INFO(0, tid )
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_server_set_option, 0, 0, 2 )
+    ZEND_ARG_INFO(0, key )
+    ZEND_ARG_INFO(0, val )
+ZEND_END_ARG_INFO()
+
 /* {{{ appnet_functions[]
  *
  * Every user visible function must have an entry in appnet_functions[].
  */
 const zend_function_entry appnet_functions[] = {
-	PHP_FE(confirm_appnet_compiled,	NULL)		/* For testing, remove later. */
+    PHP_FE(confirm_appnet_compiled,	NULL)		/* For testing, remove later. */
     PHP_ME(appnetServer,    __construct,   arginfo_appnet_server_construct ,   ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
     PHP_ME(appnetServer,    on,            arginfo_appnet_server_on , ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer,    run,           NULL ,                 ZEND_ACC_PUBLIC )
@@ -127,6 +132,8 @@ const zend_function_entry appnet_functions[] = {
     PHP_ME(appnetServer,    getHeader,     NULL ,                 ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer,    timerAdd,      arginfo_appnet_server_timer_add , ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer,    timerRemove,   arginfo_appnet_server_timer_remove , ZEND_ACC_PUBLIC )
+    PHP_ME(appnetServer ,   setOption,     arginfo_appnet_server_set_option , ZEND_ACC_PUBLIC )
+    PHP_ME(appnetServer,    getInfo,     NULL ,                 ZEND_ACC_PUBLIC )
 	{NULL, NULL, NULL} 
 };
 /* }}} */
@@ -146,11 +153,28 @@ PHP_MINIT_FUNCTION(appnet)
 	*/
         ZEND_INIT_MODULE_GLOBALS( appnet , php_appnet_init_globals , NULL);
 
-
 	zend_class_entry ce;
 	INIT_CLASS_ENTRY( ce , "appnetServer" , appnet_functions );
 	appnetServer = zend_register_internal_class( &ce TSRMLS_CC );
-	
+
+
+	#define REGISTER_APPNET_CLASS_CONST_LONG(const_name, value) \
+	zend_declare_class_constant_long( appnetServer, const_name, sizeof(const_name)-1, (zend_long)value);
+
+	#define REGISTER_APPNET_CLASS_CONST_STRING(const_name, value) \
+	zend_declare_class_constant_stringl( appnetServer, const_name, sizeof(const_name)-1, value, sizeof(value)-1);
+
+
+	REGISTER_APPNET_CLASS_CONST_STRING("OPT_WORKER_NUM", OPT_WORKER_NUM );
+	REGISTER_APPNET_CLASS_CONST_STRING("OPT_REACTOR_NUM", OPT_REACTOR_NUM );	
+	REGISTER_APPNET_CLASS_CONST_STRING("OPT_MAX_CONNECTION", OPT_MAX_CONNECTION );
+	REGISTER_APPNET_CLASS_CONST_STRING("OPT_PROTOCOL_TYPE", OPT_PROTOCOL_TYPE );
+	REGISTER_APPNET_CLASS_CONST_LONG("PROTOCOL_TYPE_TCP_ONLY", PROTOCOL_TYPE_TCP_ONLY );
+	REGISTER_APPNET_CLASS_CONST_LONG("PROTOCOL_TYPE_HTTP_ONLY", PROTOCOL_TYPE_HTTP_ONLY  );
+	REGISTER_APPNET_CLASS_CONST_LONG("PROTOCOL_TYPE_WEBSOCKET_ONLY", PROTOCOL_TYPE_WEBSOCKET_ONLY );
+	REGISTER_APPNET_CLASS_CONST_LONG("PROTOCOL_TYPE_HTTP_MIX", PROTOCOL_TYPE_HTTP_MIX );
+	REGISTER_APPNET_CLASS_CONST_LONG("PROTOCOL_TYPE_WEBSOCKET_MIX", PROTOCOL_TYPE_WEBSOCKET_MIX );
+
 	//zend_declare_property_null(appTcpServer, "serv_ip", strlen("serv_ip"), ZEND_ACC_PUBLIC TSRMLS_CC);
 	return SUCCESS;
 }
@@ -160,7 +184,7 @@ PHP_MINIT_FUNCTION(appnet)
  */
 PHP_MSHUTDOWN_FUNCTION(appnet)
 {
-	 printf( "PHP_MSHUTDOWN_FUNCTION....\n");
+	printf( "PHP_MSHUTDOWN_FUNCTION....\n");
 	/* uncomment this line if you have INI entries
 	UNREGISTER_INI_ENTRIES();
 	*/

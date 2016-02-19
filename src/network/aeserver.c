@@ -433,6 +433,7 @@ aeServer* aeServerCreate( char* ip,int port )
     serv->runForever = startServer;
     serv->send =  sendMessageToReactor;
     serv->close = sendCloseEventToReactor;
+    serv->setOption = setOption;
     serv->sendToClient = anetWrite;
     serv->closeClient = freeClient;
     serv->listen_ip = ip;
@@ -442,14 +443,16 @@ aeServer* aeServerCreate( char* ip,int port )
     serv->reactorNum = 1;
     serv->workerNum = 1;
     serv->maxConnect = 1024;
+
+/*
     serv->connlist = shm_calloc( serv->maxConnect , sizeof( aeConnection ));
     serv->reactorThreads = zmalloc( serv->reactorNum * sizeof( aeReactorThread  ));
     serv->workers = zmalloc( serv->workerNum * sizeof(aeWorkerProcess));
     serv->mainReactor = zmalloc( sizeof( aeReactor ));
     serv->mainReactor->eventLoop = aeCreateEventLoop( 10 );
     aeSetBeforeSleepProc( serv->mainReactor->eventLoop ,initOnLoopStart );
-    //安装信号装置
     installMasterSignal( serv  );
+  */
     servG = serv;
     return serv;
 }
@@ -801,21 +804,87 @@ void destroyServer( aeServer* serv )
     }
     puts("Master Exit ,Everything is ok !!!\n");
 }
+
+int setOption( char* key , char* val )
+{
+	if( strcmp( key , OPT_WORKER_NUM ) == 0 )
+	{
+	    if( atoi( val ) <= 0 )
+	    {
+		return AE_FALSE;
+	    }	   
+	    servG->workerNum = atoi( val );
+	}
+	else if( strcmp( key , OPT_REACTOR_NUM ) == 0 )
+	{
+	    if( atoi( val ) <= 0 )
+            {
+                return AE_FALSE;
+            }
+	    servG->reactorNum = atoi( val ); 
+	}
+	else if( strcmp( key , OPT_MAX_CONNECTION  ) == 0 )
+        {
+            if( atoi( val ) <= 0 )
+            {
+                return AE_FALSE;
+            }
+            servG->maxConnect = atoi( val ); 
+        }
+	else if( strcmp( key , OPT_PROTOCOL_TYPE  ) == 0 )
+        {
+	    int type =  atoi( val );
+            if( type < 0 || type > PROTOCOL_TYPE_WEBSOCKET_MIX )
+            {
+                return AE_FALSE;
+            }
+            servG->protocolType = type; 
+        }
+	else
+	{
+	    printf( "Unkown Option\n" );
+	    return AE_FALSE;
+	}
+
+	if( servG->reactorNum > servG->workerNum )
+	{
+	   servG->reactorNum = servG->workerNum;
+	}
+
+	return AE_TRUE;
+}
+
+void initServer(  aeServer* serv )
+{
+    serv->connlist = shm_calloc( serv->maxConnect , sizeof( aeConnection ));
+    serv->reactorThreads = zmalloc( serv->reactorNum * sizeof( aeReactorThread  ));
+    serv->workers = zmalloc( serv->workerNum * sizeof(aeWorkerProcess));
+    serv->mainReactor = zmalloc( sizeof( aeReactor ));
+    serv->mainReactor->eventLoop = aeCreateEventLoop( 10 );
+    aeSetBeforeSleepProc( serv->mainReactor->eventLoop ,initOnLoopStart );
+    installMasterSignal( serv  );
+}
+
+
+
 int startServer( aeServer* serv )
 {
     int sockfd[2];
     int sock_count = 0;
-    //监听TCP端口，这个接口其实可以同时监听多个端口的�?
+
+    initServer( serv );
+
     listenToPort( serv->listen_ip, serv->port , sockfd , &sock_count );
+
     serv->listenfd = sockfd[0];
-    //创建进程要先于线程，否则，会连线程一起fork�?好像会这样。。�?
+
     createWorkerProcess( serv );
-    //创建子线�?每个线程都监听所有worker管道
+
     createReactorThreads( serv );
+
     __SLEEP_WAIT__;
-    //运行主reactor
     runMainReactor( serv );
-    //退�?
+
     destroyServer( serv );
     return 0;
 }

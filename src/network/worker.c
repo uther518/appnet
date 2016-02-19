@@ -59,7 +59,9 @@ int isValidConnfd( int fd )
 }
 void timerAdd( int ms , void* cb , void* params  )
 {
-    aeCreateTimeEvent( servG->worker->el, ms , cb  , params  , NULL );
+  
+   printf( "Worker Timer Add.....\n");
+   aeCreateTimeEvent( servG->worker->el, ms , cb  , params  , NULL );
 }
 void timerRemove( int tid  )
 {
@@ -288,7 +290,8 @@ void runWorkerProcess( int pidx ,int pipefd )
     worker->el = aeCreateEventLoop( worker->maxEvent );
     aeSetBeforeSleepProc( worker->el,initWorkerOnLoopStart );
     int res;
-	//监听父进程管道事�?
+
+    //监听父进程管道事�?
     res = aeCreateFileEvent( worker->el,
                              worker->pipefd,
                              AE_READABLE,

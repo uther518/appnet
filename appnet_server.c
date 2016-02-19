@@ -38,6 +38,41 @@ ZEND_METHOD( appnetServer , __construct )
     APPNET_G( appserv ) = appserv;
 }
 
+ZEND_METHOD( appnetServer , setOption )
+{
+    size_t key_len;
+    size_t val_len;
+    char*  key;
+    char*  val;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &key, &key_len, &val , &val_len ) == FAILURE)
+    {
+        return;
+    }
+    aeServer* appserv = APPNET_G( appserv );
+    int ret = appserv->setOption( key,val );
+    if( ret == AE_TRUE )
+    {
+	RETURN_TRUE;
+    }
+    RETURN_FALSE;
+}
+
+ZEND_METHOD( appnetServer , getInfo )
+{
+   array_init(return_value);
+   aeServer* appserv = APPNET_G( appserv );
+   if( appserv == NULL )
+   {
+	return;
+   }
+   add_assoc_long(return_value, "worker_num" ,appserv->workerNum );
+   add_assoc_long(return_value, "reactor_num" , appserv->reactorNum  );
+   add_assoc_long(return_value, "max_connection" , appserv->maxConnect );
+   add_assoc_long(return_value, "protocol" , appserv->protocolType );
+}
+
+
 ZEND_METHOD( appnetServer , run )
 {
    appnetServRun();
@@ -91,6 +126,8 @@ ZEND_METHOD( appnetServer , send )
 
 int onTimer( aeEventLoop *l, int id,void *data  )
 {
+
+     printf( "AppnetServer onTimer Callback..\n");
      timerArgs* timerArg = (timerArgs*)data;
 
      zval* callback = (zval*)timerArg->func;
@@ -281,6 +318,12 @@ void appnetServer_onRecv( aeServer* s, aeConnection *c, sds buff , int len )
 
 void appnetServer_onClose( aeServer* s , aeConnection *c )
 {
+   if( c == NULL )
+   {
+	printf( "Error appnetServer_onClose Connection is NULL\n");
+	return;
+   }
+
    aeServer* appserv = APPNET_G( appserv );
    zval retval;
    zval *args;

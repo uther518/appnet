@@ -19,6 +19,12 @@
 #define AE_TRUE        1
 #define AE_FALSE       0
 
+#define OPT_WORKER_NUM  "opt_worker_num"
+#define OPT_REACTOR_NUM "opt_reactor_num"
+#define OPT_MAX_CONNECTION "opt_max_connection"
+#define OPT_PROTOCOL_TYPE  "opt_protocol_type"
+
+
 #define MAXFD 1024
 #define WORKER_PROCESS_COUNT 3
 #define REACTOR_THREAD_COUNT 2
@@ -140,6 +146,7 @@ struct _aeServer
    //worker->reactor
    int  (*send)(  int fd, char* data , int len );
    int  (*close)( int fd );
+   int  (*setOption)( char* key , char* val );
    
    void (*onConnect)( aeServer* serv ,int fd );
    void (*onRecv)( aeServer *serv, aeConnection* c , char* buff , int len );
@@ -224,6 +231,8 @@ void childChildHandler( int sig );
 void runWorkerProcess( int pidx ,int pipefd );
 void createWorkerTask(  int connfd , char* buffer , int len , int eventType , char* from );
 aeEventLoop* getThreadEventLoop( int connfd );
+
+int setOption( char* key , char* val );
 
 void timerAdd( int ms , void* cb , void* params  );
 void testsds( char* str );
