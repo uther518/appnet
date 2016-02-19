@@ -122,65 +122,65 @@ class Websocket
 
 dl( "appnet.so");
 $server = new appnetServer( "0.0.0.0" , 3011 );
-$server->setOption( appnetServer::OPT_WORKER_NUM , 4 );
-$server->setOption( appnetServer::OPT_REACTOR_NUM, 2 );
-$server->setOption( appnetServer::OPT_MAX_CONNECTION , 10000 );
-$server->setOption( appnetServer::OPT_PROTOCOL_TYPE , appnetServer::PROTOCOL_TYPE_TCP_ONLY );
-$server->setOption( appnetServer::OPT_PROTOCOL_TYPE , appnetServer::PROTOCOL_TYPE_HTTP_ONLY );
-$server->setOption( appnetServer::OPT_PROTOCOL_TYPE , appnetServer::PROTOCOL_TYPE_WEBSOCKET_ONLY );
+
+$server->setOption( APPNET_OPT_WORKER_NUM , 1 );
+$server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
+$server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
+$server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_TCP_ONLY );
+$server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_HTTP_ONLY );
+$server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_WEBSOCKET_ONLY );
 
 $info = $server->getInfo();
-print_r( $info );
 
-$server->on('connect', function( $serv , $fd )
+$server->on( APPNET_EVENT_CONNECT , function( $server , $fd )
 { 
 	$pid = posix_getpid();
 	echo "Client:Connect:{$fd} pid={$pid} \n"; 
 });
 
-$server->on('receive', function( $serv , $fd , $buffer )
+$server->on( APPNET_EVENT_RECV , function( $server , $fd , $buffer )
 {
 	echo "Client Recv:[{$buffer}][{$fd}] \n";
-	$header = $serv->getHeader();
+	$header = $server->getHeader();
 	if( $header['Protocol'] == "WEBSOCKET" )
 	{
-	   Websocket::onReceive( $serv , $fd,  $buffer );
+	   Websocket::onReceive( $server , $fd,  $buffer );
 	}
 	else
 	{
-           $serv->send( $fd , $buffer );
+           $server->send( $fd , $buffer );
 	}
 });
 
-$server->on( 'close' , function( $serv , $fd )
+$server->on( APPNET_EVENT_CLOSE , function( $server , $fd )
 { 
 	echo "Client Close:$fd \n";
 });
 
 //on worker run start,you can init env.
-$server->on( 'start' , function( $serv  )
+$server->on( APPNET_EVENT_START , function( $server  )
 {
 	$pid = posix_getpid();
         echo "On Worker Start!! pid={$pid} \n";
 
 	//3000ms means 3second	
-	$serv->timerAdd( 3000 , "onTimerCallback" , "paramsxxx" );
+	$server->timerAdd( 3000 , "onTimerCallback" , "paramsxxx" );
 });
 
 //on worker shutdown,you must save data in last time.
-$server->on( 'final' , function( $serv  )
+$server->on( APPNET_EVENT_FINAL , function( $server  )
 {
 	$pid = posix_getpid();
         echo "On Worker Final!! pid={$pid} \n";
 });
 
-function onTimerCallback( $serv , $timer_id ,  $params )
+function onTimerCallback( $server , $timer_id ,  $params )
 {
 	$pid = posix_getpid();
 	echo "onTimerCallback  ok,worker pid={$pid},timer_id={$timer_id}...\n";
 	
 	//if do not remove it, it will be call this function forever	
-	$serv->timerRemove( $timer_id );		
+	$server->timerRemove( $timer_id );		
 }
 $server->run();
 

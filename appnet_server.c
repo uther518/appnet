@@ -241,12 +241,12 @@ ZEND_METHOD( appnetServer , on )
     }
     
     char *callback[APPNET_SERVER_CALLBACK_NUM] = {
-        "connect",
-        "receive",
-        "close",
-	"start",
-	"final",
-        "timer"
+        APPNET_EVENT_CONNECT,
+        APPNET_EVENT_RECV,
+        APPNET_EVENT_CLOSE,
+	APPNET_EVENT_START,
+	APPNET_EVENT_FINAL,
+        APPNET_EVENT_TIMER
     };
     for (i = 0; i < APPNET_SERVER_CALLBACK_NUM; i++)
     {

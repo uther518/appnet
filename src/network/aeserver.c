@@ -26,7 +26,7 @@ int createResponse( int connfd , char* buff , int len , char prototype , sds res
         sdscat( response , "Content-Type: text/html\r\n" );
         sdscat( response , "\r\n" );
         sdscat( response ,  buff );
-        printf( "Response:%s \n" , response );
+        //printf( "Response:%s \n" , response );
         return sdslen( response );
     }
     else
@@ -207,7 +207,6 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
         nread = 0;
         memset( &buffer , 0 , sizeof( buffer )  );
         nread = read(fd, &buffer , sizeof( buffer ));
-        printf( "Read From Client:len=%d \n" , nread );
         if (nread == -1 && errno == EAGAIN)
         {
             return;    /* No more data ready. */
@@ -362,7 +361,6 @@ void runMainReactor( aeServer* serv )
 
 void masterKillHandler( int sig )
 {
-    printf( "Master Stoped spid=%d..\n", getpid() );
     kill( 0, SIGTERM);
     pid_t pid;
     int stat,pidx;
@@ -381,7 +379,7 @@ void masterKillHandler( int sig )
     aeStop( servG->mainReactor->eventLoop );
     servG->running = 0;
     //destroyServer( servG );
-    printf( "Master Stoped pid=%d..\n", getpid() );
+    //printf( "Master Stoped pid=%d..\n", getpid() );
 }
 void addSignal( int sig, void(*handler)(int), int restart  )
 {
@@ -399,7 +397,7 @@ void addSignal( int sig, void(*handler)(int), int restart  )
 
 void installMasterSignal( aeServer* serv )
 {
-    printf( "installMasterSignal...pid=%d \n" , getpid() );
+    //printf( "installMasterSignal...pid=%d \n" , getpid() );
     /* 忽略Broken Pipe信号 */
     signal(SIGPIPE, SIG_IGN);
     /* 处理kill信号 */

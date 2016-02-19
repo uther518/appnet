@@ -79,6 +79,15 @@ ZEND_TSRMLS_CACHE_EXTERN();
 #define APPNET_SERVER_CB_onFinal		4
 #define APPNET_SERVER_CB_onTimer                5 //timer call(master)
 
+#define APPNET_EVENT_CONNECT  "connect"
+#define APPNET_EVENT_RECV     "receive"
+#define APPNET_EVENT_CLOSE    "close"
+#define APPNET_EVENT_START    "start"
+#define APPNET_EVENT_FINAL    "final"
+#define APPNET_EVENT_TIMER    "timer"
+
+
+
 extern zval* appnet_serv_callback[APPNET_SERVER_CALLBACK_NUM];
 
 zend_class_entry *appnetServer;

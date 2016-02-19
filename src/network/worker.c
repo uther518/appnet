@@ -60,7 +60,6 @@ int isValidConnfd( int fd )
 void timerAdd( int ms , void* cb , void* params  )
 {
   
-   printf( "Worker Timer Add.....\n");
    aeCreateTimeEvent( servG->worker->el, ms , cb  , params  , NULL );
 }
 void timerRemove( int tid  )
@@ -303,7 +302,7 @@ void runWorkerProcess( int pidx ,int pipefd )
     aeDeleteEventLoop(worker->el);
     servG->onFinal( servG );
    
-    printf( "Worker pid=%d exit...\n" , worker->pid );
+    //printf( "Worker pid=%d exit...\n" , worker->pid );
     sdsfree( worker->send_buffer );
     sdsfree( worker->recv_buffer );
     zfree( worker );
