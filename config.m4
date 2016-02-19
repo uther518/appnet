@@ -17,9 +17,24 @@ PHP_ARG_ENABLE(appnet, whether to enable appnet support,
 dnl Make sure that the comment is aligned:
 [  --enable-appnet           Enable appnet support])
 
+AC_MSG_CHECKING([if compiling with clang])
+AC_COMPILE_IFELSE([
+    AC_LANG_PROGRAM([], [[
+        #ifndef __clang__
+            not clang
+        #endif
+    ]])],
+    [CLANG=yes], [CLANG=no]
+)
+AC_MSG_RESULT([$CLANG])
+
+if test "$CLANG" = "yes"; then
+    CFLAGS="$CFLAGS -std=gnu89"
+fi
+
 if test "$PHP_APPNET" != "no"; then
   dnl Write more examples of tests here...
-
+  PHP_ADD_LIBRARY(pthread)
   dnl # --with-appnet -> check with-path
   dnl SEARCH_PATH="/usr/local /usr"     # you might want to change this
   dnl SEARCH_FOR="/include/appnet.h"  # you most likely want to change this
@@ -58,10 +73,12 @@ if test "$PHP_APPNET" != "no"; then
   dnl ])
   dnl
   dnl PHP_SUBST(APPNET_SHARED_LIBADD)
+
+  CFLAGS="-Wall -pthread $CFLAGS"
+  LDFLAGS="$LDFLAGS -lpthread"
   
-  PHP_ADD_LIBRARY(pthread)
   PHP_SUBST(APPNET_SHARED_LIBADD)
-  
+  PHP_ADD_LIBRARY(pthread, 1, APPNET_SHARED_LIBADD)  
   app_source="src/network/aeserver.c \
 	src/network/ae_epoll.c \
 	src/network/anet.c \
