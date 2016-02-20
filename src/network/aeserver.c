@@ -1,5 +1,4 @@
 /*************************************************************************
- 多线程的网络IO，多进程的任务处理服务器�?
 
  1,reactor->worker   reactor pipe[0] fd   pthread_create
  2,worker->reactor   worker  pipe[1] fd   worker_create
@@ -156,18 +155,14 @@ int parseRequestMessage( int connfd , sds buffer , int len )
     }
     else
     {
-        //当前包如果是http协议，或者是websocket协议
-        if( isHttpProtocol( buffer  , 8 ) == AE_TRUE  //如果是第一个请求，会走这里
-                || servG->connlist[connfd].protoType == WEBSOCKET  //半包的websocket或第一个握手后的请求会走这�?
-                || servG->connlist[connfd].protoType == HTTP  //半包的http走这里，
+        if( isHttpProtocol( buffer  , 8 ) == AE_TRUE 
+            || servG->connlist[connfd].protoType == WEBSOCKET                 
+	    || servG->connlist[connfd].protoType == HTTP 
           )
         {
             if( servG->connlist[connfd].protoType != WEBSOCKET  )
             {
                 servG->connlist[connfd].protoType = HTTP;
-                //其实websocket握手的时候，也是做为http处理，因为此时只能根据GET推断出，是http协议
-                //在解析的过程中，才可以推断出是websocket,所以握手后的recv的消息就是websocket
-                //返回是否需要继续
                 memset( &servG->connlist[connfd].hh , 0 , sizeof( httpHeader ));
                 ret = httpRequestParse(  connfd , buffer , sdslen( buffer ) );
             }
@@ -181,7 +176,6 @@ int parseRequestMessage( int connfd , sds buffer , int len )
             }
             return ret;
         }
-        //若是tcp直接返回
         else
         {
             servG->connlist[connfd].protoType = TCP;
@@ -218,7 +212,6 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
         }
         else if( nread > 0 )
         {
-            //此处必须的是sdscatlen
             servG->connlist[fd].recv_buffer = sdscatlen( servG->connlist[fd].recv_buffer , &buffer , nread );
             int ret = parseRequestMessage( fd , servG->connlist[fd].recv_buffer  , sdslen( servG->connlist[fd].recv_buffer ) );
             if( ret == BREAK_RECV )
@@ -345,7 +338,6 @@ void onAcceptEvent( aeEventLoop *el, int fd, void *privdata, int mask)
 void runMainReactor( aeServer* serv )
 {
     int res;
-    //listenfd event,主进程主线程监听连接事件
     res = aeCreateFileEvent( serv->mainReactor->eventLoop,
                              serv->listenfd,
                              AE_READABLE,
@@ -398,15 +390,12 @@ void addSignal( int sig, void(*handler)(int), int restart  )
 void installMasterSignal( aeServer* serv )
 {
     //printf( "installMasterSignal...pid=%d \n" , getpid() );
-    /* 忽略Broken Pipe信号 */
     signal(SIGPIPE, SIG_IGN);
-    /* 处理kill信号 */
     addSignal (SIGINT, masterKillHandler , 1  );
 //  signal (SIGKILL, masterSignalHandler );
 //  signal (SIGQUIT, masterSignalHandler );
 //  signal (SIGTERM, masterSignalHandler );
 //  signal (SIGHUP, masterSignalHandler );
-    /* 处理段错误信�?*/
 //  signal(SIGSEGV, masterSignalHandler );
 }
 void testsds( char* str )
@@ -443,7 +432,6 @@ aeServer* aeServerCreate( char* ip,int port )
 }
 
 //reactor线程,
-//并在每个子线程中创建一个reactor/eventloop,放到全局变量
 void createReactorThreads( aeServer* serv  )
 {
     int i,res;
@@ -481,7 +469,6 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
     }
     sds request;
     request = sdsnewlen( NULL , data.len );
-    //这个变量可以作为一个线程缓冲区
     while( ( nread  = read( fd , request  , data.len ) ) > 0 )
     {
         bodylen += nread;
@@ -624,6 +611,7 @@ void onMasterPipeWritable(  aeEventLoop *el, int pipe_fd, void *privdata, int ma
     }
     pthread_mutex_unlock( &servG->workers[worker_id].r_mutex );
 }
+
 void *reactorThreadRun(void *arg)
 {
     reactorThreadParam* param = (reactorThreadParam*)arg;
@@ -632,7 +620,6 @@ void *reactorThreadRun(void *arg)
     aeEventLoop* el = aeCreateEventLoop( 1024 );
     serv->reactorThreads[thid].reactor.eventLoop = el;
     int ret,i;
-    //每个线程都有workerNum个worker pipe
     for(  i = 0; i < serv->workerNum; i++ )
     {
         if ( aeCreateFileEvent( el,serv->workers[i].pipefd[0],
@@ -647,6 +634,7 @@ void *reactorThreadRun(void *arg)
     aeDeleteEventLoop( el );
     el = NULL;
 }
+
 int socketSetBufferSize(int fd, int buffer_size)
 {
     if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buffer_size, sizeof(buffer_size)) < 0)
@@ -761,18 +749,16 @@ int freeConnectBuffers( aeServer* serv )
 void destroyServer( aeServer* serv )
 {
     printf( "destroyServer...\n");
-    //1,停止,释放线程
     stopReactorThread( serv );
-    //释放收发缓冲�?
+   
     freeConnectBuffers( serv );
-    //2,释放共享内存
+   
     shm_free( serv->connlist,1 );
-    //3,释放由zmalloc分配的内�?
     if( serv->reactorThreads )
     {
         zfree( serv->reactorThreads );
     }
-    //4,释放N个woker缓冲�?
+  
     freeWorkerBuffer( serv );
     if( serv->workers )
     {
@@ -782,7 +768,6 @@ void destroyServer( aeServer* serv )
     {
         zfree( serv->mainReactor );
     }
-    //4,最后释放这个全局大变�?
     if( serv != NULL )
     {
         zfree( serv );
