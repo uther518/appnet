@@ -64,9 +64,9 @@ class Websocket
 		 self::broadcastNewUser( $serv , $fd , $msg , $resMsg );
 	}
 
-	public static function broadcastNewUser( $serv , $fd , $msg  )
+	public static function broadcastNewUser( $serv , $fd , $msg , $resMsg )
 	{
-		 $resMsg['cmd'] = 'newUser';
+		 	$resMsg['cmd'] = 'newUser';
                         $loginMsg = array(
                                 'cmd' => 'fromMsg',
                                 'from' => 0,
@@ -90,6 +90,9 @@ class Websocket
 
 	public static function onMessage( $serv , $fd , $msg )
 	{
+
+			echo "onMessage php.................\n";
+
                         $resMsg = $msg;
                         $resMsg['cmd'] = 'fromMsg';
 
@@ -108,6 +111,7 @@ class Websocket
                                 $serv->send( $msg['to'] , json_encode( $resMsg ) );
                                 $serv->send( $msg['from'] , json_encode( $resMsg ) );
                         }
+
 			//$serv->close( $fd );
          }
 
@@ -131,6 +135,10 @@ $server->on('receive', function( $serv , $fd , $buffer )
 	if( $header['Protocol'] == "WEBSOCKET" )
 	{
 	   Websocket::onReceive( $serv , $fd,  $buffer );
+	}
+	else
+	{
+           $serv->send( $fd , $buffer );
 	}
 });
 

@@ -1,7 +1,5 @@
-
 #include "share_memory.h"
 #define SHM_TYPE_MMAP 1
-
 void* shm_malloc(size_t size)
 {
     shareMemory object;
@@ -11,8 +9,8 @@ void* shm_malloc(size_t size)
 #ifdef SHM_TYPE_MMAP
     mem = shareMemory_mmap_create(&object, size, NULL);
 #else
-	mem = shareMemory_sysv_create(&object, size, 0 );
-#endif	
+    mem = shareMemory_sysv_create(&object, size, 0 );
+#endif
     if (mem == NULL)
     {
         return NULL;
@@ -23,7 +21,6 @@ void* shm_malloc(size_t size)
         return mem + sizeof(shareMemory);
     }
 }
-
 void* shm_calloc(size_t num, size_t _size)
 {
     shareMemory object;
@@ -34,9 +31,9 @@ void* shm_calloc(size_t num, size_t _size)
 #ifdef SHM_TYPE_MMAP
     mem = shareMemory_mmap_create(&object, size, NULL);
 #else
-   mem = shareMemory_sysv_create(&object, size, 0 );
+    mem = shareMemory_sysv_create(&object, size, 0 );
 #endif
-   if (mem == NULL)
+    if (mem == NULL)
     {
         return NULL;
     }
@@ -49,7 +46,6 @@ void* shm_calloc(size_t num, size_t _size)
         return ret_mem;
     }
 }
-
 void shm_free(void *ptr ,int rm )
 {
     //object对象在头部，如果释放了错误的对象可能会发生段错误
@@ -58,14 +54,12 @@ void shm_free(void *ptr ,int rm )
     char check = *(char *)(ptr + object->size); //尝试访问
     printf("check:%c\n", check);
 #endif
-
-#ifdef SHM_TYPE_MMAP 
+#ifdef SHM_TYPE_MMAP
     shareMemory_mmap_free(object);
 #else
     shareMemory_sysv_free( object, rm );
 #endif
 }
-
 void* shm_realloc(void *ptr, size_t new_size)
 {
     shareMemory *object = ptr - sizeof(shareMemory);
@@ -86,14 +80,12 @@ void* shm_realloc(void *ptr, size_t new_size)
         return new_ptr;
     }
 }
-
 void *shareMemory_mmap_create(shareMemory *object, int size, char *mapfile)
 {
     void *mem;
     int tmpfd = -1;
     int flag = MAP_SHARED;
     bzero(object, sizeof(shareMemory));
-
 #ifdef MAP_ANONYMOUS
     flag |= MAP_ANONYMOUS;
 #else
@@ -108,7 +100,6 @@ void *shareMemory_mmap_create(shareMemory *object, int size, char *mapfile)
     strncpy(object->mapfile, mapfile, SHM_MMAP_FILE_LEN);
     object->tmpfd = tmpfd;
 #endif
-
     mem = mmap(NULL, size, PROT_READ | PROT_WRITE, flag, tmpfd, 0);
 #ifdef MAP_FAILED
     if (mem == MAP_FAILED)
@@ -126,18 +117,15 @@ void *shareMemory_mmap_create(shareMemory *object, int size, char *mapfile)
         return mem;
     }
 }
-
 int shareMemory_mmap_free(shareMemory *object)
 {
     return munmap(object->mem, object->size);
 }
-
 void *shareMemory_sysv_create(shareMemory *object, int size, int key)
 {
     int shmid;
     void *mem;
     bzero(object, sizeof(shareMemory));
-
     if (key == 0)
     {
         key = IPC_PRIVATE;
@@ -162,7 +150,6 @@ void *shareMemory_sysv_create(shareMemory *object, int size, int key)
         return mem;
     }
 }
-
 int shareMemory_sysv_free(shareMemory *object, int rm)
 {
     int shmid = object->shmid;
@@ -173,4 +160,3 @@ int shareMemory_sysv_free(shareMemory *object, int rm)
     }
     return ret;
 }
-

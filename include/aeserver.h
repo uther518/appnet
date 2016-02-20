@@ -56,10 +56,10 @@ struct _aeReactor
 	int epfd;
 	int id;
 	int event_num;
-    int max_event_num;
-    int running :1;
+    	int max_event_num;
+    	int running :1;
 	void *object;
-    void *ptr;  //reserve
+    	void *ptr;  //reserve
 	aeEventLoop *eventLoop;
 };
 
@@ -68,9 +68,9 @@ typedef struct _aeWorkerProcess
     pid_t pid;
     int pipefd[2];
 	//这里是自旋锁好，还是mutex好
-	pthread_mutex_t w_mutex;
-	pthread_mutex_t r_mutex;
-	sds send_buffer;
+    pthread_mutex_t w_mutex;
+    pthread_mutex_t r_mutex;
+    sds send_buffer;
 	
 }aeWorkerProcess;
 
@@ -156,7 +156,7 @@ struct _reactorThreadParam
 	aeServer* serv;
 };
 
-#define PIPE_DATA_LENG 1024
+#define PIPE_DATA_LENG 90
 #define PIPE_DATA_HEADER_LENG 1+2*sizeof(int)
 
 
@@ -172,8 +172,11 @@ typedef struct _aePipeData
 	char type;
 	int len;
 	int connfd;
-	char data[PIPE_DATA_LENG];
+	sds  data;
+	//char data[PIPE_DATA_LENG];
 }aePipeData;
+
+
 
 
 void initOnLoopStart(struct aeEventLoop *el);
@@ -223,6 +226,8 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
 aeEventLoop* getThreadEventLoop( int connfd );
 
 void timerAdd( int ms , void* cb , void* params  );
+void testsds( char* str );
+
 
 aeServer*  servG;
 #endif

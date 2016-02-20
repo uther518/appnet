@@ -239,7 +239,7 @@ static int appnet_set_callback(int key, zval* cb TSRMLS_DC)
     return AE_OK;
 }
 
-void appnetServer_onRecv( aeServer* s, aeConnection *c, char* buff , int len )
+void appnetServer_onRecv( aeServer* s, aeConnection *c, sds buff , int len )
 {
      aeServer* appserv = APPNET_G( appserv );
      zval retval;
@@ -271,6 +271,7 @@ void appnetServer_onRecv( aeServer* s, aeConnection *c, char* buff , int len )
      //zval_ptr_dtor(&args[1]);
      //zval_ptr_dtor(&args[2]);
      efree( args );
+     //sdsfree( buff );
      if ( &retval != NULL)
      {
         zval_ptr_dtor(&retval);
