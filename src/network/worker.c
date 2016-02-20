@@ -178,7 +178,6 @@ void onWorkerPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
         }
         else if( data.type == PIPE_EVENT_CLOSE )
         {
-            printf( "onClose\n");
             if( servG->onClose )
             {
                 servG->onClose( servG , &servG->connlist[data.connfd] );

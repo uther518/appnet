@@ -114,31 +114,16 @@ class Websocket
 
 			//$serv->close( $fd );
          }
-
 }
 
 
-
-
-dl( "appnet.so");
-$server = new appnetServer( "0.0.0.0" , 3011 );
-
-$server->setOption( APPNET_OPT_WORKER_NUM , 1 );
-$server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
-$server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
-$server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_TCP_ONLY );
-$server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_HTTP_ONLY );
-$server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_WEBSOCKET_ONLY );
-
-$info = $server->getInfo();
-
-$server->on( APPNET_EVENT_CONNECT , function( $server , $fd )
-{ 
+function onConnect( $server , $fd )
+{
 	$pid = posix_getpid();
-	echo "Client:Connect:{$fd} pid={$pid} \n"; 
-});
+        echo "Client Connect:{$fd} pid={$pid} \n"; 
+}
 
-$server->on( APPNET_EVENT_RECV , function( $server , $fd , $buffer )
+function onRecv( $server , $fd , $buffer )
 {
 	echo "Client Recv:[{$buffer}][{$fd}] \n";
 	$header = $server->getHeader();
@@ -150,29 +135,29 @@ $server->on( APPNET_EVENT_RECV , function( $server , $fd , $buffer )
 	{
            $server->send( $fd , $buffer );
 	}
-});
+};
 
-$server->on( APPNET_EVENT_CLOSE , function( $server , $fd )
+function onClose( $server , $fd )
 { 
 	echo "Client Close:$fd \n";
-});
+};
 
 //on worker run start,you can init env.
-$server->on( APPNET_EVENT_START , function( $server  )
+function onStart( $server  )
 {
 	$pid = posix_getpid();
         echo "On Worker Start!! pid={$pid} \n";
 
 	//3000ms means 3second	
 	$server->timerAdd( 3000 , "onTimerCallback" , "paramsxxx" );
-});
+};
 
 //on worker shutdown,you must save data in last time.
-$server->on( APPNET_EVENT_FINAL , function( $server  )
+function onFinal( $server  )
 {
 	$pid = posix_getpid();
         echo "On Worker Final!! pid={$pid} \n";
-});
+};
 
 function onTimerCallback( $server , $timer_id ,  $params )
 {
@@ -182,7 +167,24 @@ function onTimerCallback( $server , $timer_id ,  $params )
 	//if do not remove it, it will be call this function forever	
 	$server->timerRemove( $timer_id );		
 }
+
+
+dl( "appnet.so");
+$server = new appnetServer( "0.0.0.0" , 3011 );
+
+$server->setOption( APPNET_OPT_WORKER_NUM , 1 );
+$server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
+$server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
+$server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
+
+$server->addEventListener( APPNET_EVENT_CONNECT , "onConnect");
+$server->addEventListener( APPNET_EVENT_RECV ,    "onRecv");
+$server->addEventListener( APPNET_EVENT_CLOSE ,   "onClose");
+$server->addEventListener( APPNET_EVENT_START ,   "onStart");
+$server->addEventListener( APPNET_EVENT_FINAL ,   "onFinal");
 $server->run();
+
+$info = $server->getInfo();
 
 
 ?>

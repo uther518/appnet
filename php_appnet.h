@@ -102,6 +102,8 @@ ZEND_METHOD( appnetServer , timerAdd  );
 ZEND_METHOD( appnetServer , timerRemove  );
 ZEND_METHOD( appnetServer , setOption  );
 ZEND_METHOD( appnetServer , getInfo );
+ZEND_METHOD( appnetServer , setEventCallback);
+ZEND_METHOD( appnetServer , addEventListener);
 
 aeServer* appnetServInit( char* serv_host , int serv_port );
 void appnetServRun();

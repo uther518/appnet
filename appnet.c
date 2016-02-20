@@ -126,6 +126,8 @@ const zend_function_entry appnet_functions[] = {
     PHP_FE(confirm_appnet_compiled,	NULL)		/* For testing, remove later. */
     PHP_ME(appnetServer,    __construct,   arginfo_appnet_server_construct ,   ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
     PHP_ME(appnetServer,    on,            arginfo_appnet_server_on , ZEND_ACC_PUBLIC )
+    PHP_MALIAS( appnetServer,    setEventCallback,     on ,       arginfo_appnet_server_on , ZEND_ACC_PUBLIC )
+    PHP_MALIAS( appnetServer,    addEventListener,     on ,       arginfo_appnet_server_on , ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer,    run,           NULL ,                 ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer,    send,          arginfo_appnet_server_send , ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer,    close,         arginfo_appnet_server_close , ZEND_ACC_PUBLIC )
@@ -189,7 +191,7 @@ PHP_MINIT_FUNCTION(appnet)
 	REGISTER_LONG_CONSTANT( "APPNET_PROTO_WEBSOCKET_ONLY", 	PROTOCOL_TYPE_WEBSOCKET_ONLY , CONST_CS | CONST_PERSISTENT );
 	REGISTER_LONG_CONSTANT( "APPNET_PROTO_HTTP_MIX", 	PROTOCOL_TYPE_HTTP_MIX , CONST_CS | CONST_PERSISTENT );
 	REGISTER_LONG_CONSTANT( "APPNET_PROTO_WEBSOCKET_MIX", 	PROTOCOL_TYPE_WEBSOCKET_MIX , CONST_CS | CONST_PERSISTENT );
-
+	REGISTER_LONG_CONSTANT( "APPNET_PROTO_MIX",   		PROTOCOL_TYPE_WEBSOCKET_MIX , CONST_CS | CONST_PERSISTENT );
 
 
 
