@@ -126,8 +126,6 @@ ZEND_METHOD( appnetServer , send )
 
 int onTimer( aeEventLoop *l, int id,void *data  )
 {
-
-     printf( "AppnetServer onTimer Callback..\n");
      timerArgs* timerArg = (timerArgs*)data;
 
      zval* callback = (zval*)timerArg->func;

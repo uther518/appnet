@@ -122,8 +122,8 @@ class Websocket
 
 dl( "appnet.so");
 $server = new appnetServer( "0.0.0.0" , 3011 );
-$server->setOption( appnetServer::OPT_WORKER_NUM , 1 );
-$server->setOption( appnetServer::OPT_REACTOR_NUM, 1 );
+$server->setOption( appnetServer::OPT_WORKER_NUM , 4 );
+$server->setOption( appnetServer::OPT_REACTOR_NUM, 2 );
 $server->setOption( appnetServer::OPT_MAX_CONNECTION , 10000 );
 $server->setOption( appnetServer::OPT_PROTOCOL_TYPE , appnetServer::PROTOCOL_TYPE_TCP_ONLY );
 $server->setOption( appnetServer::OPT_PROTOCOL_TYPE , appnetServer::PROTOCOL_TYPE_HTTP_ONLY );

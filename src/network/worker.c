@@ -279,10 +279,10 @@ void runWorkerProcess( int pidx ,int pipefd )
     worker->pipefd = pipefd;
     worker->running = 1;
     worker->start = 0;
-    worker->send_buffer = sdsempty();//sdsnewlen( NULL , SEND_BUFFER_LENGTH  );
+    worker->send_buffer = sdsnewlen( NULL , SEND_BUFFER_LENGTH  );
     worker->recv_buffer = sdsnewlen( NULL , RECV_BUFFER_LENGTH  );
     servG->worker = worker;
-    //sdsclear( servG->worker->send_buffer );
+    sdsclear( servG->worker->send_buffer );
     sdsclear( servG->worker->recv_buffer );
     //这里要安装信号接收器..
     addSignal( SIGTERM, childTermHandler, 0 );
@@ -302,6 +302,7 @@ void runWorkerProcess( int pidx ,int pipefd )
     aeMain(worker->el);
     aeDeleteEventLoop(worker->el);
     servG->onFinal( servG );
+   
     printf( "Worker pid=%d exit...\n" , worker->pid );
     sdsfree( worker->send_buffer );
     sdsfree( worker->recv_buffer );

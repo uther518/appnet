@@ -316,6 +316,7 @@ static int processTimeEvents(aeEventLoop *eventLoop)
             te = te->next;
             continue;
         }
+
         aeGetTime(&now_sec, &now_ms);
         if (now_sec > te->when_sec ||
                 (now_sec == te->when_sec && now_ms >= te->when_ms))
@@ -463,7 +464,8 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
             processed++;
         }
     }
-    /* Check time events 这里是处理定时任务的,返回处理的个�?/
+    /* Check time events 这里是处理定时任务的,返回处理的个�?*/
+
     if (flags & AE_TIME_EVENTS)
         processed += processTimeEvents(eventLoop);
     return processed; /* return the number of processed file/time events */
