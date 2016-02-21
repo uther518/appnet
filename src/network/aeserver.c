@@ -143,14 +143,10 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
     }
     pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
 }
-//解析包头，是否需要循环recv,
-//http,websocket不完整，才需要继续收，其它直接发送给客户�?
-//http,websocket 将包体解析出来，只把body发送给客户�?
-//tcp直接投递给客户�?
+
+
 int parseRequestMessage( int connfd , sds buffer , int len )
 {
-    //判断服务器开启可接受的协议类�?
-    //如果服务器设置只接收tcp，那么全部以tcp协议处理，是半包还是粘包，交由逻辑处理
     int ret;
     if( servG->protocolType == PROTOCOL_TYPE_TCP_ONLY )
     {
@@ -171,7 +167,7 @@ int parseRequestMessage( int connfd , sds buffer , int len )
                 servG->connlist[connfd].protoType = HTTP;
                 //其实websocket握手的时候，也是做为http处理，因为此时只能根据GET推断出，是http协议
                 //在解析的过程中，才可以推断出是websocket,所以握手后的recv的消息就是websocket
-                //返回是否需要继续收�?
+                //返回是否需要继续
                 memset( &servG->connlist[connfd].hh , 0 , sizeof( httpHeader ));
                 ret = httpRequestParse(  connfd , buffer , sdslen( buffer ) );
             }
@@ -201,8 +197,6 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
     //sndbuf ->|----c1----|---c2------|--c3-----|-----c2---|---c3-------|
     //c1     ->|---header---|--------body------------|
     //client recv buffer
-    //通常情况下，这个pos应该�?,如果包完�?并copy到send_buffer中后，将其清�?
-    //如果http,websocket下包没收全，则不要清�?
     aeServer* serv = servG;
     ssize_t nread;
     unsigned int readlen, rcvbuflen ,datalen;
@@ -225,7 +219,7 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
         }
         else if( nread > 0 )
         {
-            //此处必须的是sdscatlen 保证binnary安全，而不能是sdscat�?
+            //此处必须的是sdscatlen
             servG->connlist[fd].recv_buffer = sdscatlen( servG->connlist[fd].recv_buffer , &buffer , nread );
             int ret = parseRequestMessage( fd , servG->connlist[fd].recv_buffer  , sdslen( servG->connlist[fd].recv_buffer ) );
             if( ret == BREAK_RECV )
@@ -257,7 +251,8 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
         }
     }
 }
-//此函数必须在写入send_buffer前执�?
+
+
 void setPipeWritable( aeEventLoop *el , void *privdata ,  int worker_id  )
 {
     if (sdslen( servG->workers[worker_id].send_buffer ) == 0  )
@@ -363,7 +358,8 @@ void runMainReactor( aeServer* serv )
     aeMain( serv->mainReactor->eventLoop );
     aeDeleteEventLoop( serv->mainReactor->eventLoop );
 }
-//此处send是发给了主进程的event_loop，而不是发给子进程的�?
+
+
 void masterKillHandler( int sig )
 {
     printf( "Master Stoped spid=%d..\n", getpid() );
@@ -399,8 +395,8 @@ void addSignal( int sig, void(*handler)(int), int restart  )
     sigfillset( &sa.sa_mask );
     assert( sigaction( sig, &sa, NULL ) != -1 );
 }
-//这里的信号是终端执行的中断等操作引起的事件�?
-//所以此处的addEvent是加入到主进程event_loop中的�?
+
+
 void installMasterSignal( aeServer* serv )
 {
     printf( "installMasterSignal...pid=%d \n" , getpid() );
@@ -444,21 +440,12 @@ aeServer* aeServerCreate( char* ip,int port )
     serv->workerNum = 1;
     serv->maxConnect = 1024;
 
-/*
-    serv->connlist = shm_calloc( serv->maxConnect , sizeof( aeConnection ));
-    serv->reactorThreads = zmalloc( serv->reactorNum * sizeof( aeReactorThread  ));
-    serv->workers = zmalloc( serv->workerNum * sizeof(aeWorkerProcess));
-    serv->mainReactor = zmalloc( sizeof( aeReactor ));
-    serv->mainReactor->eventLoop = aeCreateEventLoop( 10 );
-    aeSetBeforeSleepProc( serv->mainReactor->eventLoop ,initOnLoopStart );
-    installMasterSignal( serv  );
-  */
     servG = serv;
     return serv;
 }
+
 //reactor线程,
-//创建子线�?
-//并在每个子线程中创建一个reactor/eventloop,放到全局变量�?
+//并在每个子线程中创建一个reactor/eventloop,放到全局变量
 void createReactorThreads( aeServer* serv  )
 {
     int i,res;
@@ -514,7 +501,7 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
         printf( "readBodyFromPipe error\n");
         return;
     }
-    //去封装结�?
+   
     int connfd = data.connfd;
     if( servG->connlist[connfd].protoType != TCP )
     {
@@ -548,7 +535,7 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
 {
     int readlen =0;
     aePipeData data;
-    //是否要加�?多个线程同时对一个管道读数据
+   
     while(  ( readlen = read( fd, &data , PIPE_DATA_HEADER_LENG ) ) > 0 )
     {
         //printf( "Master Recv  len=%d,data.len=%d,data.type=%d,data.connfd=%d \n" ,  readlen , data.len, data.type , data.connfd );
@@ -558,7 +545,7 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
         }
         else if( readlen == PIPE_DATA_HEADER_LENG )
         {
-            //message,close，这样做是防止粘�?或半�?
+            //message,close
             if( data.type == PIPE_EVENT_MESSAGE )
             {
                 if( servG->sendToClient )
@@ -682,7 +669,7 @@ void createWorkerProcess( aeServer* serv )
     int ret,i;
     for(  i = 0; i < serv->workerNum; i++ )
     {
-        //3缓冲�?
+        
         serv->workers[i].send_buffer = sdsempty();
         //init mutex
         pthread_mutex_init( &(serv->workers[i].r_mutex) ,NULL);
@@ -696,14 +683,14 @@ void createWorkerProcess( aeServer* serv )
         }
         else if( serv->workers[i].pid > 0 )
         {
-            //父进�?
+            //parent
             close( serv->workers[i].pipefd[1] );
             anetNonBlock( neterr , serv->workers[i].pipefd[0] );
             continue;
         }
         else
         {
-            //子进�?
+            //child
             close( serv->workers[i].pipefd[0] );
             anetNonBlock( neterr, serv->workers[i].pipefd[1] );
             runWorkerProcess( i , serv->workers[i].pipefd[1]  );
@@ -752,7 +739,7 @@ int freeConnectBuffers( aeServer* serv )
 {
     int i;
     int count = 0;
-    int minfd = 3;//TODO::可以精确赋�?
+    int minfd = 3;//TODO::
     if( serv->connectNum == 0 )
     {
         return 0;

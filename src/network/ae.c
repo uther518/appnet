@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -200,7 +201,7 @@ static void aeAddMillisecondsToNow(long long milliseconds, long *sec, long *ms)
     *sec = when_sec;
     *ms = when_ms;
 }
-//aeEventFinalizerProc 在移除事件时执行的回�?
+//aeEventFinalizerProc
 long long aeCreateTimeEvent(aeEventLoop *eventLoop, long long milliseconds,
                             aeTimeProc *proc, void *clientData,
                             aeEventFinalizerProc *finalizerProc)
@@ -291,10 +292,6 @@ static int processTimeEvents(aeEventLoop *eventLoop)
      * events to be processed ASAP when this happens: the idea is that
      * processing events earlier is less dangerous than delaying them
      * indefinitely, and practice suggests it is. */
-    /**
-    如果系统时钟移动到将来，就将其修正为一个正确值，时间事件或许会以随机的方式延时，通常是意味着定时操作不够高效�?
-    这里我们偿试检测系统时钟偏差，强制所触发的时间事件被执行:主意就是提前执行比无限延迟的危险性低一些，实践建议如此�?
-    */
     if (now < eventLoop->lastTime)
     {
         te = eventLoop->timeEventHead;
@@ -367,11 +364,6 @@ static int processTimeEvents(aeEventLoop *eventLoop)
  * if flags has AE_DONT_WAIT set the function returns ASAP until all
  * the events that's possible to process without to wait are processed.
  *
-   1,定时任务，时间修�?
-   2,io事件循环
-   3,处理定时任务
-   返回io事件+定时事件 处理的个�?
-
  * The function returns the number of events processed. */
 int aeProcessEvents(aeEventLoop *eventLoop, int flags)
 {
@@ -391,7 +383,7 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
         int j;
         aeTimeEvent *shortest = NULL;
         struct timeval tv, *tvp;
-        //如果有时间事件触�?
+        
         if (flags & AE_TIME_EVENTS && !(flags & AE_DONT_WAIT))
         {
             shortest = aeSearchNearestTimer(eventLoop);
@@ -438,7 +430,6 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
                 tvp = NULL; /* wait forever */
             }
         }
-        //这里封装了各种多路复�?
         numevents = aeApiPoll(eventLoop, tvp);
         for (j = 0; j < numevents; j++)
         {
@@ -464,7 +455,7 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
             processed++;
         }
     }
-    /* Check time events 这里是处理定时任务的,返回处理的个�?*/
+    /* Check time events */
 
     if (flags & AE_TIME_EVENTS)
         processed += processTimeEvents(eventLoop);
@@ -472,8 +463,6 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
 }
 /* Wait for milliseconds until the given file descriptor becomes
  * writable/readable/exception
-   等待milliseconds毫秒直到有fd事件变为可写/可读/异常状�?
-   大多数情况不使用此方�?见syncio.c说明，在SYNC，MIGRATE,主从同步或数据迁移时为了保证一致性，使用同步阻塞方式
  */
 int aeWait(int fd, int mask, long long milliseconds)
 {
@@ -528,18 +517,17 @@ void main_loop
      }
 }
 */
-//io主函�?
+
+
 void aeMain(aeEventLoop *eventLoop)
 {
     eventLoop->stop = 0;
     while (!eventLoop->stop)
     {
-        //在事件循环之前的一个回�?估计是用来初�?修改或重置eventLoop相关属性�?
         if (eventLoop->beforesleep != NULL)
         {
             eventLoop->beforesleep(eventLoop);
         }
-        //事件循环.
         aeProcessEvents(eventLoop, AE_ALL_EVENTS);
     }
 }
