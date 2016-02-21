@@ -72,6 +72,6 @@
 </span>?&gt;</pre>
 </div>
 <p>&nbsp;</p>
-<p>&nbsp;更多介绍参见:<a href="https://github.com/lchb369/appnet_php7/wiki/appnet%E4%BB%8B%E7%BB%8D" target="_blank">https://github.com/lchb369/appnet_php7/wiki/appnet%E4%BB%8B%E7%BB%8D</a></p>
+<p>&nbsp;更多介绍参见:<a href="https://github.com/lchb369/appnet_php7/wiki/APPNET%E6%96%87%E6%A1%A3%E7%9B%AE%E5%BD%95" target="_blank">https://github.com/lchb369/appnet_php7/wiki/appnet%E4%BB%8B%E7%BB%8D</a></p>
 <p>&nbsp;</p>
 <p><br />QQ交流群:379084776</p>
