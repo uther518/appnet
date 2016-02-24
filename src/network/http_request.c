@@ -376,9 +376,6 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
     return BREAK_RECV;
 }
 
-/**
- * 解析http或websocket包头
- **/
 int httpRequestParse(  int connfd , sds buffer , int len  )
 {
     int ret = 0;
@@ -391,7 +388,6 @@ int httpRequestParse(  int connfd , sds buffer , int len  )
         {
             servG->connlist[connfd].hs.frameType = WS_INCOMPLETE_FRAME;
         }
-        //如果没收全包头，继续接收包据
         return CONTINUE_RECV;
     }
     if( header->protocol != WEBSOCKET )
@@ -467,12 +463,10 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
     }
     else
     {
-        //websocket普通会话包
         sds recv_data = sdsempty();
         size_t recv_len = 0;
         hs->frameType = wsParseInputFrame( buffer, len , &recv_data , &recv_len );
      
-        //这里要分析出当前包，只使用了多少数据,还剩下多少数据,剩下的不要清理，有可能是粘包
         if( recv_len <= 0  )
         {
             return CONTINUE_RECV;
@@ -482,13 +476,13 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
         createWorkerTask(  connfd , recv_data  , recv_len  , PIPE_EVENT_MESSAGE, "parseWebsocket" );
         //sdsfree( recv_data );
     }
-    //半包
+    
     if( hs->frameType == WS_ERROR_FRAME ||  hs->frameType == WS_INCOMPLETE_FRAME )
     {
         printf( "InitHandshake Error Frame..\n");
         return CONTINUE_RECV;
     }
-    //握手
+    
     if ( hs->state == WS_STATE_OPENING)
     {
         assert( hs->frameType == WS_OPENING_FRAME);
@@ -498,7 +492,6 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
             size_t frameSize = BUF_LEN;
             memset( out_buffer, 0, BUF_LEN);
             wsGetHandshakeAnswer( hs, out_buffer , &frameSize , hs->ver );
-            //靠縠l
             if ( sdslen( servG->connlist[connfd].send_buffer ) == 0  )
             {
                 int reactor_id = connfd % servG->reactorNum;
@@ -507,16 +500,12 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
                     el, connfd, AE_WRITABLE, onClientWritable, NULL
                 );
             }
-            //发给客户端
             servG->connlist[connfd].send_buffer = sdscatlen(
                     servG->connlist[connfd].send_buffer ,(char*)out_buffer , frameSize
                                                   );
-            //发给worker
             //createWorkerTask( connfd , "" , 0 , PIPE_EVENT_CONNECT , "Websocket New Connection" );
         }
         hs->state = WS_STATE_NORMAL;
-        //握手的时候不可能粘包，因为还没有较验成功，
-        //不可能发包，只有半包的情况，上面已经有校验
         return BREAK_RECV;
     }
     //recv websocket normal data

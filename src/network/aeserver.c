@@ -85,7 +85,6 @@ void onCloseByClient(  aeEventLoop *el, void *privdata , aeServer* serv , aeConn
     pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
     servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer, &data, PIPE_DATA_HEADER_LENG );
     pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
-    //如果这里施放了，子进程要用共享内存，就没法用�?
     freeClient( conn );
 }
 //send to client,if send over , delete writable event
@@ -108,10 +107,8 @@ void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask )
         freeClient( &servG->connlist[fd] );
         return;
     }
-    //offset
     sdsrange(servG->connlist[fd].send_buffer,nwritten,-1);
-    //     sdsclear( servG->connlist[fd].send_buffer );
-    ///if send_buffer no data need send, remove writable event
+    
     if (sdslen(servG->connlist[fd].send_buffer) == 0)
     {
         aeDeleteFileEvent( el, fd, AE_WRITABLE);
@@ -129,7 +126,6 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
     data.type = eventType;
     data.connfd = connfd;
     datalen = PIPE_DATA_HEADER_LENG + data.len;
-    //获取当前线程的el事件循环句柄
     aeEventLoop* reactor_el = getThreadEventLoop( connfd );
     int worker_id  = connfd % servG->workerNum;
     setPipeWritable( reactor_el , worker_id , worker_id  );
@@ -168,11 +164,7 @@ int parseRequestMessage( int connfd , sds buffer , int len )
             }
             else
             {
-                ret = wesocketRequestRarse(  connfd ,
-                                             buffer , len ,
-                                             &servG->connlist[connfd].hh ,
-                                             &servG->connlist[connfd].hs
-                                          );
+                ret = wesocketRequestRarse(  connfd ,buffer , len ,&servG->connlist[connfd].hh ,&servG->connlist[connfd].hs );
             }
             return ret;
         }
@@ -250,7 +242,7 @@ void setPipeWritable( aeEventLoop *el , void *privdata ,  int worker_id  )
     if (sdslen( servG->workers[worker_id].send_buffer ) == 0  )
     {
         aeCreateFileEvent( el,
-                           servG->workers[worker_id].pipefd[0],
+                    	   servG->workers[worker_id].pipefd[0],
                            AE_WRITABLE,
                            onMasterPipeWritable, worker_id );
     }
@@ -431,7 +423,6 @@ aeServer* aeServerCreate( char* ip,int port )
     return serv;
 }
 
-//reactor线程,
 void createReactorThreads( aeServer* serv  )
 {
     int i,res;
@@ -523,7 +514,6 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
    
     while(  ( readlen = read( fd, &data , PIPE_DATA_HEADER_LENG ) ) > 0 )
     {
-        //printf( "Master Recv  len=%d,data.len=%d,data.type=%d,data.connfd=%d \n" ,  readlen , data.len, data.type , data.connfd );
         if( readlen == 0 )
         {
             close( fd );
@@ -834,8 +824,6 @@ void initServer(  aeServer* serv )
     aeSetBeforeSleepProc( serv->mainReactor->eventLoop ,initOnLoopStart );
     installMasterSignal( serv  );
 }
-
-
 
 int startServer( aeServer* serv )
 {
