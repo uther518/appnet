@@ -498,7 +498,7 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
     int nread = 0;
     int needlen = data.len;
     int bodylen = 0;
-	int writable = AE_FALSE;
+    int writable = AE_FALSE;
     if( data.len <= 0 )
     {
         return;
@@ -509,13 +509,13 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 		writable = AE_TRUE;
 	}
 	
-  
-	char read_buff[TMP_BUFFER_LENGTH]
+	char read_buff[TMP_BUFFER_LENGTH];
     while( ( nread  = read( fd , read_buff  , needlen ) ) > 0 )
     {
 		needlen -= nread;
-        bodylen += nread;
+        	bodylen += nread;
 		
+		//printf( "RecvFromPipe:[%d][%s] \n" , nread , read_buff );
 		//write to client send_buffer
 		//strcatlen function can extend space when current space not enough
 		servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );

@@ -125,8 +125,10 @@ function onConnect( $server , $fd )
 
 function onRecv( $server , $fd , $buffer )
 {
-	echo "Client Recv:[{$buffer}][{$fd}] \n";
 	$header = $server->getHeader();
+	echo "Client Recv:[{$header['Protocol']}][{$header['Uri']}][{$buffer}][{$fd}] \n";	
+
+
 	if( $header['Protocol'] == "WEBSOCKET" )
 	{
 	   Websocket::onReceive( $server , $fd,  $buffer );

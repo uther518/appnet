@@ -26,7 +26,7 @@
 
 
 #define MAXFD 1024
-#define MAX_EVENT 4096;
+#define MAX_EVENT 4096
 #define WORKER_PROCESS_COUNT 3
 #define REACTOR_THREAD_COUNT 2
 

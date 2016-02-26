@@ -21,17 +21,19 @@ unsigned int dictSdsCaseHash(const void *key)
 {
     return dictGenCaseHashFunction((unsigned char*)key, sdslen((char*)key));
 }
-int dictSdsKeyCaseCompare(void *privdata, const void *key1,
-                          const void *key2)
+
+int dictSdsKeyCaseCompare(void *privdata, const void *key1, const void *key2)
 {
     DICT_NOTUSED(privdata);
     return strcasecmp(key1, key2) == 0;
 }
+
 void dictSdsDestructor(void *privdata, void *val)
 {
     DICT_NOTUSED(privdata);
     sdsfree(val);
 }
+
 dictType httpTableDictType =
 {
     dictSdsCaseHash,           /* hash function */
@@ -119,7 +121,6 @@ int sendMessageToReactor( int connfd , char* buff , int len )
                            servG->worker->pipefd , AE_WRITABLE,
                            onWorkerPipeWritable,NULL );
     }
-    appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
     //append data
     if( len >= 0 )
     {
@@ -129,15 +130,19 @@ int sendMessageToReactor( int connfd , char* buff , int len )
 			int retlen;
 			//buffer...
 			retlen = createResponse(  connfd , buff , len , prototype , servG->worker->response  );
+			//printf( "createResponse:[%d][%s]\n" , retlen, servG->worker->response );
 			if( retlen < 0 )
 			{
 				return;
 			}
+			data.len = retlen;
+			appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
 			appendSendBuffer(  servG->worker->response , retlen );
 			sdsclear( servG->worker->response );
 		}
 		else
 		{
+			appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
 			appendSendBuffer(  buff , len );
 		}
     }
@@ -175,7 +180,8 @@ void onWorkerPipeWritable( aeEventLoop *el, int fd, void *privdata, int mask )
 {
     ssize_t nwritten;
     nwritten = write( fd, servG->worker->send_buffer, sdslen(servG->worker->send_buffer));
-  
+ 
+    //printf( "onWorkerPipeWritable len=%d \n" , nwritten ); 
     if (nwritten <= 0)
     {
         printf( "Worker I/O error writing to worker: %s", strerror(errno));
