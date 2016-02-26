@@ -504,7 +504,7 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
                          );
     }
     servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , data.data  , data.len  );
-   
+    sdsfree( request ); 
 }
 //recv from pipe
 void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
