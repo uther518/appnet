@@ -133,9 +133,26 @@ function onRecv( $server , $fd , $buffer )
 	{
 	   Websocket::onReceive( $server , $fd,  $buffer );
 	}
+	elseif(  $header['Protocol'] == "HTTP"  )
+        {
+	   if( preg_match( "/do/", $header['Uri'] ) )
+	   {
+	   	//$data = file_get_contents( "test/test.html");
+		$data = file_get_contents( "test/icon.png");   
+		$server->send( $fd , $data );	
+	   }
+	   else
+	   {
+		//$data = file_get_contents( "test/icon.png");
+	        //$data = $header['Uri'];
+	        //$server->send( $fd , $data );   
+	   }
+	}
 	else
 	{
-           $server->send( $fd , $buffer );
+		$buffer = file_get_contents( "test/icon.png");
+		//$data = $buffer;
+           	$server->send( $fd , $buffer );
 	}
 };
 

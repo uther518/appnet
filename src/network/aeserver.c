@@ -79,6 +79,7 @@ void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask )
         return;
     }
     nwritten = write( fd, servG->connlist[fd].send_buffer, sdslen(servG->connlist[fd].send_buffer));
+    printf( "send to client[%d][%d] \n" , fd , nwritten );
     if (nwritten <= 0)
     {
         printf( "I/O error writing to client: %s", strerror(errno));
@@ -182,6 +183,7 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
         }
         else if( nread > 0 )
         {
+	   printf( "Recv From Client:[%d][%d][%s] \n" ,fd , nread, buffer );
             servG->connlist[fd].recv_buffer = sdscatlen( servG->connlist[fd].recv_buffer , &buffer , nread );
             int ret = parseRequestMessage( fd , servG->connlist[fd].recv_buffer  , sdslen( servG->connlist[fd].recv_buffer ) );
             if( ret == BREAK_RECV )
@@ -508,22 +510,28 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 	{
 		writable = AE_TRUE;
 	}
-	
+
 	char read_buff[TMP_BUFFER_LENGTH];
-    while( ( nread  = read( fd , read_buff  , needlen ) ) > 0 )
-    {
-		needlen -= nread;
-        	bodylen += nread;
+    	while( 1 )
+    	{
+		nread  = read( fd , read_buff  , needlen );
+		if( nread > 0 )
+		{
+			needlen -= nread;
+        		bodylen += nread;
 		
-		//printf( "RecvFromPipe:[%d][%s] \n" , nread , read_buff );
-		//write to client send_buffer
-		//strcatlen function can extend space when current space not enough
-		servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );
-        if( bodylen == data.len )
-        {
-            break;
-        }
-    }
+			//strcatlen function can extend space when current space not enough
+			servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );
+     
+			//printf( "RecvFromPipe Need:[%d][%d]\n" , needlen , bodylen );
+        		if( bodylen == data.len )
+        		{
+				printf( "RecvFromPipe Break:[%d]=[%d]\n" , bodylen , data.len  );
+            			break;
+        		}
+
+		}
+    	}
 	
     if( bodylen <= 0 )
     {
@@ -605,7 +613,7 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
             }
             else
             {
-                printf( "recvFromPipe recv unkown data.type=%d" , data.type );
+                //printf( "recvFromPipe recv unkown data.type=%d" , data.type );
             }
         }
         else
@@ -702,6 +710,7 @@ void createWorkerProcess( aeServer* serv )
         {
             //parent
             close( serv->workers[i].pipefd[1] );
+	    anetSetSendBuffer( neterr , serv->workers[i].pipefd[0] , 10241024 );
             anetNonBlock( neterr , serv->workers[i].pipefd[0] );
             continue;
         }
@@ -710,6 +719,7 @@ void createWorkerProcess( aeServer* serv )
             //child
             close( serv->workers[i].pipefd[0] );
             anetNonBlock( neterr, serv->workers[i].pipefd[1] );
+	    anetSetSendBuffer( neterr , serv->workers[i].pipefd[1] , 10241024 );
             runWorkerProcess( i , serv->workers[i].pipefd[1]  );
             exit( 0 );
         }

@@ -87,11 +87,17 @@ int createResponse( int connfd , char* buff , int len , char prototype , sds res
 {
     if( prototype == HTTP )
     {
-        sdscat( response , "HTTP/1.1 200 OK \r\n" );
-        sdscat( response , "Server: appnet/1.0.0\r\n" );
-        sdscat( response , "Content-Type: text/html\r\n" );
-        sdscat( response , "\r\n" );
-        sdscat( response ,  buff );
+	char content_length[64];
+	int clen;
+	clen = sprintf( content_length , "Content-Length: %d\r\n" , len );	
+
+        response = sdscat( response , "HTTP/1.1 200 OK \r\n" );
+        response = sdscat( response , "Server: appnet/1.0.0\r\n" );
+	response = sdscatlen( response , content_length , clen );
+        response  = sdscat( response , "Content-Type: text/html\r\n" );
+//	response = sdscat( response , "Content-Type: image/png\r\n");
+        response = sdscat( response , "\r\n" );
+        response = sdscatlen( response ,  buff , len );
         return sdslen( response );
     }
     else
@@ -115,22 +121,22 @@ int sendMessageToReactor( int connfd , char* buff , int len )
     data.type = PIPE_EVENT_MESSAGE;
     data.len = len;
     data.connfd = connfd;
+    int writeable = 0;
     if (sdslen( servG->worker->send_buffer ) == 0  )
     {
-        aeCreateFileEvent( servG->worker->el,
-                           servG->worker->pipefd , AE_WRITABLE,
-                           onWorkerPipeWritable,NULL );
+	writeable = 1;
     }
     //append data
     if( len >= 0 )
     {
+		
 		if( servG->connlist[connfd].protoType != TCP )
 		{
 			char prototype = servG->connlist[connfd].protoType;
 			int retlen;
 			//buffer...
 			retlen = createResponse(  connfd , buff , len , prototype , servG->worker->response  );
-			//printf( "createResponse:[%d][%s]\n" , retlen, servG->worker->response );
+			printf( "createResponse:[%d][%d]\n" , len , retlen );
 			if( retlen < 0 )
 			{
 				return;
@@ -144,6 +150,16 @@ int sendMessageToReactor( int connfd , char* buff , int len )
 		{
 			appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
 			appendSendBuffer(  buff , len );
+		}
+
+		if( data.len+PIPE_DATA_HEADER_LENG  == sdslen( servG->worker->send_buffer ) )
+		{
+			int ret;
+			ret = aeCreateFileEvent( servG->worker->el,servG->worker->pipefd , AE_WRITABLE ,onWorkerPipeWritable,NULL );
+			if( ret == AE_ERR )
+			{
+			   printf( "Error aeCreateFileEvent..\n");
+			}
 		}
     }
     return len;
@@ -176,15 +192,14 @@ void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
     }
     callUserRecvFunc( data.connfd , data.data , bodylen );
 }
+
 void onWorkerPipeWritable( aeEventLoop *el, int fd, void *privdata, int mask )
 {
     ssize_t nwritten;
     nwritten = write( fd, servG->worker->send_buffer, sdslen(servG->worker->send_buffer));
- 
-    //printf( "onWorkerPipeWritable len=%d \n" , nwritten ); 
     if (nwritten <= 0)
     {
-        printf( "Worker I/O error writing to worker: %s", strerror(errno));
+        printf( "Worker I/O error writing to worker: %s \n", strerror(errno));
         //退出吗，自杀..
         return;
     }
@@ -256,7 +271,7 @@ int sendCloseEventToReactor( int connfd  )
         printf( "send_buffer=%d,len=%d\n", sdslen( servG->worker->send_buffer ) , data.len  );
     }
     servG->worker->send_buffer = sdscatlen( servG->worker->send_buffer ,&data, PIPE_DATA_HEADER_LENG );
-	return sdslen( servG->worker->send_buffer );
+    return sdslen( servG->worker->send_buffer );
 }
 
 int socketWrite(int __fd, void *__data, int __len)
@@ -337,12 +352,12 @@ void runWorkerProcess( int pidx ,int pipefd )
     worker->start = 0;
     worker->send_buffer = sdsnewlen( NULL , SEND_BUFFER_LENGTH  );
     worker->recv_buffer = sdsnewlen( NULL , RECV_BUFFER_LENGTH  );
-	worker->response = sdsnewlen( NULL , SEND_BUFFER_LENGTH );
+    worker->response = sdsnewlen( NULL , SEND_BUFFER_LENGTH );
 	
     servG->worker = worker;
     sdsclear( servG->worker->send_buffer );
     sdsclear( servG->worker->recv_buffer );
-	sdsclear( servG->worker->response );
+    sdsclear( servG->worker->response );
     //这里要安装信号接收器..
     addSignal( SIGTERM, childTermHandler, 0 );
     addSignal( SIGCHLD, childChildHandler , 1 );
@@ -365,7 +380,7 @@ void runWorkerProcess( int pidx ,int pipefd )
     //printf( "Worker pid=%d exit...\n" , worker->pid );
     sdsfree( worker->send_buffer );
     sdsfree( worker->recv_buffer );
-	sdsfree( worker->response );
+    sdsfree( worker->response );
 	
     zfree( worker );
     shm_free( servG->connlist , 0 );
