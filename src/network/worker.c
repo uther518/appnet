@@ -98,15 +98,16 @@ int createResponse( int connfd , char* buff , int len , char prototype , sds res
 		response = sdscat( response , "Content-Type: text/html\r\n" );
 		//response = sdscat( response , "Content-Type: image/png\r\n");
 		response = sdscat( response , "\r\n" );
-		response = sdscatlen( response ,  buff , len );
-		return sdslen( response );
+		//printf( "Response:[%d][%s] \n" , sdslen( response ) , response );
+		servG->worker->response = sdscatlen( response ,  buff , len );
+		return sdslen( servG->worker->response );
     }
     else
     {
         int outlen = 0;
         char res[len+256];
         wsMakeFrame( buff ,  len , &res , &outlen , WS_TEXT_FRAME );
-        sdscatlen( response , res , outlen );
+        sdscatlen( servG->worker->response , res , outlen );
         return outlen;
     }
 }
@@ -137,11 +138,18 @@ int sendMessageToReactor( int connfd , char* buff , int len )
 			int retlen;
 			//buffer...
 			retlen = createResponse(  connfd , buff , len , prototype , servG->worker->response  );
-			//printf( "createResponse:[%d][%d]\n" , len , retlen );
 			if( retlen < 0 )
 			{
-				return;
+			   printf( "CreateResponse Error \n");
+			   return;
 			}
+			
+			if( sdslen( servG->worker->response ) != retlen )
+			{
+			   printf( "createResponse Error sdslen=%d \n" , sdslen( servG->worker->response ) );
+			   return;
+			}
+
 			data.len = retlen;
 			appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
 			appendSendBuffer(  servG->worker->response , retlen );

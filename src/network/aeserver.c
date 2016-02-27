@@ -84,7 +84,6 @@ void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask )
         return;
     }
     nwritten = write( fd, servG->connlist[fd].send_buffer, sdslen(servG->connlist[fd].send_buffer));
-  
     if (nwritten <= 0)
     {
         printf( "I/O error writing to client: %s", strerror(errno));
@@ -96,7 +95,7 @@ void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask )
     if (sdslen(servG->connlist[fd].send_buffer) == 0)
     {
         aeDeleteFileEvent( el, fd, AE_WRITABLE);
-        if( servG->connlist[fd].disable == 2 || servG->connlist[fd].protoType == HTTP )
+        if( servG->connlist[fd].disable == 2  || servG->connlist[fd].protoType == HTTP  )
         {
             freeClient( &servG->connlist[fd] );
         }
@@ -440,7 +439,6 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 		if( nread > 0 )
 		{
 			bodylen += nread;
-			printf( "RecvFromPipe Len=%d \n" , nread );	
 			//strcatlen function can extend space when current space not enough
 			if ( sdslen( servG->connlist[data.connfd].send_buffer) == 0 )
         		{
@@ -451,7 +449,7 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 			//printf( "RecvFromPipe Need:[%d][%d]\n" , needlen , bodylen );
 			if( bodylen == data.len )
 			{
-				printf( "RecvFromPipe Break:[%d]=[%d]\n" , bodylen , data.len  );
+				//printf( "RecvFromPipe Break:[%d]=[%d]\n" , bodylen , data.len  );
 				break;
 			}
 
@@ -625,7 +623,7 @@ void createWorkerProcess( aeServer* serv )
         {
             //parent
             close( serv->workers[i].pipefd[1] );
-			anetSetSendBuffer( neterr , serv->workers[i].pipefd[0] , SOCKET_SND_BUF_SIZE );
+	    anetSetSendBuffer( neterr , serv->workers[i].pipefd[0] , SOCKET_SND_BUF_SIZE );
             anetNonBlock( neterr , serv->workers[i].pipefd[0] );
             continue;
         }
@@ -634,7 +632,7 @@ void createWorkerProcess( aeServer* serv )
             //child
             close( serv->workers[i].pipefd[0] );
             anetNonBlock( neterr, serv->workers[i].pipefd[1] );
-			anetSetSendBuffer( neterr , serv->workers[i].pipefd[1] , SOCKET_SND_BUF_SIZE );
+	    anetSetSendBuffer( neterr , serv->workers[i].pipefd[1] , SOCKET_SND_BUF_SIZE );
             runWorkerProcess( i , serv->workers[i].pipefd[1]  );
             exit( 0 );
         }

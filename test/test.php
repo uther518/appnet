@@ -138,7 +138,7 @@ function onRecv( $server , $fd , $buffer )
 	   if( preg_match( "/do/", $header['Uri'] ) )
 	   {
 	   	//$data = file_get_contents( "test/test.html");
-		$data = file_get_contents( "test/icon.png");   
+		$data = file_get_contents( "test/rfc.txt");   
 		$server->send( $fd , $data );	
 	   }
 	   else
