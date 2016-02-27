@@ -427,16 +427,11 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
     int pos = PIPE_DATA_HEADER_LENG;
     int nread = 0;
     int bodylen = 0;
-    int writable = AE_FALSE;
     if( data.len <= 0 )
     {
         return;
     }
 	
-	if ( sdslen( servG->connlist[data.connfd].send_buffer) == 0 )
-	{
-		writable = AE_TRUE;
-	}
 
 	char read_buff[TMP_BUFFER_LENGTH];
 	while( 1 )
@@ -447,6 +442,10 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 			bodylen += nread;
 			printf( "RecvFromPipe Len=%d \n" , nread );	
 			//strcatlen function can extend space when current space not enough
+			if ( sdslen( servG->connlist[data.connfd].send_buffer) == 0 )
+        		{
+				aeCreateFileEvent( el, data.connfd , AE_WRITABLE, onClientWritable, NULL );      
+        		}
 			servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );
 	 
 			//printf( "RecvFromPipe Need:[%d][%d]\n" , needlen , bodylen );
@@ -469,15 +468,6 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
         return;
     }
   
-    //set writable event to connfd
-	//这里是否会存在线程安全问题
-	//是否在多个线程会写入同一个conn send_buffer
-	//这是不会的，因为每个conn的请求只会在同一个线程处理，所以这个buffer是线程安全的
-	//意味着，当前线程在接收的时候，不可能有别的线程将数据写入client缓冲区
-    if ( writable == AE_TRUE )
-    {
-        aeCreateFileEvent( el, data.connfd , AE_WRITABLE, onClientWritable, NULL );
-    }
    
 }
 
