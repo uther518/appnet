@@ -197,6 +197,7 @@ void onWorkerPipeWritable( aeEventLoop *el, int fd, void *privdata, int mask )
 {
     ssize_t nwritten;
     nwritten = write( fd, servG->worker->send_buffer, sdslen(servG->worker->send_buffer));
+    printf( "onWorkerPipeWritable[%d] \n" , nwritten );
     if (nwritten <= 0)
     {
         printf( "Worker I/O error writing to worker: %s \n", strerror(errno));

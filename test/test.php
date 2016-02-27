@@ -150,7 +150,8 @@ function onRecv( $server , $fd , $buffer )
 	}
 	else
 	{
-		$buffer = file_get_contents( "test/icon.png");
+		//$buffer = file_get_contents( "test/icon.png");
+		$buffer = file_get_contents( "test/rfc.txt");
 		//$data = $buffer;
            	$server->send( $fd , $buffer );
 	}

@@ -434,64 +434,6 @@ aeReactorThread getReactorThread( aeServer* serv, int i )
     return (aeReactorThread)(serv->reactorThreads[i]);
 }
 
-void readBodyFromPipe2(  aeEventLoop *el, int fd , aePipeData data )
-{
-    int pos = PIPE_DATA_HEADER_LENG;
-    int nread = 0;
-    int needlen = data.len;
-    int bodylen = 0;
-    if( data.len <= 0 )
-    {
-        return;
-    }
-    sds request;
-    request = sdsnewlen( NULL , data.len );
-    while( ( nread  = read( fd , request  , data.len ) ) > 0 )
-    {
-        bodylen += nread;
-        if( bodylen == data.len )
-        {
-            break;
-        }
-    }
-    if( bodylen <= 0 )
-    {
-        if (nread == -1 && errno == EAGAIN)
-        {
-            return;
-        }
-        printf( "readBodyFromPipe error\n");
-        return;
-    }
-   
-    int connfd = data.connfd;
-    if( servG->connlist[connfd].protoType != TCP )
-    {
-        char prototype = servG->connlist[connfd].protoType;
-        data.data = sdsempty();
-        data.len = createResponse(  connfd , request , bodylen , prototype , data.data  );
-        if( data.len < 0 )
-        {
-            return;
-        }
-    }
-    else
-    {
-        data.data = request;
-    }
-    //set writable event to connfd
-    if ( sdslen( servG->connlist[data.connfd].send_buffer) == 0 )
-    {
-        aeCreateFileEvent( el,
-                           data.connfd,
-                           AE_WRITABLE,
-                           onClientWritable,
-                           NULL
-                         );
-    }
-    servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , data.data  , data.len  );
-    sdsfree( request ); 
-}
 
 //read data body from pipe,
 void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
@@ -519,7 +461,7 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 		{
 			needlen -= nread;
         		bodylen += nread;
-		
+			printf( "RecvFromPipe Len=%d \n" , nread );	
 			//strcatlen function can extend space when current space not enough
 			servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );
      
