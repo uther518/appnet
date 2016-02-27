@@ -440,7 +440,6 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 {
     int pos = PIPE_DATA_HEADER_LENG;
     int nread = 0;
-    int needlen = data.len;
     int bodylen = 0;
     int writable = AE_FALSE;
     if( data.len <= 0 )
@@ -456,10 +455,9 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 	char read_buff[TMP_BUFFER_LENGTH];
     	while( 1 )
     	{
-		nread  = read( fd , read_buff  , needlen );
+		nread  = read( fd , read_buff  , TMP_BUFFER_LENGTH );
 		if( nread > 0 )
 		{
-			needlen -= nread;
         		bodylen += nread;
 			printf( "RecvFromPipe Len=%d \n" , nread );	
 			//strcatlen function can extend space when current space not enough
