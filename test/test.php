@@ -135,18 +135,10 @@ function onRecv( $server , $fd , $buffer )
 	}
 	elseif(  $header['Protocol'] == "HTTP"  )
         {
-	   if( preg_match( "/do/", $header['Uri'] ) )
-	   {
 	   	//$data = file_get_contents( "test/test.html");
-		$data = file_get_contents( "test/rfc.txt");   
+		//$data = file_get_contents( "test/rfc.txt");   
+		$data  = $buffer;
 		$server->send( $fd , $data );	
-	   }
-	   else
-	   {
-		$data = file_get_contents( "test/icon.png");
-	        //$data = $header['Uri'];
-	        $server->send( $fd , $data );   
-	   }
 	}
 	else
 	{

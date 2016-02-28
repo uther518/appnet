@@ -359,21 +359,18 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
             return BREAK_RECV;
         }
     }
-    //GET方式，只要包头完整就可以了
     else if( strncmp( header->method , "GET" , 3 ) == 0  )
     {
         char* uri;
         uri = strstr( header->uri , "?" );
-		//如果是get请求，mime类型是静态文件的话，不发往后端，直接从此处返回
-		int ret;
-		char mime_type[32] = {0};
-		ret = get_mime_type( header->uri , mime_type );
-		if( ret == 1 )
-		{
-			http_response_static( header  , mime_type );
-			return BREAK_RECV;
-		}
-		
+	int ret;
+	memset( header->mime_type , 0 , sizeof( header->mime_type ) );
+	ret = get_mime_type( header->uri , header->mime_type );
+	if( ret == 1 )
+	{
+	    http_response_static( header );
+	    return BREAK_RECV;
+	}
 		
         if( uri != NULL  )
         {
@@ -381,7 +378,6 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
         }
         else
         {
-            //如果空的，空的也要发呀
             createWorkerTask(  header->connfd , "",  0 , PIPE_EVENT_MESSAGE , "parseGetRequest empty data" );
         }
     }

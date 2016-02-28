@@ -95,8 +95,8 @@ int createResponse( int connfd , char* buff , int len , char prototype , sds res
 	response = sdscat( response , "HTTP/1.1 200 OK \r\n" );
 	response = sdscat( response , "Server: appnet/1.0.0\r\n" );
 	response = sdscatlen( response , content_length , clen );
-	//response = sdscat( response , "Content-Type: text/html\r\n" );
-	response = sdscat( response , "Content-Type: image/png\r\n");
+	response = sdscat( response , "Content-Type: text/html\r\n" );
+	//response = sdscat( response , "Content-Type: image/png\r\n");
 	response = sdscat( response , "\r\n" );
 	//printf( "Response:[%d][%s] \n" , sdslen( response ) , response );
 	servG->worker->response = sdscatlen( response ,  buff , len );

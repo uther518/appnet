@@ -69,6 +69,7 @@ typedef struct
 	char method[8]; //
 	char uri[1024];
 	char version[16];
+	char mime_type[32];
 	int  protocol;
 	headerFiled fileds[30]; 
 	headerParams params;   //分析的结果结构体
