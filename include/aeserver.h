@@ -24,6 +24,7 @@
 #define OPT_MAX_CONNECTION "opt_max_connection"
 #define OPT_PROTOCOL_TYPE  "opt_protocol_type"
 
+#define HTTP_VERSION_STR  "appnet/1.1.0"
 
 #define MAXFD 1024
 #define MAX_EVENT 4096
@@ -140,7 +141,8 @@ struct _aeServer
    int maxConnect;
    int connectNum;
    int protocolType;
-   
+
+   char httpHeaderVer[32];   
    char* httpDocsRoot;
    
    aeReactor* mainReactor;

@@ -816,13 +816,13 @@ int startServer( aeServer* serv )
 aeServer* aeServerCreate( char* ip,int port )
 {
     aeServer* serv = (aeServer*)zmalloc( sizeof(aeServer ));
-	serv->listen_ip = ip;
+    serv->listen_ip = ip;
     serv->port = port;
     serv->connectNum = 0;
     serv->reactorNum = 1;
     serv->workerNum = 1;
     serv->maxConnect = 1024;
-	serv->protocolType = PROTOCOL_TYPE_WEBSOCKET_MIX;
+    serv->protocolType = PROTOCOL_TYPE_WEBSOCKET_MIX;
     serv->runForever = startServer;
     serv->send =  sendMessageToReactor;
     serv->close = sendCloseEventToReactor;
@@ -831,7 +831,8 @@ aeServer* aeServerCreate( char* ip,int port )
     serv->closeClient = freeClient;
    
     serv->httpDocsRoot = "/home/httpRoot";
-   
+    memset( serv->httpHeaderVer , 0 , sizeof( serv->httpHeaderVer ));
+    memcpy( serv->httpHeaderVer , HTTP_VERSION_STR , strlen( HTTP_VERSION_STR ) ); 
     servG = serv;
     return serv;
 }

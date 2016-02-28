@@ -28,6 +28,33 @@ void http_response_static( httpHeader* reqHeader  )
         }
 }
 
+
+void http_response_write( int connfd , char* buff )
+{
+	int nwritten = write( connfd , buff , strlen( buff ));
+	if (nwritten <= 0)
+	{
+		printf( "I/O error writing to client: %s \n", strerror(errno));
+		return;
+	}
+}
+
+
+//redirect 302
+void http_response_404(  httpHeader* reqHeader )
+{
+	//if 404 page exit, redirect 404.html page
+
+	char response[1024] = {0};
+	char* data = "<html><title>File Not Found</title><body><h1>File Not Found!</h1></body></html>";
+	snprintf( response , sizeof( response ) , 
+		"%s 404 File Not Found\r\nServer: %s\r\nContent-Length: %d\r\nContent-type: text/html\r\n\r\n%s" , 
+		reqHeader->version,servG->httpHeaderVer,strlen( data ),data
+	);
+	http_response_write( reqHeader->connfd , response );
+}
+
+
 //response static resource
 void http_response_proc( httpHeader* reqHeader , char* mime_type )
 {
@@ -39,15 +66,16 @@ void http_response_proc( httpHeader* reqHeader , char* mime_type )
         int ret =  stat( path , &stat_file );
 	if( ret < 0 )
 	{
-	   	printf( "File Not Exist Or Error:%s,errno=%d,error=%s \n" , path , errno,strerror( errno ) );
 	   	//send 404.
+		http_response_404( reqHeader );
 	   	return;
 	}
 
 	char response[1024] = {0};
 	snprintf( response , sizeof( response ) , 
-		"%s 200 OK \r\nServer: appnet/1.0.0\r\nContent-Length: %d\r\nContent-Type: %s\r\n\r\n" , 
+		"%s 200 OK \r\nServer: %s\r\nContent-Length: %d\r\nContent-Type: %s\r\n\r\n" , 
 		reqHeader->version,
+		servG->httpHeaderVer,
 		stat_file.st_size,mime_type
 	);
 
