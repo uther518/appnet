@@ -14,7 +14,7 @@
 #include "dict.h"
 #include "http_request.h"
 #include "websocket.h"
-
+#include "http_response.h"
 
 #define AE_TRUE        1
 #define AE_FALSE       0

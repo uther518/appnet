@@ -3,7 +3,7 @@
 #ifndef _MIME_TYPES_H_
 #define _MIME_TYPES_H_
 
-define MIME_TYPES_NUM  79
+#define MIME_TYPES_NUM  79
 
 const char* mime_types[MIME_TYPES_NUM][2] = {
 	{"text/html" ,								"html htm shtml"},
@@ -115,6 +115,7 @@ static inline int get_ext_mime_type( char* ext , char* ctype )
 //uri /web/test.html?xx=yyy&cc=ff
 static inline int get_mime_type( char* uri , char* ctype )
 {
+
 	char* pos;
 	pos  = strstr( uri , "?" );
 

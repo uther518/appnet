@@ -3,6 +3,8 @@
 #ifndef _HTTP_RESPONSE_H_
 #define _HTTP_RESPONSE_H_
 
+#include "sds.h"
+#include "http_request.h"
 
 typedef struct 
 {

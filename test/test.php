@@ -143,9 +143,9 @@ function onRecv( $server , $fd , $buffer )
 	   }
 	   else
 	   {
-		//$data = file_get_contents( "test/icon.png");
+		$data = file_get_contents( "test/icon.png");
 	        //$data = $header['Uri'];
-	        //$server->send( $fd , $data );   
+	        $server->send( $fd , $data );   
 	   }
 	}
 	else

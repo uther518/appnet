@@ -366,7 +366,7 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
         uri = strstr( header->uri , "?" );
 		//如果是get请求，mime类型是静态文件的话，不发往后端，直接从此处返回
 		int ret;
-		char* mime_type;
+		char mime_type[32] = {0};
 		ret = get_mime_type( header->uri , mime_type );
 		if( ret == 1 )
 		{

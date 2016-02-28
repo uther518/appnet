@@ -1,5 +1,6 @@
 
-
+#include <stdlib.h>
+#include "aeserver.h"
 #include "http_response.h"
 
 //response static resource
@@ -8,9 +9,10 @@ void http_response_static( httpHeader* reqHeader , char* mime_type )
 
 	int cllen , ctlen ;
 	char path[1024];
-	get_file_path( reqHeader->uri , path );
+	int len;
+        get_file_path( reqHeader->uri , path );
 	
-	printf( "http_response_static path=%s \n" , path );
+	printf( "http_response_static path=%s,mime_type=%s \n" , path , mime_type  );
 	return;
 	
 	commonResponse  resp;
@@ -25,9 +27,10 @@ void http_response_static( httpHeader* reqHeader , char* mime_type )
 	memcpy( response , resp.hServerName , 	strlen( resp.hServerName ));
 	memcpy( response , resp.hContentType , 	strlen( resp.hContentType ));
 	memcpy( response , resp.hContentLength , strlen( resp.hContentLength ));
+
+
 	
-	
-	response = sdscat( response , "\r\n" );
+	//response = sdscat( response , "\r\n" );
 	
 	//send header 
 	
@@ -43,8 +46,14 @@ void get_file_path( char* uri , char* path )
 {
 	char* pos  = strstr( uri , "?" );
 	memcpy( path ,  servG->httpDocsRoot , strlen( servG->httpDocsRoot ) );
-	memcpy( path+strlen( servG->httpDocsRoot ) ,  uri , pos-uri  );
-	
+	if( pos == NULL )
+	{
+	   memcpy( path + strlen( servG->httpDocsRoot )  ,  uri , strlen( uri)  );
+	}
+	else
+	{
+	   memcpy( path + strlen( servG->httpDocsRoot ) ,  uri , pos-uri  );	
+	}
 }
 
 
