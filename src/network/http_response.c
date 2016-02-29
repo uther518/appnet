@@ -39,12 +39,25 @@ void http_response_write( int connfd , char* buff )
 	}
 }
 
+void http_redirect( httpHeader* reqHeader ,  char* uri )
+{
+        char response[1024] = {0};
+        snprintf( response , sizeof( response ) ,
+                "%s 301 Moved Permanently\r\nServer: %s\r\nLocation: %s\r\nContent-Length: 0\r\nContent-type: text/html\r\n\r\n" ,
+                reqHeader->version,servG->httpHeaderVer,uri
+        );
+        http_response_write( reqHeader->connfd , response );
+}
 
 //redirect 302
-void http_response_404(  httpHeader* reqHeader )
+void http_response_404(  httpHeader* reqHeader , int redirect )
 {
-	//if 404 page exit, redirect 404.html page
-
+	if( redirect > 0 )
+	{
+		http_redirect( reqHeader , "404.html" );
+		//if 404 page exit, redirect 404.html page
+		return;
+	}
 	char response[1024] = {0};
 	char* data = "<html><title>File Not Found</title><body><h1>File Not Found!</h1></body></html>";
 	snprintf( response , sizeof( response ) , 
@@ -52,6 +65,23 @@ void http_response_404(  httpHeader* reqHeader )
 		reqHeader->version,servG->httpHeaderVer,strlen( data ),data
 	);
 	http_response_write( reqHeader->connfd , response );
+}
+
+
+int is_dir(char *path)
+{
+	int s;
+	struct stat info;
+	s = stat(path, &info);
+	return (s == 0 && (info.st_mode & S_IFDIR));
+}
+
+int is_file(char *path)
+{
+	int s;
+	struct stat info;
+	s = stat(path, &info);
+	return (s == 0 && (info.st_mode & S_IFREG));
 }
 
 
@@ -67,7 +97,7 @@ void http_response_proc( httpHeader* reqHeader , char* mime_type )
 	if( ret < 0 )
 	{
 	   	//send 404.
-		http_response_404( reqHeader );
+		http_response_404( reqHeader , 0 );
 	   	return;
 	}
 
