@@ -28,7 +28,9 @@
 #define APPNET_HTTP_404_PAGE   "http_404_page"
 #define APPNET_HTTP_50X_PAGE   "http_50x_page"
 
-//#define HTTP_VERSION_STR  "appnet/1.1.0"
+#define DEFAULT_HTTP_DOCS_ROOT "/home/www"
+#define DEFALUT_HTTP_404_PAGE "/404.html"
+#define DEFALUT_HTTP_50X_PAGE "/50x.html"
 
 #define MAXFD 1024
 #define MAX_EVENT 4096
@@ -147,8 +149,9 @@ struct _aeServer
    int connectNum;
    int protocolType;
 
-   char httpHeaderVer[32];   
-   char* httpDocsRoot;
+   char http_404_page[64];
+   char http_50x_page[64];
+   char http_docs_root[128];
  
    aeReactor* mainReactor;
    aeConnection* connlist;

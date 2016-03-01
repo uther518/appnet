@@ -741,11 +741,11 @@ int setOption( char* key , char* val )
 	}
 	else if( strcmp( key , OPT_REACTOR_NUM ) == 0 )
 	{
-	    if( atoi( val ) <= 0 )
+	        if( atoi( val ) <= 0 )
 		{
 			return AE_FALSE;
 		}
-	    servG->reactorNum = atoi( val ); 
+	    	servG->reactorNum = atoi( val ); 
 	}
 	else if( strcmp( key , OPT_MAX_CONNECTION  ) == 0 )
 	{
@@ -763,6 +763,21 @@ int setOption( char* key , char* val )
 			return AE_FALSE;
 		}
 		servG->protocolType = type; 
+	}
+	else if( strcmp( key , APPNET_HTTP_DOCS_ROOT  ) == 0 )
+	{
+		memset( servG->http_docs_root ,  0 , sizeof(  servG->http_docs_root ) );
+		memcpy( servG->http_docs_root , val , strlen( val ) );
+	}
+	else if( strcmp( key , APPNET_HTTP_404_PAGE  ) == 0 )
+	{
+		memset( servG->http_404_page ,  0 , sizeof(  servG->http_404_page ) );
+		memcpy( servG->http_404_page , val , strlen( val ) );
+	}
+	else if( strcmp( key , APPNET_HTTP_50X_PAGE  ) == 0 )
+	{
+		memset( servG->http_50x_page ,  0 , sizeof(  servG->http_50x_page ) );
+		memcpy( servG->http_50x_page , val , strlen( val ) );
 	}
 	else
 	{
@@ -812,7 +827,6 @@ int startServer( aeServer* serv )
     return 0;
 }
 
-
 aeServer* aeServerCreate( char* ip,int port )
 {
     aeServer* serv = (aeServer*)zmalloc( sizeof(aeServer ));
@@ -829,12 +843,16 @@ aeServer* aeServerCreate( char* ip,int port )
     serv->setOption = setOption;
     serv->sendToClient = anetWrite;
     serv->closeClient = freeClient;
-   
-    serv->httpDocsRoot = "/home/www";
-    //serv->http_page_404 = "404.html";
 
-    memset( serv->httpHeaderVer , 0 , sizeof( serv->httpHeaderVer ));
-    memcpy( serv->httpHeaderVer , HTTP_VERSION_STR , strlen( HTTP_VERSION_STR ) ); 
+    memset( serv->http_docs_root , 0 , sizeof( serv->http_docs_root ) );
+    memset( serv->http_404_page , 0 , sizeof( serv->http_404_page ) );
+    memset( serv->http_50x_page , 0 ,  sizeof( serv->http_50x_page ) );
+
+    memcpy( serv->http_docs_root , DEFAULT_HTTP_DOCS_ROOT , strlen( DEFAULT_HTTP_DOCS_ROOT ) );
+    memcpy( serv->http_404_page  , DEFALUT_HTTP_404_PAGE , strlen( DEFALUT_HTTP_404_PAGE ) );
+    memcpy( serv->http_50x_page  , DEFALUT_HTTP_50X_PAGE , strlen( DEFALUT_HTTP_50X_PAGE ) );
+
+
     servG = serv;
     return serv;
 }

@@ -189,7 +189,7 @@ $server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
 $server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
 $server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
 
-$server->setOption( APPNET_HTTP_DOCS_ROOT , "/home/html");
+$server->setOption( APPNET_HTTP_DOCS_ROOT , "/home/www");
 $server->setOption( APPNET_HTTP_404_PAGE , "/404.html" );
 $server->setOption( APPNET_HTTP_50X_PAGE , "/50x.html" );
 

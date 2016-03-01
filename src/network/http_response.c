@@ -10,7 +10,7 @@
 void onRespWritable(  aeEventLoop *el, int connfd, void *privdata, int mask )
 {
 	httpHeader* reqHeader = ( httpHeader*)privdata;
-	printf( "onRespWritable fd=%d,hfd=%d,mime_type=%s \n" , connfd , reqHeader->connfd,reqHeader->mime_type  );
+	//printf( "onRespWritable fd=%d,hfd=%d,mime_type=%s \n" , connfd , reqHeader->connfd,reqHeader->mime_type  );
 
 	http_response_static_proc( reqHeader  );
 	aeDeleteFileEvent( el, connfd , AE_WRITABLE );
@@ -22,7 +22,6 @@ void http_response_static( httpHeader* reqHeader  )
         aeEventLoop *el = servG->reactorThreads[thid].reactor.eventLoop;
         if ( aeCreateFileEvent( el, reqHeader->connfd , AE_WRITABLE , onRespWritable, reqHeader ) == -1)
         {
-            printf( "aeApiAddEvent Error fd=[%d] \n" , reqHeader->connfd );
             return;
         }
 }
@@ -144,8 +143,12 @@ void http_redirect( httpHeader* reqHeader ,  char* uri )
 	header_out_t  header_out;
 	memset( &header_out , 0 , sizeof( header_out ));
 	header_out.req = reqHeader;
-	
-	resp_append_header_line( &header_out , HEADER_STATUS , 301 );
+
+
+     	header_status_t  error_page = get_http_status( 301 );
+        //header append
+
+	resp_append_header_line( &header_out , HEADER_STATUS , error_page.status );
 	resp_append_header_line( &header_out , HEADER_SERVER );
 	resp_append_header_line( &header_out , HEADER_LOCATION , uri );
 	resp_append_header_line( &header_out , HEADER_CONTENT_TYPE  );
@@ -155,6 +158,17 @@ void http_redirect( httpHeader* reqHeader ,  char* uri )
 	http_response_write( reqHeader->connfd , header_out.data , header_out.length );
 }
 
+int error_page_defined( char* page )
+{
+	char path[128] = {0};
+	get_file_path( page , path );
+	if( is_file( path ) )
+	{
+	  return 1;
+	}
+	printf( "%s Is Not Defined Page \n" , path );
+	return 0;
+}
 
 //
 int resp_defined_error_page( header_out_t*  header_out , int err_code )
@@ -162,7 +176,8 @@ int resp_defined_error_page( header_out_t*  header_out , int err_code )
 	switch( err_code )
 	{
 		case 404:
-			http_redirect( header_out->req , "404.html" );
+			if( error_page_defined( servG->http_404_page ) == 0 )return 0;
+			http_redirect( header_out->req , servG->http_404_page );
 			break;
 		case 500:
 		case 501:
@@ -170,7 +185,8 @@ int resp_defined_error_page( header_out_t*  header_out , int err_code )
 		case 503:
 		case 504:
 		case 505:
-			http_redirect( header_out->req , "50x.html" );
+			if( error_page_defined( servG->http_50x_page ) == 0 )return 0;
+			http_redirect( header_out->req , servG->http_50x_page );
 			break;
 		default:
 			return 0;
@@ -183,7 +199,6 @@ int resp_defined_error_page( header_out_t*  header_out , int err_code )
 //如果内容是固定长度的，推荐用这种方式,如果是很大块的内容也可以用trucked方式
 void header_append_length(  header_out_t*  header_out , int len )
 {
-
 	resp_append_header_line( header_out , HEADER_CONTENT_LENGTH  , len );
 }
 
@@ -197,7 +212,7 @@ void header_append_chunked(  header_out_t  header_out )
 
 
 //this function only process status=200 page, not include resp_error_page
-void set_common_header( header_out_t*  header_out, int status_code   )
+void create_common_header( header_out_t*  header_out, int status_code   )
 {
 	header_status_t  error_page = get_http_status( status_code );
 	//header append
@@ -211,8 +226,6 @@ void set_common_header( header_out_t*  header_out, int status_code   )
 //404
 void resp_error_page( header_out_t*  header_out, int status_code )
 {
-	printf( "resp_error_page==%d \n" , status_code );
-	/*
 	if( status_code >= 400 && status_code <= 507 )
 	{
 		int ret = resp_defined_error_page(  header_out , status_code );
@@ -221,7 +234,7 @@ void resp_error_page( header_out_t*  header_out, int status_code )
 			return;
 		}
 	}
-	*/
+	
 	//get header info
 	header_status_t  error_page = get_http_status( status_code );
 	int datalen = strlen( error_page.data );
@@ -231,7 +244,7 @@ void resp_error_page( header_out_t*  header_out, int status_code )
 	resp_append_header_line( header_out , HEADER_SERVER );
 	header_append_length( header_out , datalen );
 	resp_append_header_line( header_out , HEADER_END_LINE );
-printf( "http_response_write len=%d,data=%s \n" , header_out->length , header_out->data );	
+	
 	//send
 	http_response_write( header_out->req->connfd, header_out->data , header_out->length );
 	http_response_write( header_out->req->connfd, error_page.data , datalen );
@@ -256,16 +269,13 @@ void http_response_static_proc( httpHeader* reqHeader )
 	if( ret < 0 )
 	{
 		resp_error_page( &header_out , 404 );
-	   	//send 404.
-		//http_response_404( reqHeader , 0 );
 	   	return;
 	}
 
-	set_common_header( &header_out , 200 );
+	create_common_header( &header_out , 200 );
 	header_append_length( &header_out , stat_file.st_size );
 	resp_append_header_line( &header_out , HEADER_END_LINE );
 	
-printf( "header_out len=%d,data=%s \n" ,  header_out.length , header_out.data  );	
 	int nwritten = write( reqHeader->connfd , header_out.data , header_out.length );
 	if (nwritten <= 0)
 	{
@@ -296,14 +306,14 @@ printf( "header_out len=%d,data=%s \n" ,  header_out.length , header_out.data  )
 void get_file_path( char* uri , char* path )
 {
 	char* pos  = strstr( uri , "?" );
-	memcpy( path ,  servG->httpDocsRoot , strlen( servG->httpDocsRoot ) );
+	memcpy( path ,  servG->http_docs_root , strlen( servG->http_docs_root ) );
 	if( pos == NULL )
 	{
-	   memcpy( path + strlen( servG->httpDocsRoot )  ,  uri , strlen( uri)  );
+	   memcpy( path + strlen( servG->http_docs_root )  ,  uri , strlen( uri)  );
 	}
 	else
 	{
-	   memcpy( path + strlen( servG->httpDocsRoot ) ,  uri , pos-uri  );	
+	   memcpy( path + strlen( servG->http_docs_root ) ,  uri , pos-uri  );	
 	}
 }
 
