@@ -129,6 +129,9 @@ static int resp_append_header_line( header_out_t*  header_out , int line_type , 
 			arg_string = va_arg( ap, char* );
 			len = snprintf( line , sizeof( line ) , header_formats[HEADER_LOCATION] , arg_string );
 		break;
+		case HEADER_END_LINE:
+			len = snprintf( line , sizeof( line ) , header_formats[HEADER_END_LINE] );
+		break;
 		
 	}
 	header_buffer_append( header_out , line , strlen( line ) );
@@ -147,6 +150,7 @@ void http_redirect( httpHeader* reqHeader ,  char* uri )
 	resp_append_header_line( &header_out , HEADER_LOCATION , uri );
 	resp_append_header_line( &header_out , HEADER_CONTENT_TYPE  );
 	resp_append_header_line( &header_out , HEADER_CONTENT_LENGTH , 0  );
+	resp_append_header_line( &header_out , HEADER_END_LINE );
 	
 	http_response_write( reqHeader->connfd , header_out.data , header_out.length );
 }
@@ -208,6 +212,7 @@ void set_common_header( header_out_t*  header_out, int status_code   )
 void resp_error_page( header_out_t*  header_out, int status_code )
 {
 	printf( "resp_error_page==%d \n" , status_code );
+	/*
 	if( status_code >= 400 && status_code <= 507 )
 	{
 		int ret = resp_defined_error_page(  header_out , status_code );
@@ -216,7 +221,7 @@ void resp_error_page( header_out_t*  header_out, int status_code )
 			return;
 		}
 	}
-	
+	*/
 	//get header info
 	header_status_t  error_page = get_http_status( status_code );
 	int datalen = strlen( error_page.data );
@@ -225,8 +230,8 @@ void resp_error_page( header_out_t*  header_out, int status_code )
 	resp_append_header_line( header_out , HEADER_STATUS , error_page.status  );
 	resp_append_header_line( header_out , HEADER_SERVER );
 	header_append_length( header_out , datalen );
-
-print_r( "http_response_write len=%d,data=%s \n" , header_out->length , header_out->data );	
+	resp_append_header_line( header_out , HEADER_END_LINE );
+printf( "http_response_write len=%d,data=%s \n" , header_out->length , header_out->data );	
 	//send
 	http_response_write( header_out->req->connfd, header_out->data , header_out->length );
 	http_response_write( header_out->req->connfd, error_page.data , datalen );
@@ -258,7 +263,9 @@ void http_response_static_proc( httpHeader* reqHeader )
 
 	set_common_header( &header_out , 200 );
 	header_append_length( &header_out , stat_file.st_size );
-		
+	resp_append_header_line( &header_out , HEADER_END_LINE );
+	
+printf( "header_out len=%d,data=%s \n" ,  header_out.length , header_out.data  );	
 	int nwritten = write( reqHeader->connfd , header_out.data , header_out.length );
 	if (nwritten <= 0)
 	{

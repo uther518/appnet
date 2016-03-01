@@ -29,6 +29,7 @@ typedef enum
    header_date	  
 }header_key;
 
+
 header_value_t header_values_arr[2] = {0};
 
 
@@ -36,10 +37,15 @@ void header_out_push(  header_out_t* header_out , int key ,  char* data , int le
 {
 	header_values_arr[key].pos = header_out->length;
 	header_values_arr[key].length = len;
-	
+
 	memcpy( header_out->data + header_out->length , data , len  );
 	header_out->length += len;
 	header_out->count += 1;
+}
+
+int header_name_exist( header_out_t* header_out  , int key )
+{
+	return header_values_arr[key].pos;
 }
 
 int main()
@@ -54,6 +60,10 @@ char* date = "Data-1985";
 header_out_push( &header_out , header_server , serv , strlen( serv )  );
 header_out_push( &header_out , header_date ,   date , strlen( date ) );
 
+if( header_name_exist( &header_out , header_server ))
+{
+
+}
 
 printf( "header_out length=%d,count=%d,data=%s \n" , header_out.length , header_out.count , header_out.data );
 return 0;

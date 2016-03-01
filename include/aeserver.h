@@ -70,7 +70,7 @@ struct _aeReactor
 	int max_event_num;
 	int running :1;
 	void *object;
-    void *ptr;  //reserve
+    	void *ptr;  //reserve
 	aeEventLoop *eventLoop;
 };
 
@@ -145,7 +145,7 @@ struct _aeServer
 
    char httpHeaderVer[32];   
    char* httpDocsRoot;
-   
+ 
    aeReactor* mainReactor;
    aeConnection* connlist;
    aeReactorThread *reactorThreads;

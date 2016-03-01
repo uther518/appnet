@@ -831,7 +831,7 @@ aeServer* aeServerCreate( char* ip,int port )
     serv->closeClient = freeClient;
    
     serv->httpDocsRoot = "/home/www";
-//    serv->http_page_404 = "404.html";
+    //serv->http_page_404 = "404.html";
 
     memset( serv->httpHeaderVer , 0 , sizeof( serv->httpHeaderVer ));
     memcpy( serv->httpHeaderVer , HTTP_VERSION_STR , strlen( HTTP_VERSION_STR ) ); 

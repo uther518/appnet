@@ -331,7 +331,8 @@ typedef enum
    HEADER_SERVER,
    HEADER_CONTENT_TYPE,
    HEADER_CONTENT_LENGTH,
-   HEADER_LOCATION
+   HEADER_LOCATION,
+   HEADER_END_LINE
 }header_key;
 
 static char* header_formats[] = {
@@ -339,7 +340,8 @@ static char* header_formats[] = {
 	"Server: %s"CRLF,
 	"Content-Type: %s"CRLF,
 	"Content-Length: %d"CRLF,
-	"Location: %s"CRLF
+	"Location: %s"CRLF,
+	CRLF
 };
 
 #define HTTP_VERSION_STR  "appnet/1.1.0"
