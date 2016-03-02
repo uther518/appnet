@@ -606,19 +606,20 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 {
 	char* buff = buffer;
 	int vlen;
-        char *crlf = 0 , *cl = 0;
+    char *crlf = 0 , *cl = 0;
 	char key[255] = {0};
 	char filename[255] = {0};
 	char val[1024] = {0};
 
-        int sep_len = strlen( "\r\n--") + strlen( header->boundary );
+    int sep_len = strlen( "\r\n--") + strlen( header->boundary );
 	char sep[sep_len+1];
 	snprintf( sep , sizeof( sep ) , "\r\n--%s" , header->boundary  );
-        int pos = sep_len;	
+    int pos = sep_len;	
 
 	//sdscatprintf 
 	//设置栈大小ulimit -s
-	char data[1024] = {0};
+	sds data = sdsnewlen(  NULL , header->content_length  );
+	//char data[1024] = {0};
 	while( 1 )
 	{
              memset( key , 0 , sizeof( key ));
@@ -660,6 +661,7 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 	}
 	createWorkerTask(  header->connfd , data  , strlen( data )  , PIPE_EVENT_MESSAGE, "parse_multipart_form" );
 	//printf( "data[%s] \n" , data );
+	sdsfree( data );
 }
 
 
