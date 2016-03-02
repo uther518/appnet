@@ -41,6 +41,7 @@ dictType httpTableDictType =
     dictSdsDestructor,         /* key destructor */
     dictSdsDestructor,         /* val destructor */
 };
+
 int isValidConnfd( int fd )
 {
     if( fd <= 0 )
@@ -57,15 +58,17 @@ int isValidConnfd( int fd )
     }
     return AE_TRUE;
 }
+
 void timerAdd( int ms , void* cb , void* params  )
 {
-  
    aeCreateTimeEvent( servG->worker->el, ms , cb  , params  , NULL );
 }
+
 void timerRemove( int tid  )
 {
     aeDeleteTimeEvent( servG->worker->el, tid );
 }
+
 int appendSendBuffer( const char *buff , size_t len)
 {
     servG->worker->send_buffer = sdscatlen( servG->worker->send_buffer , buff , len );
@@ -76,6 +79,29 @@ int appendSendBuffer( const char *buff , size_t len)
     }
     return AE_OK;
 }
+
+
+int createResponse( int connfd , char* buff , int len , char prototype , sds response )
+{
+    if( prototype == HTTP )
+    {
+        sdscat( response , "HTTP/1.1 200 OK \r\n" );
+        sdscat( response , "Server: appnet/1.0.0\r\n" );
+        sdscat( response , "Content-Type: text/html\r\n" );
+        sdscat( response , "\r\n" );
+        sdscat( response ,  buff );
+        return sdslen( response );
+    }
+    else
+    {
+        int outlen = 0;
+        char res[len+256];
+        wsMakeFrame( buff ,  len , &res , &outlen , WS_TEXT_FRAME );
+        sdscatlen( response , res , outlen );
+        return outlen;
+    }
+}
+
 //如果不是tcp协议，要单独处理
 int sendMessageToReactor( int connfd , char* buff , int len )
 {
@@ -93,11 +119,27 @@ int sendMessageToReactor( int connfd , char* buff , int len )
                            servG->worker->pipefd , AE_WRITABLE,
                            onWorkerPipeWritable,NULL );
     }
-    appendSendBuffer( &data , 9 );
+    appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
     //append data
     if( len >= 0 )
     {
-        appendSendBuffer(  buff , len );
+		if( servG->connlist[connfd].protoType != TCP )
+		{
+			char prototype = servG->connlist[connfd].protoType;
+			int retlen;
+			//buffer...
+			retlen = createResponse(  connfd , buff , len , prototype , servG->worker->response  );
+			if( retlen < 0 )
+			{
+				return;
+			}
+			appendSendBuffer(  servG->worker->response , retlen );
+			sdsclear( servG->worker->response );
+		}
+		else
+		{
+			appendSendBuffer(  buff , len );
+		}
     }
     return len;
 }
@@ -254,13 +296,7 @@ void childTermHandler( int sig )
 
 void childChildHandler( int sig )
 {
-    //printf( "Worker Recv Child Signal...\n");
-    //pid_t pid;
-    //int stat;
-    //while ( ( pid = waitpid( -1, &stat, WNOHANG ) ) > 0 )
-    //{
-    //  continue;
-    //}
+  
 }
 
 /**
@@ -272,16 +308,19 @@ void runWorkerProcess( int pidx ,int pipefd )
     //每个进程私有的�?
     aeWorker* worker = zmalloc( sizeof( aeWorker ));
     worker->pid = getpid();
-    worker->maxEvent = 1024;
+    worker->maxEvent = MAX_EVENT;
     worker->pidx = pidx;
     worker->pipefd = pipefd;
     worker->running = 1;
     worker->start = 0;
     worker->send_buffer = sdsnewlen( NULL , SEND_BUFFER_LENGTH  );
     worker->recv_buffer = sdsnewlen( NULL , RECV_BUFFER_LENGTH  );
+	worker->response = sdsnewlen( NULL , SEND_BUFFER_LENGTH );
+	
     servG->worker = worker;
     sdsclear( servG->worker->send_buffer );
     sdsclear( servG->worker->recv_buffer );
+	sdsclear( servG->worker->response );
     //这里要安装信号接收器..
     addSignal( SIGTERM, childTermHandler, 0 );
     addSignal( SIGCHLD, childChildHandler , 1 );
@@ -304,6 +343,8 @@ void runWorkerProcess( int pidx ,int pipefd )
     //printf( "Worker pid=%d exit...\n" , worker->pid );
     sdsfree( worker->send_buffer );
     sdsfree( worker->recv_buffer );
+	sdsfree( worker->response );
+	
     zfree( worker );
     shm_free( servG->connlist , 0 );
     close( pipefd );

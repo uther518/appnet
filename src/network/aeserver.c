@@ -16,30 +16,8 @@
 #include <sys/socket.h>
 #include "../include/aeserver.h"
 #include <unistd.h>
-int createResponse( int connfd , char* buff , int len , char prototype , sds response )
-{
-    if( prototype == HTTP )
-    {
-        sdscat( response , "HTTP/1.1 200 OK \r\n" );
-        sdscat( response , "Server: appnet/1.0.0\r\n" );
-        sdscat( response , "Content-Type: text/html\r\n" );
-        sdscat( response , "\r\n" );
-        sdscat( response ,  buff );
-        //printf( "Response:%s \n" , response );
-        return sdslen( response );
-    }
-    else
-    {
-        int outlen = 0;
-        char res[len+256];
-        wsMakeFrame( buff ,  len , &res , &outlen , WS_TEXT_FRAME );
-        sdscatlen( response , res , outlen );
-        //WS_CLOSING_FRAME
-        //      wsMakeFrame( buff ,  len , response , &outlen , WS_CLOSING_FRAME  );
-        //      printf( "wsMakeFrame len=%d,buff=%s \n" , outlen , response );
-        return outlen;
-    }
-}
+
+
 void initOnLoopStart(struct aeEventLoop *el)
 {
     //printf("initOnLoopStart threadid=%d \n" , pthread_self() );
@@ -247,11 +225,13 @@ void setPipeWritable( aeEventLoop *el , void *privdata ,  int worker_id  )
                            onMasterPipeWritable, worker_id );
     }
 }
+
 aeEventLoop* getThreadEventLoop( int connfd )
 {
     int reactor_id = connfd % servG->reactorNum;
     return servG->reactorThreads[reactor_id].reactor.eventLoop;
 }
+
 void acceptCommonHandler( aeServer* serv ,int fd,char* client_ip,int client_port, int flags)
 {
     if( serv->connectNum >= serv->maxConnect )
@@ -301,6 +281,7 @@ void acceptCommonHandler( aeServer* serv ,int fd,char* client_ip,int client_port
         pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
     }
 }
+
 void onAcceptEvent( aeEventLoop *el, int fd, void *privdata, int mask)
 {
     if( servG->listenfd == fd )
@@ -327,6 +308,7 @@ void onAcceptEvent( aeEventLoop *el, int fd, void *privdata, int mask)
         printf( "onAcceptEvent other fd=%d \n" , fd );
     }
 }
+
 void runMainReactor( aeServer* serv )
 {
     int res;
@@ -444,11 +426,13 @@ void createReactorThreads( aeServer* serv  )
         thread->thread_id = threadid;
     }
 }
+
 aeReactorThread getReactorThread( aeServer* serv, int i )
 {
     return (aeReactorThread)(serv->reactorThreads[i]);
 }
-void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
+
+void readBodyFromPipe2(  aeEventLoop *el, int fd , aePipeData data )
 {
     int pos = PIPE_DATA_HEADER_LENG;
     int nread = 0;
@@ -506,6 +490,64 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
     servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , data.data  , data.len  );
     sdsfree( request ); 
 }
+
+//read data body from pipe,
+void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
+{
+    int pos = PIPE_DATA_HEADER_LENG;
+    int nread = 0;
+    int needlen = data.len;
+    int bodylen = 0;
+	int writable = AE_FALSE;
+    if( data.len <= 0 )
+    {
+        return;
+    }
+	
+	if ( sdslen( servG->connlist[data.connfd].send_buffer) == 0 )
+	{
+		writable = AE_TRUE;
+	}
+	
+  
+	char read_buff[TMP_BUFFER_LENGTH]
+    while( ( nread  = read( fd , read_buff  , needlen ) ) > 0 )
+    {
+		needlen -= nread;
+        bodylen += nread;
+		
+		//write to client send_buffer
+		//strcatlen function can extend space when current space not enough
+		servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );
+        if( bodylen == data.len )
+        {
+            break;
+        }
+    }
+	
+    if( bodylen <= 0 )
+    {
+        if (nread == -1 && errno == EAGAIN)
+        {
+            return;
+        }
+        printf( "readBodyFromPipe error\n");
+        return;
+    }
+  
+    //set writable event to connfd
+	//这里是否会存在线程安全问题
+	//是否在多个线程会写入同一个conn send_buffer
+	//这是不会的，因为每个conn的请求只会在同一个线程处理，所以这个buffer是线程安全的
+	//意味着，当前线程在接收的时候，不可能有别的线程将数据写入client缓冲区
+    if ( writable == AE_TRUE )
+    {
+        aeCreateFileEvent( el, data.connfd , AE_WRITABLE, onClientWritable, NULL );
+    }
+   
+}
+
+
 //recv from pipe
 void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
 {
@@ -607,7 +649,7 @@ void *reactorThreadRun(void *arg)
     reactorThreadParam* param = (reactorThreadParam*)arg;
     aeServer* serv = param->serv;
     int thid = param->thid;
-    aeEventLoop* el = aeCreateEventLoop( 1024 );
+    aeEventLoop* el = aeCreateEventLoop( MAX_EVENT );
     serv->reactorThreads[thid].reactor.eventLoop = el;
     int ret,i;
     for(  i = 0; i < serv->workerNum; i++ )
@@ -629,16 +671,15 @@ int socketSetBufferSize(int fd, int buffer_size)
 {
     if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buffer_size, sizeof(buffer_size)) < 0)
     {
-        printf("setsockopt(%d, SOL_SOCKET, SO_SNDBUF, %d) failed.", fd, buffer_size);
         return AE_ERR;
     }
     if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buffer_size, sizeof(buffer_size)) < 0)
     {
-        printf("setsockopt(%d, SOL_SOCKET, SO_RCVBUF, %d) failed.", fd, buffer_size);
         return AE_ERR;
     }
     return AE_OK;
 }
+
 void createWorkerProcess( aeServer* serv )
 {
     char* neterr;
@@ -841,6 +882,7 @@ int startServer( aeServer* serv )
     createReactorThreads( serv );
 
     __SLEEP_WAIT__;
+	
     runMainReactor( serv );
 
     destroyServer( serv );

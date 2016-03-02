@@ -26,6 +26,7 @@
 
 
 #define MAXFD 1024
+#define MAX_EVENT 4096;
 #define WORKER_PROCESS_COUNT 3
 #define REACTOR_THREAD_COUNT 2
 
@@ -45,8 +46,8 @@ typedef struct _aeConnection
   int client_port;
   handshake hs; //websocket握手数据
   httpHeader hh; //http/websocket header
-  sds send_buffer; //发送给客户端的缓冲区
-  sds recv_buffer; //接收缓冲区
+  sds send_buffer; //send to client
+  sds recv_buffer; //recv from client
   
 //  aeEventLoop *el;
   char protoType;
@@ -62,13 +63,15 @@ struct _aeReactor
 	int epfd;
 	int id;
 	int event_num;
-    	int max_event_num;
-    	int running :1;
+	int max_event_num;
+	int running :1;
 	void *object;
-    	void *ptr;  //reserve
+    void *ptr;  //reserve
 	aeEventLoop *eventLoop;
 };
 
+//主进程中的worker数组
+//这个数组被N个线程共享访问
 typedef struct _aeWorkerProcess
 {
     pid_t pid;
@@ -76,7 +79,8 @@ typedef struct _aeWorkerProcess
 	//这里是自旋锁好，还是mutex好
     pthread_mutex_t w_mutex;
     pthread_mutex_t r_mutex;
-    sds send_buffer;
+    sds send_buffer;	//send to worker pipe
+	sds recv_buffer;    //recv from worker pipe
 	
 }aeWorkerProcess;
 
@@ -87,11 +91,12 @@ typedef struct _aeWorker
 	int pipefd;
 	int running;
 	int maxEvent;
-        int connfd;
-        int start;
+	int connfd;
+	int start;
 	aeEventLoop *el;
-	sds send_buffer;
-	sds recv_buffer;
+	sds send_buffer;	//send to master pipe
+	sds recv_buffer;	//recv from master pipe
+	sds response;
 
 }aeWorker;
 
@@ -166,12 +171,9 @@ struct _reactorThreadParam
 #define PIPE_DATA_LENG 90
 #define PIPE_DATA_HEADER_LENG 1+2*sizeof(int)
 
-
 #define  CONTINUE_RECV 1
 #define  BREAK_RECV  2
 #define  CLOSE_CONNECT  3
-
-
 
 #pragma pack(1)
 typedef struct _aePipeData
@@ -182,9 +184,6 @@ typedef struct _aePipeData
 	sds  data;
 	//char data[PIPE_DATA_LENG];
 }aePipeData;
-
-
-
 
 void initOnLoopStart(struct aeEventLoop *el);
 void initThreadOnLoopStart( struct aeEventLoop *el );
@@ -233,7 +232,6 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
 aeEventLoop* getThreadEventLoop( int connfd );
 
 int setOption( char* key , char* val );
-
 void timerAdd( int ms , void* cb , void* params  );
 void testsds( char* str );
 
