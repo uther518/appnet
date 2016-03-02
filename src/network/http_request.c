@@ -650,10 +650,7 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 	
 		put_upload_file( header->connfd , filename , crlf + strlen( AE_HEADER_END ) , vlen-strlen( "\r\n--" ) , &destfile );
 		snprintf( data + strlen( data ) ,  sizeof( data ) - strlen( data ) , 
-			"%s=org_file:%s;dest_file:%s;size=%d&" ,
-		 key , filename , destfile , vlen-strlen( "\r\n--" ) );
-
-		
+			"%s=org_file:%s;dest_file:%s;size=%d&" ,  key , filename , destfile , vlen-strlen( "\r\n--" ) );
 	     }
 	     else
 	     {
@@ -668,7 +665,6 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 
 void parse_multipart_data( httpHeader* header , sds buffer , int len )
 {
-
 	if( header->multipart_data == MULTIPART_TYPE_FORM_DATA )
 	{
 		printf( "multipart_data[%d][%d],content-length=%d \n" , 
