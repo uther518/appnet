@@ -237,14 +237,28 @@ void onWorkerPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
         }
     }
 }
+
 int sendCloseEventToReactor( int connfd  )
 {
     aePipeData data;
     data.type = PIPE_EVENT_CLOSE;
     data.connfd = connfd;
     data.len = 0;
-    return send2ReactorThread( connfd , data );
+	
+	if (sdslen( servG->worker->send_buffer ) == 0  )
+    {
+        aeCreateFileEvent( servG->worker->el,
+                           servG->worker->pipefd , AE_WRITABLE,
+                           onWorkerPipeWritable,NULL );
+    }
+    else
+    {
+        printf( "send_buffer=%d,len=%d\n", sdslen( servG->worker->send_buffer ) , data.len  );
+    }
+    servG->worker->send_buffer = sdscatlen( servG->worker->send_buffer ,&data, PIPE_DATA_HEADER_LENG );
+	return sdslen( servG->worker->send_buffer );
 }
+
 int socketWrite(int __fd, void *__data, int __len)
 {
     int n = 0;
@@ -272,6 +286,7 @@ int socketWrite(int __fd, void *__data, int __len)
     }
     return written;
 }
+
 int send2ReactorThread( int connfd , aePipeData data )
 {
     if (sdslen( servG->worker->send_buffer ) == 0  )
@@ -286,6 +301,7 @@ int send2ReactorThread( int connfd , aePipeData data )
     }
     servG->worker->send_buffer = sdscatlen( servG->worker->send_buffer ,&data, PIPE_DATA_HEADER_LENG );
 }
+
 int timerCallback(struct aeEventLoop *l,long long id,void *data)
 {
     printf("I'm time_cb,here [EventLoop: %p],[id : %lld],[data: %s] \n",l,id,data);
