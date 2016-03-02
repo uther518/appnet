@@ -321,13 +321,9 @@ int isHttpProtocol( char* buffer , int len )
     return AE_FALSE;
 }
 
-/**
- * 解析POST协议,能走到这里说明已经是个完整包了
-**/
 void parsePostRequest( httpHeader* header , sds buffer , int len  )
 {
-    //此处有两种情况。
-    createWorkerTask(  header->connfd ,  buffer+header->buffer_pos , len , PIPE_EVENT_MESSAGE , "parsePostRequest" );
+    createWorkerTask(  header->connfd ,  buffer+header->buffer_pos , header->content_length , PIPE_EVENT_MESSAGE , "parsePostRequest" );
 }
 
 
@@ -338,18 +334,19 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
         //判断包体是否完整
         //包的总长-当前偏移量 < content_length , 半包
         //包的总长-当前偏移量 > content_length ,粘包
-        if( header->content_length > 0 )
+	if( header->content_length > 0 )
         {
             //半包
             if(  sdslen( buffer ) - header->buffer_pos < header->content_length )
             {
-                return CONTINUE_RECV;
+	           return CONTINUE_RECV;
             }
             //粘包或完整包
             else
             {
                 header->complete_length = header->buffer_pos + header->content_length;
-                parsePostRequest(  header , buffer , header->complete_length );
+	     	//parsePostRequest(  header , data  , header->content_length );   
+	     	parsePostRequest(  header , buffer , header->complete_length );
                 return BREAK_RECV;
             }
         }
