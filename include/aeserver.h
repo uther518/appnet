@@ -34,6 +34,9 @@
 #define RECV_BUFFER_LENGTH  65535
 #define SEND_BUFFER_LENGTH  65535
 
+#define SOCKET_SND_BUF_SIZE 1024*1024
+#define SOCKET_RCV_BUF_SIZE 1024*1024
+
 #define __SLEEP_WAIT__	usleep( 10000 )
 struct aeEventLoop;
 

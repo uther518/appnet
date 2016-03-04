@@ -17,6 +17,7 @@ void initWorkerOnLoopStart( aeEventLoop *l)
         servG->worker->start = 1;
     }
 }
+
 unsigned int dictSdsCaseHash(const void *key)
 {
     return dictGenCaseHashFunction((unsigned char*)key, sdslen((char*)key));
@@ -43,6 +44,7 @@ dictType httpTableDictType =
     dictSdsDestructor,         /* key destructor */
     dictSdsDestructor,         /* val destructor */
 };
+
 
 int isValidConnfd( int fd )
 {
@@ -82,23 +84,22 @@ int appendSendBuffer( const char *buff , size_t len)
     return AE_OK;
 }
 
-
 int createResponse( int connfd , char* buff , int len , char prototype , sds response )
 {
     if( prototype == HTTP )
     {
-	char content_length[64];
-	int clen;
-	clen = sprintf( content_length , "Content-Length: %d\r\n" , len );	
+		char content_length[64];
+		int clen;
+		clen = sprintf( content_length , "Content-Length: %d\r\n" , len );	
 
-        response = sdscat( response , "HTTP/1.1 200 OK \r\n" );
-        response = sdscat( response , "Server: appnet/1.0.0\r\n" );
-	response = sdscatlen( response , content_length , clen );
-        response  = sdscat( response , "Content-Type: text/html\r\n" );
-//	response = sdscat( response , "Content-Type: image/png\r\n");
-        response = sdscat( response , "\r\n" );
-        response = sdscatlen( response ,  buff , len );
-        return sdslen( response );
+		response = sdscat( response , "HTTP/1.1 200 OK \r\n" );
+		response = sdscat( response , "Server: appnet/1.0.0\r\n" );
+		response = sdscatlen( response , content_length , clen );
+		response = sdscat( response , "Content-Type: text/html\r\n" );
+		//response = sdscat( response , "Content-Type: image/png\r\n");
+		response = sdscat( response , "\r\n" );
+		response = sdscatlen( response ,  buff , len );
+		return sdslen( response );
     }
     else
     {
@@ -124,19 +125,19 @@ int sendMessageToReactor( int connfd , char* buff , int len )
     int writeable = 0;
     if (sdslen( servG->worker->send_buffer ) == 0  )
     {
-	writeable = 1;
+		writeable = 1;
     }
     //append data
     if( len >= 0 )
     {
-		
+		//if proto is http or websocket, need compose response data ,else direct send origin data
 		if( servG->connlist[connfd].protoType != TCP )
 		{
 			char prototype = servG->connlist[connfd].protoType;
 			int retlen;
 			//buffer...
 			retlen = createResponse(  connfd , buff , len , prototype , servG->worker->response  );
-			printf( "createResponse:[%d][%d]\n" , len , retlen );
+			//printf( "createResponse:[%d][%d]\n" , len , retlen );
 			if( retlen < 0 )
 			{
 				return;
@@ -197,7 +198,7 @@ void onWorkerPipeWritable( aeEventLoop *el, int fd, void *privdata, int mask )
 {
     ssize_t nwritten;
     nwritten = write( fd, servG->worker->send_buffer, sdslen(servG->worker->send_buffer));
-    printf( "onWorkerPipeWritable[%d] \n" , nwritten );
+    //printf( "onWorkerPipeWritable[%d] \n" , nwritten );
     if (nwritten <= 0)
     {
         printf( "Worker I/O error writing to worker: %s \n", strerror(errno));
@@ -212,7 +213,7 @@ void onWorkerPipeWritable( aeEventLoop *el, int fd, void *privdata, int mask )
         aeDeleteFileEvent( el, fd, AE_WRITABLE);
     }
 }
-//读取后要写到接收缓冲区吗,不需要。�?
+
 void onWorkerPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
 {
     aePipeData data;
@@ -308,8 +309,8 @@ int send2ReactorThread( int connfd , aePipeData data )
     if (sdslen( servG->worker->send_buffer ) == 0  )
     {
         aeCreateFileEvent( servG->worker->el,
-                           servG->worker->pipefd , AE_WRITABLE,
-                           onWorkerPipeWritable,NULL );
+		   servG->worker->pipefd , AE_WRITABLE,
+		   onWorkerPipeWritable,NULL );
     }
     else
     {
@@ -343,7 +344,7 @@ void childChildHandler( int sig )
  */
 void runWorkerProcess( int pidx ,int pipefd )
 {
-    //每个进程私有的�?
+    //servG->worker have private memory space in every process
     aeWorker* worker = zmalloc( sizeof( aeWorker ));
     worker->pid = getpid();
     worker->maxEvent = MAX_EVENT;
@@ -359,19 +360,20 @@ void runWorkerProcess( int pidx ,int pipefd )
     sdsclear( servG->worker->send_buffer );
     sdsclear( servG->worker->recv_buffer );
     sdsclear( servG->worker->response );
-    //这里要安装信号接收器..
+ 
+	//install signal
     addSignal( SIGTERM, childTermHandler, 0 );
     addSignal( SIGCHLD, childChildHandler , 1 );
     worker->el = aeCreateEventLoop( worker->maxEvent );
     aeSetBeforeSleepProc( worker->el,initWorkerOnLoopStart );
     int res;
 
-    //监听父进程管道事�?
+    //listen pipe event expect reactor message come in;
     res = aeCreateFileEvent( worker->el,
-                             worker->pipefd,
-                             AE_READABLE,
-                             onWorkerPipeReadable,NULL
-                           );
+		 worker->pipefd,
+		 AE_READABLE,
+		 onWorkerPipeReadable,NULL
+	);
     printf("Worker Run pid=%d and listen pipefd=%d is ok? [%d]\n",worker->pid,pipefd,res==0 );
 
     aeMain(worker->el);
