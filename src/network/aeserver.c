@@ -830,6 +830,8 @@ aeServer* aeServerCreate( char* ip,int port )
     serv->sendToClient = anetWrite;
     serv->closeClient = freeClient;
    
+    serv->httpDocsRoot = "/home/httpRoot";
+   
     servG = serv;
     return serv;
 }

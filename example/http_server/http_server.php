@@ -5,14 +5,14 @@ include "dispacher.php"
 function onConnect( $server , $fd )
 {
 	$pid = posix_getpid();
-        echo "Client Connect:{$fd} pid={$pid} \n"; 
+    echo "Client Connect:{$fd} pid={$pid} \n"; 
 }
 
 function onRequest( $server , $fd , $data )
 {
-	 $ret = Dispacher::request( $data  );
-	 $ret = $ret ? $ret : "";
-         $server->send( $fd , $ret );
+	$ret = Dispacher::request( $data  );
+	$ret = $ret ? $ret : "";
+    $server->send( $fd , $ret );
 };
 
 function onClose( $server , $fd )
@@ -24,14 +24,14 @@ function onClose( $server , $fd )
 function onStart( $server  )
 {
 	$pid = posix_getpid();
-        echo "On Worker Start!! pid={$pid} \n";
+    echo "On Worker Start!! pid={$pid} \n";
 };
 
 //on worker shutdown,you must save data in last time.
 function onFinal( $server  )
 {
 	$pid = posix_getpid();
-        echo "On Worker Final!! pid={$pid} \n";
+    echo "On Worker Final!! pid={$pid} \n";
 };
 
 function onTimerCallback( $server , $timer_id ,  $params )
@@ -48,6 +48,8 @@ $server->setOption( APPNET_OPT_WORKER_NUM , 1 );
 $server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
 $server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
 $server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
+
+
 
 $server->addEventListener( APPNET_EVENT_CONNECT , "onConnect");
 $server->addEventListener( APPNET_EVENT_RECV ,    "onRequest");

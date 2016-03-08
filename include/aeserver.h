@@ -141,6 +141,8 @@ struct _aeServer
    int connectNum;
    int protocolType;
    
+   char* httpDocsRoot;
+   
    aeReactor* mainReactor;
    aeConnection* connlist;
    aeReactorThread *reactorThreads;

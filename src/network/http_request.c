@@ -2,6 +2,7 @@
 #include "aeserver.h"
 #include "zmalloc.h"
 #include "http_request.h"
+#include "mime_types.h"
 #include <string.h>
 
 #include "dict.h"
@@ -363,6 +364,17 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
     {
         char* uri;
         uri = strstr( header->uri , "?" );
+		//如果是get请求，mime类型是静态文件的话，不发往后端，直接从此处返回
+		int ret;
+		char* mime_type;
+		ret = get_mime_type( header->uri , mime_type );
+		if( ret == 1 )
+		{
+			http_response_static( header  , mime_type );
+			return BREAK_RECV;
+		}
+		
+		
         if( uri != NULL  )
         {
             createWorkerTask(  header->connfd , uri+1 , strlen( uri) - 1 , PIPE_EVENT_MESSAGE, "parseGetRequest" );
