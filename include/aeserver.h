@@ -24,7 +24,7 @@
 #define OPT_MAX_CONNECTION "opt_max_connection"
 #define OPT_PROTOCOL_TYPE  "opt_protocol_type"
 
-#define HTTP_VERSION_STR  "appnet/1.1.0"
+//#define HTTP_VERSION_STR  "appnet/1.1.0"
 
 #define MAXFD 1024
 #define MAX_EVENT 4096
@@ -80,11 +80,12 @@ typedef struct _aeWorkerProcess
 {
     pid_t pid;
     int pipefd[2];
-	//这里是自旋锁好，还是mutex好
+    
+    //这里是自旋锁好，还是mutex好
     pthread_mutex_t w_mutex;
     pthread_mutex_t r_mutex;
     sds send_buffer;	//send to worker pipe
-	sds recv_buffer;    //recv from worker pipe
+    sds recv_buffer;    //recv from worker pipe
 	
 }aeWorkerProcess;
 

@@ -5,6 +5,7 @@
 
 #include "sds.h"
 #include "http_request.h"
+#include <stdarg.h>
 
 #define NULL_STRING ""
 #define CRLF   "\r\n"
@@ -276,7 +277,7 @@ static header_status_t http_status_20x[] = {
 	{"202 Accepted",		NULL_STRING},
 	{NULL_STRING,			NULL_STRING},  /* "203 Non-Authoritative Information" */
 	{"204 No Content",		NULL_STRING},
-    {NULL_STRING,			NULL_STRING},  /* "205 Reset Content" */
+    	{NULL_STRING,			NULL_STRING},  /* "205 Reset Content" */
 	{"206 Partial Content",	NULL_STRING}
 };
 
@@ -316,8 +317,8 @@ static header_status_t http_status_50x[] = {
 	{"502 Bad Gateway",						http_error_502_page},
 	{"503 Service Temporarily Unavailable",	http_error_503_page},
 	{"504 Gateway Time-out",				http_error_504_page},
-    {NULL_STRING,							NULL_STRING},         /* "505 HTTP Version Not Supported" */
-    {NULL_STRING,							NULL_STRING},         /* "506 Variant Also Negotiates" */
+        {NULL_STRING,							NULL_STRING},         /* "505 HTTP Version Not Supported" */
+        {NULL_STRING,							NULL_STRING},         /* "506 Variant Also Negotiates" */
 	{"507 Insufficient Storage",			http_error_507_page}
     /* "", */  /* "508 unused" */
     /* "", */  /* "509 unused" */
@@ -341,37 +342,9 @@ static char* header_formats[] = {
 	"Location: %s"CRLF
 };
 
-inline header_status_t get_http_status( int status )
-{
-	if( status < http_status_200 || status  > http_status_max )
-	{
-		return "";
-	}
-
-	int code_i = status % 100;
-	if( status < http_status_300 )
-	{
-		return http_status_20x[code_i];
-	}
-	
-	if( status < http_status_400 )
-	{
-		return http_status_30x[code_i];
-	}
-	
-	if( status < http_status_500 )
-	{
-		return http_status_40x[code_i];
-	}
-	
-	if( status < http_status_max )
-	{
-		return http_status_50x[code_i];
-	}
-}
-
+#define HTTP_VERSION_STR  "appnet/1.1.0"
 static char http_server_string[] = "Server: appnet" CRLF;
-static char http_server_full_string[] = "Server: " HTTP_VERSION_STR CRLF;
+static char http_server_full_string[] = "Server: " HTTP_VERSION_STR  CRLF;
 
 typedef struct
 {
@@ -393,5 +366,15 @@ typedef struct
 	char data[4096];
 }header_out_t;
 
+void http_response_static( httpHeader* reqHeader  );
+void http_response_static_proc( httpHeader* reqHeader );
+header_status_t get_http_status( int status );
+int header_buffer_append(  header_out_t* header_out , char* data , int len );
+int resp_defined_error_page( header_out_t*  header_out , int err_code );
+void get_file_path( char* uri , char* path );
+void http_redirect( httpHeader* reqHeader ,  char* uri );
+void header_append_length(  header_out_t*  header_out , int len );
+void set_common_header( header_out_t*  header_out, int status_code   );
 
+void resp_error_page( header_out_t*  header_out, int status_code );
 #endif /* _HTTP_RESPONSE_H_ */
