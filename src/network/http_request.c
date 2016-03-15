@@ -363,14 +363,14 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
     {
         char* uri;
         uri = strstr( header->uri , "?" );
-	int ret;
-	memset( header->mime_type , 0 , sizeof( header->mime_type ) );
-	ret = get_mime_type( header->uri , header->mime_type );
-	if( ret == 1 )
-	{
-	    http_response_static( header );
-	    return BREAK_RECV;
-	}
+		int ret;
+		memset( header->mime_type , 0 , sizeof( header->mime_type ) );
+		ret = get_mime_type( header->uri , header->mime_type );
+		if( ret == 1 )
+		{
+			http_response_static( header );
+			return BREAK_RECV;
+		}
 		
         if( uri != NULL  )
         {

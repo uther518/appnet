@@ -85,19 +85,69 @@ int is_file(char *path)
 }
 
 
+int header_buffer_append(  header_out_t* header_out , char* data , int len )
+{
+	memcpy( header_out->data + header_out->length , data , len  );
+	header_out->length += len;
+	header_out->count += 1;
+}
+
+static int resp_append_header_line( header_out_t  header_out , int line , int argi   )
+{
+	char line[1024] = {0};
+	int len;
+	
+	switch( header_out.curr_line )
+	{
+		case HEADER_STATUS:
+			char* status = get_http_status( argi );
+			len = snprintf( line , sizeof( line ) , header_formats[HEADER_STATUS], header_out.reqHeader->version , status );
+		break;
+		case HEADER_SERVER:
+			len = snprintf( line , sizeof( line ) , http_server_full_string );
+		break;
+		case HEADER_CONTENT_TYPE:
+			len = snprintf( line , sizeof( line ) , header_formats[HEADER_CONTENT_TYPE] , header_out.reqHeader->mime_type );
+		break;
+		case HEADER_CONTENT_LENGTH:
+			len = snprintf( line , sizeof( line ) , header_formats[HEADER_CONTENT_LENGTH] , header_out.reqHeader->mime_type );
+		break;
+		
+	}
+	
+	header_buffer_append( header_out , line , strlen( line ) );
+}
+
+void resp_error_page( httpHeader* reqHeader , int err_code , char* err_page )
+{
+	header_out_t  header_out;
+	memset( &header_out , 0 , sizeof( header_out ));
+	header_out.req = reqHeader;
+	
+	resp_append_header_line( header_out , HEADER_STATUS , err_code  );
+	resp_append_header_line( header_out , HEADER_SERVER , 0  );
+	
+	
+	http_response_write( header_out.data );
+	http_response_write( err_page );
+}
+
+
 //response static resource
 void http_response_proc( httpHeader* reqHeader , char* mime_type )
 {
 	int cllen , ctlen ;
 	char path[1024];
 	int len;
-        get_file_path( reqHeader->uri , path );
+    get_file_path( reqHeader->uri , path );
 	struct stat stat_file;
-        int ret =  stat( path , &stat_file );
+    int ret =  stat( path , &stat_file );
+	
 	if( ret < 0 )
 	{
+		resp_error_page( reqHeader , 404 , http_error_404_page );
 	   	//send 404.
-		http_response_404( reqHeader , 0 );
+		//http_response_404( reqHeader , 0 );
 	   	return;
 	}
 
