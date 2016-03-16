@@ -6,7 +6,9 @@
 #include "sds.h"
 #include "http_request.h"
 
+#define NULL_STRING ""
 #define CRLF   "\r\n"
+
 #define HEADER_MAX_LENGTH  4096
 
 
@@ -262,55 +264,61 @@ static char http_error_507_page[] =
 #define http_status_500  500
 #define http_status_max  510
 
-static char* http_status_20x[] = {
-	"200 OK",
-    "201 Created",
-    "202 Accepted",
-    "",  /* "203 Non-Authoritative Information" */
-    "204 No Content",
-    "",  /* "205 Reset Content" */
-    "206 Partial Content"
+typedef struct
+{
+	char* status;
+	char* data;
+}header_status_t;
+
+static header_status_t http_status_20x[] = {
+	{"200 OK", 				NULL_STRING},
+	{"201 Created", 		NULL_STRING},
+	{"202 Accepted",		NULL_STRING},
+	{NULL_STRING,			NULL_STRING},  /* "203 Non-Authoritative Information" */
+	{"204 No Content",		NULL_STRING},
+    {NULL_STRING,			NULL_STRING},  /* "205 Reset Content" */
+	{"206 Partial Content",	NULL_STRING}
 };
 
-static char* http_status_30x[] = {
-    "301 Moved Permanently",
-    "302 Moved Temporarily",
-    "303 See Other",
-    "304 Not Modified",
-    "",  /* "305 Use Proxy" */
-    "",  /* "306 unused" */
-    "307 Temporary Redirect"
+static header_status_t http_status_30x[] = {
+    {"301 Moved Permanently",		http_error_301_page},
+	{"302 Moved Temporarily",		http_error_302_page},
+	{"303 See Other",				http_error_303_page},
+	{"304 Not Modified",			NULL_STRING},
+	{NULL_STRING,					NULL_STRING},  /* "305 Use Proxy" */
+    {NULL_STRING,					NULL_STRING},  /* "306 unused" */
+	{"307 Temporary Redirect",		http_error_307_page}
 };
 
-static char* http_status_40x[] = {
-    "400 Bad Request",
-    "401 Unauthorized",
-    "402 Payment Required",
-    "403 Forbidden",
-    "404 Not Found",
-    "405 Not Allowed",
-    "406 Not Acceptable",
-    "",  /* "407 Proxy Authentication Required" */
-    "408 Request Time-out",
-    "409 Conflict",
-    "410 Gone",
-    "411 Length Required",
-    "412 Precondition Failed",
-    "413 Request Entity Too Large",
-    "414 Request-URI Too Large",
-    "415 Unsupported Media Type",
-    "416 Requested Range Not Satisfiable"
+static header_status_t http_status_40x[] = {
+    {"400 Bad Request",					http_error_400_page},
+	{"401 Unauthorized",				http_error_401_page},
+	{"402 Payment Required",			http_error_402_page},
+	{"403 Forbidden",					http_error_403_page},
+	{"404 Not Found",					http_error_404_page},
+	{"405 Not Allowed",					http_error_405_page},
+	{"406 Not Acceptable",				http_error_406_page},
+	{NULL_STRING,						NULL_STRING},  /* "407 Proxy Authentication Required" */
+	{"408 Request Time-out",			http_error_408_page},
+	{"409 Conflict",					http_error_409_page},
+	{"410 Gone",						http_error_410_page},
+	{"411 Length Required",				http_error_411_page},
+	{"412 Precondition Failed",			http_error_412_page},
+	{"413 Request Entity Too Large",	http_error_413_page},
+	{"414 Request-URI Too Large",		http_error_414_page},
+	{"415 Unsupported Media Type",		http_error_415_page},
+	{"416 Requested Range Not Satisfiable",http_error_416_page}
 };
   
-static char* http_status_50x[] = {
-    "500 Internal Server Error",
-    "501 Not Implemented",
-    "502 Bad Gateway",
-    "503 Service Temporarily Unavailable",
-    "504 Gateway Time-out",
-    "",        /* "505 HTTP Version Not Supported" */
-    "",        /* "506 Variant Also Negotiates" */
-    "507 Insufficient Storage"
+static header_status_t http_status_50x[] = {
+    {"500 Internal Server Error",			http_error_500_page},
+	{"501 Not Implemented",					http_error_501_page},
+	{"502 Bad Gateway",						http_error_502_page},
+	{"503 Service Temporarily Unavailable",	http_error_503_page},
+	{"504 Gateway Time-out",				http_error_504_page},
+    {NULL_STRING,							NULL_STRING},         /* "505 HTTP Version Not Supported" */
+    {NULL_STRING,							NULL_STRING},         /* "506 Variant Also Negotiates" */
+	{"507 Insufficient Storage",			http_error_507_page}
     /* "", */  /* "508 unused" */
     /* "", */  /* "509 unused" */
     /* "", */  /* "510 Not Extended" */
@@ -331,7 +339,7 @@ static char* header_formats[] = {
 	"Content-Length: %d"CRLF
 };
 
-inline char* get_http_status( int status )
+inline header_status_t get_http_status( int status )
 {
 	if( status < http_status_200 || status  > http_status_max )
 	{
