@@ -329,14 +329,16 @@ typedef enum
    HEADER_STATUS = 0,
    HEADER_SERVER,
    HEADER_CONTENT_TYPE,
-   HEADER_CONTENT_LENGTH
+   HEADER_CONTENT_LENGTH,
+   HEADER_LOCATION
 }header_key;
 
 static char* header_formats[] = {
 	"%s %s"CRLF, //http1.1 200 OK
 	"Server: %s"CRLF,
 	"Content-Type: %s"CRLF,
-	"Content-Length: %d"CRLF
+	"Content-Length: %d"CRLF,
+	"Location: %s"CRLF
 };
 
 inline header_status_t get_http_status( int status )

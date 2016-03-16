@@ -113,19 +113,13 @@ void http_redirect( httpHeader* reqHeader ,  char* uri )
 	memset( &header_out , 0 , sizeof( header_out ));
 	header_out.req = reqHeader;
 	
-	resp_append_header_line( header_out , HEADER_STATUS );
+	resp_append_header_line( header_out , HEADER_STATUS , 301 );
 	resp_append_header_line( header_out , HEADER_SERVER );
-	resp_append_header_line( header_out , HEADER_SERVER );
+	resp_append_header_line( header_out , HEADER_LOCATION , uri );
+	resp_append_header_line( header_out , HEADER_CONTENT_TYPE  );
+	resp_append_header_line( header_out , HEADER_CONTENT_LENGTH , 0  );
 	
-	
-        char response[1024] = {0};
-        snprintf( response , sizeof( response ) ,
-                "%s 301 Moved Permanently\r\nServer: %s\r\nLocation: %s\r\nContent-Length: 0\r\nContent-type: text/html\r\n\r\n" ,
-                reqHeader->version,servG->httpHeaderVer,uri
-        );
-    
-	
-	http_response_write( reqHeader->connfd , response );
+	http_response_write( reqHeader->connfd , header_out.data , header_out.length );
 }
 
 
@@ -158,7 +152,7 @@ int resp_defined_error_page( httpHeader* reqHeader , int err_code )
 //如果内容是固定长度的，推荐用这种方式,如果是很大块的内容也可以用trucked方式
 void header_append_length(  header_out_t  header_out , int len )
 {
-	resp_append_header_line( header_out , HEADER_CONTENT_TYPE  );
+
 	resp_append_header_line( header_out , HEADER_CONTENT_LENGTH  , len );
 }
 
@@ -177,6 +171,7 @@ void set_common_header( header_out_t  header_out, int status_code   )
 	//header append
 	resp_append_header_line( header_out , HEADER_STATUS , error_page.status  );
 	resp_append_header_line( header_out , HEADER_SERVER );
+	resp_append_header_line( header_out , HEADER_CONTENT_TYPE  );
 }
 
 
