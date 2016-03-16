@@ -767,7 +767,7 @@ int setOption( char* key , char* val )
 		if( strlen( val ) >  sizeof(  servG->http_docs_root ) )
 		{
 			printf( "Option Value Too Long!\n");
-			reutrn AE_FALSE;
+			return  AE_FALSE;
 		}
 		
 		memset( servG->http_docs_root ,  0 , sizeof(  servG->http_docs_root ) );
@@ -778,7 +778,7 @@ int setOption( char* key , char* val )
 		if( strlen( val ) >  sizeof(  servG->http_404_page ) )
 		{
 			printf( "Option Value Too Long!\n");
-			reutrn AE_FALSE;
+			return AE_FALSE;
 		}
 		
 		memset( servG->http_404_page ,  0 , sizeof(  servG->http_404_page ) );
@@ -789,7 +789,7 @@ int setOption( char* key , char* val )
 		if( strlen( val ) >  sizeof(  servG->http_50x_page ) )
 		{
 			printf( "Option Value Too Long!\n");
-			reutrn AE_FALSE;
+			return AE_FALSE;
 		}
 		memset( servG->http_50x_page ,  0 , sizeof(  servG->http_50x_page ) );
 		memcpy( servG->http_50x_page , val , strlen( val ) );

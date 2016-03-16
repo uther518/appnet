@@ -74,13 +74,14 @@ typedef struct
 	int header_length;//header部分总长
 	int content_length;//body长
 	int complete_length; //整包长
-	int mutipart_data;
+	int multipart_data;
 	int filed_nums; //headerFiled numbers
 	int buffer_pos; //解析的位置,作为起始位置
 	char method[8]; //
 	char uri[1024];
 	char version[16];
 	char mime_type[32];
+	char boundary[64];
 	int  protocol;
 	headerFiled fileds[30]; 
 	headerParams params;   //分析的结果结构体

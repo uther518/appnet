@@ -4,8 +4,11 @@
 #include "http_request.h"
 #include "mime_types.h"
 #include <string.h>
-
+#include <sys/time.h>
 #include "dict.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 /********
     [Protocol] => HTTP
@@ -272,11 +275,17 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
     {
         header->content_length = atoi( header->fileds[header->filed_nums].value );
     }
-	
-	if( memcmp( header->fileds[header->filed_nums].value , "multipart/form-data" ,  strlen( "multipart/form-data" )  ) == 0 )
+
+    char* mfd = "multipart/form-data";
+    if( memcmp( header->fileds[header->filed_nums].value , mfd ,  strlen( mfd )  ) == 0 )
+    {
+	int pregs = sscanf( header->fileds[header->filed_nums].value + strlen( mfd )  , "%*[^=]=%s" , header->boundary  );		
+        if( pregs == 1 )
 	{
-		header->mutipart_data = MULTIPART_TYPE_FORM_DATA;
-	}
+	   header->multipart_data = MULTIPART_TYPE_FORM_DATA;
+	} 	 
+
+   }
 	
     header->filed_nums += 1;
     return AE_OK;
@@ -336,7 +345,7 @@ void parsePostRequest( httpHeader* header , sds buffer , int len  )
 {
 	if( header->multipart_data >= MULTIPART_TYPE_FORM_DATA )
 	{
-		parse_mutipart_data( header , buffer , len );
+		parse_multipart_data( header , buffer , len );
 	}
 	else
 	{
@@ -538,6 +547,27 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
     }
 }
 
+void put_upload_file( int connfd, char* filename , char* data , int len, char* destfile ) 
+{
+    struct timeval tv;
+    gettimeofday (&tv , NULL );
+    snprintf( destfile , 64 , "%d_%d_%d_%s" ,  tv.tv_sec , tv.tv_usec , connfd , filename );
+    
+    int fd,size;
+    fd = open( destfile  , O_WRONLY|O_CREAT  );
+    if( fd < 0 )
+    {
+	printf( "Upload File Error,Cannot Open the file %s \n" , filename );
+	return;
+    }
+
+    size = write( fd, data , len );
+    if( size < 0 )
+    {
+	printf( "Upload File Error,Write Error errno=%d,error=%s \n" , errno , strerror( errno ));
+    }
+    close(fd);
+}
 /*
 parse http mutipart data, mutipart types include
 multipart/alternative 
@@ -549,15 +579,106 @@ multipart/parallel
 multipart/related 
 Content-Type:multipart/form-data; boundary=----WebKitFormBoundaryqQDPjyh5uVhzQQF1
 */
-void parse_mutipart_data( httpHeader* header , sds buffer , int len )
+void print_asc( char* data , int len  )
 {
-	if( header->mutipart_data == MULTIPART_TYPE_FORM_DATA )
+    int i = 0;
+    for( i =0; i < len ; i++ )
+    {
+	printf( " %d \n" , data[i] );
+    }
+}
+
+static char*  binstrstr (const char * haystack, size_t hsize, const char* needle, size_t nsize)
+{
+    size_t p;
+    if (haystack == NULL) return NULL;
+    if (needle == NULL) return NULL;
+    if (hsize < nsize) return NULL;
+    for (p = 0; p <= (hsize - nsize); ++p) {
+        if (memcmp(haystack + p, needle, nsize) == 0) {
+            return (char*) (haystack + p);
+        }
+    }
+    return NULL;
+} 
+
+void parse_multipart_form( httpHeader* header , sds buffer , int len )
+{
+	char* buff = buffer;
+	int vlen;
+        char *crlf = 0 , *cl = 0;
+	char key[255] = {0};
+	char filename[255] = {0};
+	char val[1024] = {0};
+
+        int sep_len = strlen( "\r\n--") + strlen( header->boundary );
+	char sep[sep_len+1];
+	snprintf( sep , sizeof( sep ) , "\r\n--%s" , header->boundary  );
+        int pos = sep_len;	
+
+	//sdscatprintf 
+	//设置栈大小ulimit -s
+	char data[1024] = {0};
+	while( 1 )
 	{
+             memset( key , 0 , sizeof( key ));
+	     memset( key , 0 , sizeof( val ));
+	     memset( filename , 0 , sizeof( filename ));		
+ 	     if( pos + 2 >= header->content_length )break;
+
+	     sscanf( buffer+pos,
+             	"Content-Disposition: form-data; name=\"%255[^\"]\"; filename=\"%255[^\"]\"",
+                key, filename);
+	
+	     crlf = strstr((char *) buffer+pos , AE_HEADER_END );
+	     if( crlf == NULL)return;
+	     //cl = strstr( crlf , sep );
+             cl = binstrstr( crlf, header->content_length - pos , sep , sep_len );
+	     if( cl == NULL )
+	     {
+		printf( "Form Data One Part Is NULL \n");
+		return;
+	     }
+             vlen = cl - crlf;
+	     pos += cl - ( buffer+pos ) + sep_len +2;
+	     
+	     if( strlen( filename) )
+	     {
+		//filename ,data
+		printf( "Vlen=%d \n" , vlen );
+		char destfile[64] = {0};
+	
+		put_upload_file( header->connfd , filename , crlf + strlen( AE_HEADER_END ) , vlen-strlen( "\r\n--" ) , &destfile );
+		snprintf( data + strlen( data ) ,  sizeof( data ) - strlen( data ) , 
+			"%s=org_file:%s;dest_file:%s;size=%d&" ,
+		 key , filename , destfile , vlen-strlen( "\r\n--" ) );
+
 		
+	     }
+	     else
+	     {
+		memcpy( val , crlf + strlen( AE_HEADER_END ) , vlen-strlen( "\r\n--" ) );
+                snprintf( data + strlen( data ) ,  sizeof( data ) - strlen( data ) , "%s=%s&" , key , val  );
+	     }
+	}
+	createWorkerTask(  header->connfd , data  , strlen( data )  , PIPE_EVENT_MESSAGE, "parse_multipart_form" );
+	//printf( "data[%s] \n" , data );
+}
+
+
+void parse_multipart_data( httpHeader* header , sds buffer , int len )
+{
+
+	if( header->multipart_data == MULTIPART_TYPE_FORM_DATA )
+	{
+		printf( "multipart_data[%d][%d],content-length=%d \n" , 
+			header->buffer_pos, len , header->content_length  );
+		//	char boundary[64];
+		parse_multipart_form( header , buffer + header->buffer_pos , header->content_length );	
 	}
 	else
 	{
-		printf( "Not Support Mutipart Data:%d \n" , header->mutipart_data );
+		printf( "Not Support Mutipart Data:%d \n" , header->multipart_data );
 	}
 	
 }

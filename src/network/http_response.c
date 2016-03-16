@@ -138,7 +138,7 @@ void http_redirect( httpHeader* reqHeader ,  char* uri )
 	memset( &header_out , 0 , sizeof( header_out ));
 	header_out.req = reqHeader;
 
-    header_status_t  error_page = get_http_status( 301 );        //header append
+    	header_status_t  error_page = get_http_status( 301 );        //header append
 
 	resp_append_header( &header_out , HEADER_STATUS , error_page.status );
 	resp_append_header( &header_out , HEADER_SERVER );
@@ -248,9 +248,9 @@ void http_response_static_proc( httpHeader* reqHeader )
 	header_out.req = reqHeader;
 	
 	
-    get_file_path( reqHeader->uri , path );
+    	get_file_path( reqHeader->uri , path );
 	struct stat stat_file;
-    int ret =  stat( path , &stat_file );
+    	int ret =  stat( path , &stat_file );
 	
 
 	if( ret < 0 )
@@ -270,7 +270,7 @@ void http_response_static_proc( httpHeader* reqHeader )
 		return;
 	}
 
-    int fd = open( path , O_RDONLY );
+    	int fd = open( path , O_RDONLY );
 	if( fd < 0 )
 	{
 	 	printf( "Open file Error:%s,errno=%d \n" , strerror(errno) , errno );
@@ -287,6 +287,7 @@ void http_response_static_proc( httpHeader* reqHeader )
 		   if(errno == EINTR)break;
 		}
 	}
+	close( fd );
 }
 
 
