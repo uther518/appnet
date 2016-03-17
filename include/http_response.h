@@ -368,15 +368,19 @@ typedef struct
 	char data[4096];
 }header_out_t;
 
+
+int is_file(char *path);
+int is_dir(char *path);
 void http_response_static( httpHeader* reqHeader  );
 void http_response_static_proc( httpHeader* reqHeader );
 header_status_t get_http_status( int status );
 int header_buffer_append(  header_out_t* header_out , char* data , int len );
+int page_is_defined( char* page );
 int resp_defined_error_page( header_out_t*  header_out , int err_code );
 void get_file_path( char* uri , char* path );
 void http_redirect( httpHeader* reqHeader ,  char* uri );
 void header_append_length( header_out_t*  header_out , int len );
 void create_common_header( header_out_t*  header_out, int status_code   );
-
 void resp_error_page( header_out_t*  header_out, int status_code );
+
 #endif /* _HTTP_RESPONSE_H_ */
