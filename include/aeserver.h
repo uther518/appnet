@@ -24,6 +24,10 @@
 #define OPT_MAX_CONNECTION "opt_max_connection"
 #define OPT_PROTOCOL_TYPE  "opt_protocol_type"
 
+#define APPNET_HTTP_DOCS_ROOT  "http_docs_root"
+#define APPNET_HTTP_404_PAGE   "http_404_page"
+#define APPNET_HTTP_50X_PAGE   "http_50x_page"
+
 //#define HTTP_VERSION_STR  "appnet/1.1.0"
 
 #define MAXFD 1024

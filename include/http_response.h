@@ -277,7 +277,7 @@ static header_status_t http_status_20x[] = {
 	{"202 Accepted",		NULL_STRING},
 	{NULL_STRING,			NULL_STRING},  /* "203 Non-Authoritative Information" */
 	{"204 No Content",		NULL_STRING},
-    	{NULL_STRING,			NULL_STRING},  /* "205 Reset Content" */
+    {NULL_STRING,			NULL_STRING},  /* "205 Reset Content" */
 	{"206 Partial Content",	NULL_STRING}
 };
 
