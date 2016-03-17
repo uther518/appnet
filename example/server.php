@@ -125,23 +125,18 @@ function onRecv( $server , $fd , $buffer )
 	$header = $server->getHeader();
 	echo "Client Recv:[{$header['Protocol']}][{$header['Uri']}][{$buffer}][{$fd}] \n";	
 
-
 	if( $header['Protocol'] == "WEBSOCKET" )
 	{
 	   Websocket::onReceive( $server , $fd,  $buffer );
 	}
 	elseif(  $header['Protocol'] == "HTTP"  )
         {
-	   	//$data = file_get_contents( "test/test.html");
-		//$data = file_get_contents( "test/rfc.txt");   
 		$data  = $buffer;
 		$server->send( $fd , $data );	
 	}
 	else
 	{
-		//$buffer = file_get_contents( "test/icon.png");
 		$buffer = file_get_contents( "test/rfc.txt");
-		//$data = $buffer;
            	$server->send( $fd , $buffer );
 	}
 };
@@ -151,12 +146,10 @@ function onClose( $server , $fd )
 	echo "Client Close:$fd \n";
 };
 
-//on worker run start,you can init env.
 function onStart( $server  )
 {
 	$pid = posix_getpid();
         echo "On Worker Start!! pid={$pid} \n";
-
 	//3000ms means 3second	
 	$server->timerAdd( 3000 , "onTimerCallback" , "paramsxxx" );
 };
@@ -172,7 +165,6 @@ function onTimerCallback( $server , $timer_id ,  $params )
 {
 	$pid = posix_getpid();
 	echo "onTimerCallback  ok,worker pid={$pid},timer_id={$timer_id}...\n";
-	
 	//if do not remove it, it will be call this function forever	
 	$server->timerRemove( $timer_id );		
 }
@@ -185,7 +177,6 @@ $server->setOption( APPNET_OPT_WORKER_NUM , 1 );
 $server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
 $server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
 $server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
-
 
 $server->setOption( APPNET_HTTP_DOCS_ROOT , $_SERVER['PWD']."/example/www/" );
 $server->setOption( APPNET_HTTP_UPLOAD_DIR, "/home/www/"  );
