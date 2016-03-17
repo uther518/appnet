@@ -551,7 +551,7 @@ void put_upload_file( int connfd, char* filename , char* data , int len, char* d
 {
     struct timeval tv;
     gettimeofday (&tv , NULL );
-    snprintf( destfile , 64 , "%d_%d_%d_%s" ,  tv.tv_sec , tv.tv_usec , connfd , filename );
+    snprintf( destfile , 255 , "%d_%d_%d_%s" ,  tv.tv_sec , tv.tv_usec , connfd , filename );
     
     int fd,size;
     fd = open( destfile  , O_WRONLY|O_CREAT  );
@@ -616,9 +616,9 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 	snprintf( sep , sizeof( sep ) , "\r\n--%s" , header->boundary  );
         int pos = sep_len;	
 
-	//sdscatprintf 
 	//设置栈大小ulimit -s
 	char data[1024] = {0};
+	//change  sds  sdscatprintf
 	while( 1 )
 	{
              memset( key , 0 , sizeof( key ));
@@ -646,14 +646,12 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 	     {
 		//filename ,data
 		printf( "Vlen=%d \n" , vlen );
-		char destfile[64] = {0};
+		char destfile[255] = {0};
 	
 		put_upload_file( header->connfd , filename , crlf + strlen( AE_HEADER_END ) , vlen-strlen( "\r\n--" ) , &destfile );
 		snprintf( data + strlen( data ) ,  sizeof( data ) - strlen( data ) , 
 			"%s=org_file:%s;dest_file:%s;size=%d&" ,
-		 key , filename , destfile , vlen-strlen( "\r\n--" ) );
-
-		
+		 key , filename , destfile , vlen-strlen( "\r\n--" ) );	
 	     }
 	     else
 	     {
