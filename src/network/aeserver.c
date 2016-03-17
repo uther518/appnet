@@ -794,6 +794,16 @@ int setOption( char* key , char* val )
 		memset( servG->http_50x_page ,  0 , sizeof(  servG->http_50x_page ) );
 		memcpy( servG->http_50x_page , val , strlen( val ) );
 	}
+	else if( strcmp( key , APPNET_HTTP_UPLOAD_DIR  ) == 0 )
+        {
+                if( strlen( val ) >  sizeof(  servG->http_upload_dir ) )
+                {
+                        printf( "Option Value Too Long!\n");
+                        return AE_FALSE;
+                }
+                memset( servG->http_upload_dir ,  0 , sizeof(  servG->http_upload_dir ) );
+                memcpy( servG->http_upload_dir , val , strlen( val ) );
+        }
 	else
 	{
 	    printf( "Unkown Option\n" );
@@ -862,6 +872,7 @@ aeServer* aeServerCreate( char* ip,int port )
     memset( serv->http_docs_root , 0 , sizeof( serv->http_docs_root ) );
     memset( serv->http_404_page , 0 , sizeof( serv->http_404_page ) );
     memset( serv->http_50x_page , 0 ,  sizeof( serv->http_50x_page ) );
+    memset( serv->http_upload_dir , 0 ,  sizeof( serv->http_upload_dir ));
 
     memcpy( serv->http_docs_root , DEFAULT_HTTP_DOCS_ROOT , strlen( DEFAULT_HTTP_DOCS_ROOT ) );
     memcpy( serv->http_404_page  , DEFALUT_HTTP_404_PAGE , strlen( DEFALUT_HTTP_404_PAGE ) );

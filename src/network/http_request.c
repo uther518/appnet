@@ -547,11 +547,45 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
     }
 }
 
+
+char* get_filename(char*ptr,int n)
+{
+        int i = n;
+        ptr+=n;
+        while( i-- > 0)
+        {
+                if((*ptr--)=='/')
+                {
+                        ptr +=2;
+                        break;
+                }
+        }
+        return ptr;
+}
+
+
+int dir_exist(char *path)
+{
+        int s;
+        struct stat info;
+        s = stat(path, &info);
+        return (s == 0 && (info.st_mode & S_IFDIR));
+}
+
 void put_upload_file( int connfd, char* filename , char* data , int len, char* destfile ) 
 {
+    if( servG->http_upload_dir )
+    {
+ 	if( dir_exist( servG->http_upload_dir ) == 0 )
+	{
+	    printf( "Upload Dir Not Exist,Path=%s \n" , servG->http_upload_dir );
+	    return;
+	}      
+    }
+
     struct timeval tv;
     gettimeofday (&tv , NULL );
-    snprintf( destfile , 255 , "%d_%d_%d_%s" ,  tv.tv_sec , tv.tv_usec , connfd , filename );
+    snprintf( destfile , 255 , "%s/%d_%d_%d_%s" , servG->http_upload_dir , tv.tv_sec , tv.tv_usec , connfd , filename );
     
     int fd,size;
     fd = open( destfile  , O_WRONLY|O_CREAT  );
@@ -606,30 +640,34 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 {
 	char* buff = buffer;
 	int vlen;
-        char *crlf = 0 , *cl = 0;
+    	char *crlf = 0 , *cl = 0;
 	char key[255] = {0};
-	char filename[255] = {0};
-	char val[1024] = {0};
+	char* filename;
+	char filepath[255] = {0};
 
-        int sep_len = strlen( "\r\n--") + strlen( header->boundary );
+    	int sep_len = strlen( "\r\n--") + strlen( header->boundary );
 	char sep[sep_len+1];
 	snprintf( sep , sizeof( sep ) , "\r\n--%s" , header->boundary  );
-        int pos = sep_len;	
+    	int pos = sep_len;	
 
 	//设置栈大小ulimit -s
-	char data[1024] = {0};
-	//change  sds  sdscatprintf
+	sds data = sdsnewlen(  0 , TMP_BUFFER_LENGTH );
+	sdsclear( data  );
+	//sds data = sdsempty();
+	//char data[1024] = {0};
 	while( 1 )
 	{
              memset( key , 0 , sizeof( key ));
-	     memset( key , 0 , sizeof( val ));
-	     memset( filename , 0 , sizeof( filename ));		
+	     //memset( filename , 0 , sizeof( filename ));		
+	     memset( filepath , 0 , sizeof( filepath ));
  	     if( pos + 2 >= header->content_length )break;
 
 	     sscanf( buffer+pos,
              	"Content-Disposition: form-data; name=\"%255[^\"]\"; filename=\"%255[^\"]\"",
-                key, filename);
-	
+                key, filepath );
+		
+	     filename = get_filename( filepath , strlen( filepath ));
+             	
 	     crlf = strstr((char *) buffer+pos , AE_HEADER_END );
 	     if( crlf == NULL)return;
 	     //cl = strstr( crlf , sep );
@@ -641,32 +679,33 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 	     }
              vlen = cl - crlf;
 	     pos += cl - ( buffer+pos ) + sep_len +2;
-	     
+	     vlen -= strlen( "\r\n--" );   
+ 
 	     if( strlen( filename) )
 	     {
 		//filename ,data
 		printf( "Vlen=%d \n" , vlen );
 		char destfile[255] = {0};
 	
-		put_upload_file( header->connfd , filename , crlf + strlen( AE_HEADER_END ) , vlen-strlen( "\r\n--" ) , &destfile );
-		snprintf( data + strlen( data ) ,  sizeof( data ) - strlen( data ) , 
-			"%s=org_file:%s;dest_file:%s;size=%d&" ,
-		 key , filename , destfile , vlen-strlen( "\r\n--" ) );	
+		put_upload_file( header->connfd , filename , crlf + strlen( AE_HEADER_END ) , vlen , &destfile );
+		data = sdscatprintf( data , "%s=org_file:%s;dest_file:%s;size=%d&" , 
+			key , filename , destfile , vlen  );
 	     }
 	     else
 	     {
-		memcpy( val , crlf + strlen( AE_HEADER_END ) , vlen-strlen( "\r\n--" ) );
-                snprintf( data + strlen( data ) ,  sizeof( data ) - strlen( data ) , "%s=%s&" , key , val  );
+		data = sdscatprintf( data , "%s=" , key  );//key
+		data = sdscatlen( data , crlf + strlen( AE_HEADER_END ) , vlen);//val
+		data = sdscat( data , "&" );
 	     }
 	}
-	createWorkerTask(  header->connfd , data  , strlen( data )  , PIPE_EVENT_MESSAGE, "parse_multipart_form" );
-	//printf( "data[%s] \n" , data );
+	createWorkerTask(  header->connfd , data  , sdslen( data )  , PIPE_EVENT_MESSAGE, "parse_multipart_form" );
+//	printf( "data[%d][%s] \n" , sdslen( data ), data );
+	sdsfree( data );
 }
 
 
 void parse_multipart_data( httpHeader* header , sds buffer , int len )
 {
-
 	if( header->multipart_data == MULTIPART_TYPE_FORM_DATA )
 	{
 		printf( "multipart_data[%d][%d],content-length=%d \n" , 
