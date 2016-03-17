@@ -92,10 +92,10 @@ int header_buffer_append(  header_out_t* header_out , char* data , int len )
 	header_out->count += 1;
 }
 
-static int resp_append_header_line( header_out_t*  header_out , int line_type , ...  )
+int resp_append_header( header_out_t*  header_out , int line_type , ...  )
 {
 	char line[1024] = {0};
-	int len;
+	int len = 0;
 	char* arg_string;
 	int   arg_int;
 	va_list ap;
@@ -129,6 +129,7 @@ static int resp_append_header_line( header_out_t*  header_out , int line_type , 
 		break;
 	}
 	header_buffer_append( header_out , line , strlen( line ) );
+	return len;
 }
 
 void http_redirect( httpHeader* reqHeader ,  char* uri )
@@ -139,12 +140,12 @@ void http_redirect( httpHeader* reqHeader ,  char* uri )
 
     header_status_t  error_page = get_http_status( 301 );        //header append
 
-	resp_append_header_line( &header_out , HEADER_STATUS , error_page.status );
-	resp_append_header_line( &header_out , HEADER_SERVER );
-	resp_append_header_line( &header_out , HEADER_LOCATION , uri );
-	resp_append_header_line( &header_out , HEADER_CONTENT_TYPE  );
-	resp_append_header_line( &header_out , HEADER_CONTENT_LENGTH , 0  );
-	resp_append_header_line( &header_out , HEADER_END_LINE );
+	resp_append_header( &header_out , HEADER_STATUS , error_page.status );
+	resp_append_header( &header_out , HEADER_SERVER );
+	resp_append_header( &header_out , HEADER_LOCATION , uri );
+	resp_append_header( &header_out , HEADER_CONTENT_TYPE  );
+	resp_append_header( &header_out , HEADER_CONTENT_LENGTH , 0  );
+	resp_append_header( &header_out , HEADER_END_LINE );
 	
 	http_response_write( reqHeader->connfd , header_out.data , header_out.length );
 }
@@ -189,14 +190,14 @@ int resp_defined_error_page( header_out_t*  header_out , int err_code )
 //如果内容是固定长度的，推荐用这种方式,如果是很大块的内容也可以用trucked方式
 void header_append_length(  header_out_t*  header_out , int len )
 {
-	resp_append_header_line( header_out , HEADER_CONTENT_LENGTH  , len );
+	resp_append_header( header_out , HEADER_CONTENT_LENGTH  , len );
 }
 
 //如果内容是动态生成的数据流,则需要分段返回给客户端
 void header_append_chunked(  header_out_t  header_out )
 {
-	//resp_append_header_line( header_out , HEADER_CONTENT_TYPE  );
-	//resp_append_header_line( header_out , HEADER_CONTENT_LENGTH  , datalen );
+	//resp_append_header( header_out , HEADER_CONTENT_TYPE  );
+	//resp_append_header( header_out , HEADER_CONTENT_LENGTH  , datalen );
 }
 
 //this function only process status=200 page, not include resp_error_page
@@ -204,9 +205,9 @@ void create_common_header( header_out_t*  header_out, int status_code   )
 {
 	header_status_t  error_page = get_http_status( status_code );
 	//header append
-	resp_append_header_line( header_out , HEADER_STATUS , error_page.status  );
-	resp_append_header_line( header_out , HEADER_SERVER );
-	resp_append_header_line( header_out , HEADER_CONTENT_TYPE  );
+	resp_append_header( header_out , HEADER_STATUS , error_page.status  );
+	resp_append_header( header_out , HEADER_SERVER );
+	resp_append_header( header_out , HEADER_CONTENT_TYPE  );
 }
 
 //404
@@ -226,10 +227,10 @@ void resp_error_page( header_out_t*  header_out, int status_code )
 	int datalen = strlen( error_page.data );
 	
 	//header append
-	resp_append_header_line( header_out , HEADER_STATUS , error_page.status  );
-	resp_append_header_line( header_out , HEADER_SERVER );
+	resp_append_header( header_out , HEADER_STATUS , error_page.status  );
+	resp_append_header( header_out , HEADER_SERVER );
 	header_append_length( header_out , datalen );
-	resp_append_header_line( header_out , HEADER_END_LINE );
+	resp_append_header( header_out , HEADER_END_LINE );
 	
 	//send
 	http_response_write( header_out->req->connfd, header_out->data , header_out->length );
@@ -260,7 +261,7 @@ void http_response_static_proc( httpHeader* reqHeader )
 
 	create_common_header( &header_out , 200 );
 	header_append_length( &header_out , stat_file.st_size );
-	resp_append_header_line( &header_out , HEADER_END_LINE );
+	resp_append_header( &header_out , HEADER_END_LINE );
 	
 	int nwritten = write( reqHeader->connfd , header_out.data , header_out.length );
 	if (nwritten <= 0)

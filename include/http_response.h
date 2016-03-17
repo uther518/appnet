@@ -382,5 +382,6 @@ void http_redirect( httpHeader* reqHeader ,  char* uri );
 void header_append_length( header_out_t*  header_out , int len );
 void create_common_header( header_out_t*  header_out, int status_code   );
 void resp_error_page( header_out_t*  header_out, int status_code );
+int  resp_append_header( header_out_t*  header_out , int line_type , ...  );
 
 #endif /* _HTTP_RESPONSE_H_ */
