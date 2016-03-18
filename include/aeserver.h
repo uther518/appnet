@@ -76,7 +76,7 @@ struct _aeReactor
 	int max_event_num;
 	int running :1;
 	void *object;
-    	void *ptr;  //reserve
+    void *ptr;  //reserve
 	aeEventLoop *eventLoop;
 };
 
@@ -248,8 +248,7 @@ aeEventLoop* getThreadEventLoop( int connfd );
 
 int setOption( char* key , char* val );
 void timerAdd( int ms , void* cb , void* params  );
-void testsds( char* str );
-
+//void testsds( char* str );
 
 aeServer*  servG;
 #endif

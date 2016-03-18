@@ -317,8 +317,8 @@ static header_status_t http_status_50x[] = {
 	{"502 Bad Gateway",						http_error_502_page},
 	{"503 Service Temporarily Unavailable",	http_error_503_page},
 	{"504 Gateway Time-out",				http_error_504_page},
-        {NULL_STRING,							NULL_STRING},         /* "505 HTTP Version Not Supported" */
-        {NULL_STRING,							NULL_STRING},         /* "506 Variant Also Negotiates" */
+	{NULL_STRING,							NULL_STRING},         /* "505 HTTP Version Not Supported" */
+	{NULL_STRING,							NULL_STRING},         /* "506 Variant Also Negotiates" */
 	{"507 Insufficient Storage",			http_error_507_page}
     /* "", */  /* "508 unused" */
     /* "", */  /* "509 unused" */
@@ -348,17 +348,6 @@ static char* header_formats[] = {
 static char http_server_string[] = "Server: appnet" CRLF;
 static char http_server_full_string[] = "Server: " HTTP_VERSION_STR  CRLF;
 
-typedef struct
-{
-	int pos;
-	int length;
-}header_value_t;
-
-typedef struct
-{
-	header_value_t server;
-	header_value_t date;
-}header_data_pos_t;
 
 typedef struct
 {

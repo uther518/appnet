@@ -1,4 +1,4 @@
-
+ï»¿
 #include "aeserver.h"
 #include "zmalloc.h"
 #include "http_request.h"
@@ -26,8 +26,11 @@
     [Pragma] => no-cache
     [Cache-Control] => no-cache
     [Upgrade] => websocket
-**********/
+----------------------------------------------
 
+	
+
+**********/
 
 static char* findEolChar( const char* s , int len )
 {
@@ -35,7 +38,7 @@ static char* findEolChar( const char* s , int len )
     s_end = s + len;
     while( s < s_end )
     {
-        //Ã¿´ÎÑ­»·²éÕÒ128bytes
+        //æ¯æ¬¡å¾ªç¯æŸ¥æ‰¾128bytes
         size_t chunk = ( s + CHUNK_SZ < s_end ) ? CHUNK_SZ : ( s_end - s );
         cr = memchr( s , '\r' , chunk );
         lf = memchr( s , '\n' , chunk );
@@ -57,7 +60,7 @@ static char* findEolChar( const char* s , int len )
 }
 
 
-//»ñÈ¡×Ö·û´®×ó±ß"\r","\n"," "¸öÊı¡£
+//è·å–å­—ç¬¦ä¸²å·¦è¾¹"\r","\n"," "ä¸ªæ•°ã€‚
 static int getLeftEolLength( const char* s )
 {
     int i,pos=0;
@@ -76,10 +79,10 @@ static int getLeftEolLength( const char* s )
 }
 
 
-//·µ»ØµÄÊÇÔÚbufferÖĞµÄÆ«ÒÆÁ¿
+//è¿”å›çš„æ˜¯åœ¨bufferä¸­çš„åç§»é‡
 int bufferLineSearchEOL( httpHeader* header , const char* buffer , int len , char* eol_style )
 {
-    //ÏÈÇå¿Õ×ó±ß¿Õ¸ñ
+    //å…ˆæ¸…ç©ºå·¦è¾¹ç©ºæ ¼
     //header->buffer_pos += getLeftEolLength( buffer );
     char* cp = findEolChar( buffer , len );
     int offset = cp - buffer;
@@ -92,7 +95,7 @@ int bufferLineSearchEOL( httpHeader* header , const char* buffer , int len , cha
 }
 
 
-//´ÓÉÏ´ÎÈ¡µ½µÄÎ»ÖÃ£¬ÔÚÊ£ÓàµÄbuffer³¤¶ÈÖĞ²éÕÒ£¬ÒÔ\r\n½áÎ²¶ÁÈ¡Ò»ĞĞ
+//ä»ä¸Šæ¬¡å–åˆ°çš„ä½ç½®ï¼Œåœ¨å‰©ä½™çš„bufferé•¿åº¦ä¸­æŸ¥æ‰¾ï¼Œä»¥\r\nç»“å°¾è¯»å–ä¸€è¡Œ
 int bufferReadln( httpHeader* header , const char* buffer , int len , char* eol_style )
 {
     int read_len,offset,eol;
@@ -113,13 +116,13 @@ int bufferReadln( httpHeader* header , const char* buffer , int len , char* eol_
     {
         return AE_ERR;
     }
-    //±íÊ¾bufferµÄÆğÊ¼Î»ÖÃ
+    //è¡¨ç¤ºbufferçš„èµ·å§‹ä½ç½®
     return offset;
 }
 
 char* findChar(  char sp_char , const char* dest , int len );
 //return char* point to first space position in s;
-//ÔÚsÖĞ²éÕÒ£¬×î¶àÕÒlen¸ö³¤¶Ès
+//åœ¨sä¸­æŸ¥æ‰¾ï¼Œæœ€å¤šæ‰¾lenä¸ªé•¿åº¦s
 char* findSpace(  const char* s , int len )
 {
     return findChar( AE_SPACE , s , len );
@@ -131,7 +134,7 @@ char* findChar(  char sp_char , const char* dest , int len )
     s_end = dest + len;
     while( dest < s_end )
     {
-        //Ã¿´ÎÑ­»·²éÕÒ128bytes
+        //æ¯æ¬¡å¾ªç¯æŸ¥æ‰¾128bytes
         size_t chunk = ( dest + CHUNK_SZ < s_end ) ? CHUNK_SZ : ( s_end - dest );
         sp = memchr( dest , sp_char , chunk );
         if( sp )
@@ -169,17 +172,17 @@ static int parseFirstLine( httpHeader* header , const char* buffer , int len )
     bzero( header->method , sizeof( header->method ) );
     bzero( header->uri,sizeof( header->uri ) );
     bzero( header->version ,sizeof( header->version ) );
-    //ÒòÎªÈı¶ÎÖ»ÓĞÁ½¸ö¿Õ¸ñ°¡£¬ËùÒÔÕÒÁ½´Î¾Í¿ÉÒÔÁË¡£
+    //å› ä¸ºä¸‰æ®µåªæœ‰ä¸¤ä¸ªç©ºæ ¼å•Šï¼Œæ‰€ä»¥æ‰¾ä¸¤æ¬¡å°±å¯ä»¥äº†ã€‚
     while( section < HEADER_VERSION )
     {
-        //ÒòÎªÊÇµÚÒ»ĞĞ£¬´Ó¿ªÍ·µ½ĞĞÄ©¡£
+        //å› ä¸ºæ˜¯ç¬¬ä¸€è¡Œï¼Œä»å¼€å¤´åˆ°è¡Œæœ«ã€‚
         space = findSpace( buffer + find_count , offset );
         if( space == NULL )
         {
             return AE_ERR;
         }
         pre_length += find_count;
-        //±¾´ÎÕÒµ½ÁË¼¸¸ö×Ö·û£¬Õâ´ÎÕÒµ½ÔÚbufferÖĞµÄÎ»ÖÃ-ÉÏ´ÎÕÒµ½µÄÎ»ÖÃ
+        //æœ¬æ¬¡æ‰¾åˆ°äº†å‡ ä¸ªå­—ç¬¦ï¼Œè¿™æ¬¡æ‰¾åˆ°åœ¨bufferä¸­çš„ä½ç½®-ä¸Šæ¬¡æ‰¾åˆ°çš„ä½ç½®
         find_count = space-(buffer + find_count);
         if( section == HEADER_METHOD )
         {
@@ -191,7 +194,7 @@ static int parseFirstLine( httpHeader* header , const char* buffer , int len )
             break;
         }
         section++;
-        find_count++;//¼Ó1ÊÇÒòÎªÒªÈ¥³ıµôÒ»¸ö¿Õ¸ñµÄÎ»ÖÃ
+        find_count++;//åŠ 1æ˜¯å› ä¸ºè¦å»é™¤æ‰ä¸€ä¸ªç©ºæ ¼çš„ä½ç½®
     }
     memcpy( header->version, space+1 , header->buffer_pos -( space-buffer)-1 );
     return AE_OK;
@@ -224,7 +227,7 @@ static int readingHeaders( httpHeader* header , const char* buffer , int len )
         {
             return AE_ERR;
         }
-        //Èç¹û½âÎöºÃÁË£¬Ö¸ÕëÍùºóÒÆ
+        //å¦‚æœè§£æå¥½äº†ï¼ŒæŒ‡é’ˆå¾€åç§»
         header->buffer_pos += offset;
     };
     header->buffer_pos += strlen( AE_HEADER_END );
@@ -242,7 +245,7 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
         {
             return AE_ERR;
         }
-        //·ÅÔÚÉÏÒ»¸öÓòµÄÖµÀï
+        //æ”¾åœ¨ä¸Šä¸€ä¸ªåŸŸçš„å€¼é‡Œ
         //header->fileds[header->filed_nums-1].value.str_len += len;
         memcpy( header->fileds[header->filed_nums-1].value , org , len   );
         return AE_OK;
@@ -259,6 +262,8 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
     {
         header->protocol = WEBSOCKET;
     }
+	
+	//multipart/form-data
     value_len = len - ( ret - org ) - 1;//:
     int eolen=0;
     eolen = getLeftEolLength( ret + 1 );
@@ -267,6 +272,12 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
     {
         header->content_length = atoi( header->fileds[header->filed_nums].value );
     }
+	
+	if( memcmp( header->fileds[header->filed_nums].value , "multipart/form-data" ,  strlen( "multipart/form-data" )  ) == 0 )
+	{
+		header->mutipart_data = MULTIPART_TYPE_FORM_DATA;
+	}
+	
     header->filed_nums += 1;
     return AE_OK;
 }
@@ -323,7 +334,14 @@ int isHttpProtocol( char* buffer , int len )
 
 void parsePostRequest( httpHeader* header , sds buffer , int len  )
 {
-    createWorkerTask(  header->connfd ,  buffer+header->buffer_pos , header->content_length , PIPE_EVENT_MESSAGE , "parsePostRequest" );
+	if( header->multipart_data >= MULTIPART_TYPE_FORM_DATA )
+	{
+		parse_mutipart_data( header , buffer , len );
+	}
+	else
+	{
+		createWorkerTask(  header->connfd ,  buffer+header->buffer_pos , header->content_length , PIPE_EVENT_MESSAGE , "parsePostRequest" );
+	}
 }
 
 
@@ -331,26 +349,26 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
 {
     if( strncmp( header->method , "POST" , 4 ) == 0 )
     {
-        //ÅĞ¶Ï°üÌåÊÇ·ñÍêÕû
-        //°üµÄ×Ü³¤-µ±Ç°Æ«ÒÆÁ¿ < content_length , °ë°ü
-        //°üµÄ×Ü³¤-µ±Ç°Æ«ÒÆÁ¿ > content_length ,Õ³°ü
-	if( header->content_length > 0 )
+        //åˆ¤æ–­åŒ…ä½“æ˜¯å¦å®Œæ•´
+        //åŒ…çš„æ€»é•¿-å½“å‰åç§»é‡ < content_length , åŠåŒ…
+        //åŒ…çš„æ€»é•¿-å½“å‰åç§»é‡ > content_length ,ç²˜åŒ…
+		if( header->content_length > 0 )
         {
-            //°ë°ü
+            //åŠåŒ…
             if(  sdslen( buffer ) - header->buffer_pos < header->content_length )
             {
 	           return CONTINUE_RECV;
             }
-            //Õ³°ü»òÍêÕû°ü
+            //ç²˜åŒ…æˆ–å®Œæ•´åŒ…
             else
             {
                 header->complete_length = header->buffer_pos + header->content_length;
-	     	//parsePostRequest(  header , data  , header->content_length );   
-	     	parsePostRequest(  header , buffer , header->complete_length );
+				//parsePostRequest(  header , data  , header->content_length );   
+				parsePostRequest(  header , buffer , header->complete_length );
                 return BREAK_RECV;
             }
         }
-        else//trunkÄ£Ê½
+        else//trunkæ¨¡å¼
         {
             printf( "Http trunk body,Not Support ....\n" );
             return BREAK_RECV;
@@ -443,7 +461,7 @@ enum wsFrameType parseHandshake( httpHeader* header  ,  handshake* hs  )
             count++;
         }
     }
-    //ËµÃ÷°üÍ·²»È«
+    //è¯´æ˜åŒ…å¤´ä¸å…¨
     if( count != 3  )
     {
         hs->frameType = WS_ERROR_FRAME;
@@ -462,7 +480,7 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
 {
     if( hs->state == WS_STATE_OPENING )
     {
-        //websocketÎÕÊÖ
+        //websocketæ¡æ‰‹
         hs->frameType = parseHandshake( header , hs );
         header->complete_length = header->buffer_pos;
     }
@@ -506,7 +524,7 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
                 );
             }
             servG->connlist[connfd].send_buffer = sdscatlen(
-                    servG->connlist[connfd].send_buffer ,(char*)out_buffer , frameSize
+            servG->connlist[connfd].send_buffer ,(char*)out_buffer , frameSize
                                                   );
             //createWorkerTask( connfd , "" , 0 , PIPE_EVENT_CONNECT , "Websocket New Connection" );
         }
@@ -519,4 +537,29 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
         return BREAK_RECV;
     }
 }
+
+/*
+parse http mutipart data, mutipart types include
+multipart/alternative 
+multipart/byteranges
+multipart/digest 
+multipart/form-data 
+multipart/mixed
+multipart/parallel
+multipart/related 
+Content-Type:multipart/form-data; boundary=----WebKitFormBoundaryqQDPjyh5uVhzQQF1
+*/
+void parse_mutipart_data( httpHeader* header , sds buffer , int len )
+{
+	if( header->mutipart_data == MULTIPART_TYPE_FORM_DATA )
+	{
+		
+	}
+	else
+	{
+		printf( "Not Support Mutipart Data:%d \n" , header->mutipart_data );
+	}
+	
+}
+
 

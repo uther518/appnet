@@ -9,13 +9,14 @@
 #include <stdlib.h>
 #include "websocket.h"
 
+
+#define TCP 0
+#define HTTP 1
+#define WEBSOCKET 2
+
 #define AE_SPACE       ' '
 #define AE_EOL_CRLF        "\r\n"
 #define AE_HEADER_END	   "\r\n\r\n"
-/*
-#define AE_OK        0
-#define AE_ERR       -1
-*/
 
 #define AE_HTTP_HEADER_MAX_SIZE          8192
 
@@ -55,15 +56,25 @@ typedef struct
 	//..
 	
 }headerParams;
-#define TCP 0
-#define HTTP 1
-#define WEBSOCKET 2
+
+enum
+{
+	MULTIPART_TYPE_FORM_DATA = 1,
+	MULTIPART_TYPE_BYTERANGES,
+	MULTIPART_TYPE_ALTERNATIVE,
+	MULTIPART_TYPE_DIGEST,
+	MULTIPART_TYPE_MIXED,
+	MULTIPART_TYPE_PARALLED,
+	MULTIPART_TYPE_RELATED
+};
+
 typedef struct
 {
 	int connfd;
 	int header_length;//header部分总长
 	int content_length;//body长
 	int complete_length; //整包长
+	int mutipart_data;
 	int filed_nums; //headerFiled numbers
 	int buffer_pos; //解析的位置,作为起始位置
 	char method[8]; //

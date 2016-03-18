@@ -123,7 +123,6 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
     pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
 }
 
-
 int parseRequestMessage( int connfd , sds buffer , int len )
 {
     int ret;
@@ -137,7 +136,7 @@ int parseRequestMessage( int connfd , sds buffer , int len )
     {
         if( isHttpProtocol( buffer  , 8 ) == AE_TRUE 
             || servG->connlist[connfd].protoType == WEBSOCKET                 
-	    || servG->connlist[connfd].protoType == HTTP 
+			|| servG->connlist[connfd].protoType == HTTP 
           )
         {
             if( servG->connlist[connfd].protoType != WEBSOCKET  )
@@ -160,6 +159,7 @@ int parseRequestMessage( int connfd , sds buffer , int len )
         }
     }
 }
+
 void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
 {
     //
@@ -220,7 +220,6 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
         }
     }
 }
-
 
 void setPipeWritable( aeEventLoop *el , void *privdata ,  int worker_id  )
 {
@@ -379,6 +378,8 @@ void installMasterSignal( aeServer* serv )
 //  signal (SIGHUP, masterSignalHandler );
 //  signal(SIGSEGV, masterSignalHandler );
 }
+
+/*
 void testsds( char* str )
 {
     printf( "===========testsds=====================%s\n" , str );
@@ -390,7 +391,7 @@ void testsds( char* str )
     snd = sdscatlen( snd , p1 ,strlen( p1 ));
     printf( "snd len=%d,buff=%s \n" , sdslen( snd ) , snd );
 }
-
+*/
 
 void createReactorThreads( aeServer* serv  )
 {
@@ -431,7 +432,6 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
         return;
     }
 	
-
 	char read_buff[TMP_BUFFER_LENGTH];
 	while( 1 )
 	{
@@ -441,9 +441,9 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 			bodylen += nread;
 			//strcatlen function can extend space when current space not enough
 			if ( sdslen( servG->connlist[data.connfd].send_buffer) == 0 )
-        		{
+			{
 				aeCreateFileEvent( el, data.connfd , AE_WRITABLE, onClientWritable, NULL );      
-        		}
+			}
 			servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );
 	 
 			//printf( "RecvFromPipe Need:[%d][%d]\n" , needlen , bodylen );
@@ -452,7 +452,6 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 				//printf( "RecvFromPipe Break:[%d]=[%d]\n" , bodylen , data.len  );
 				break;
 			}
-
 		}
 	}
 	
@@ -465,8 +464,6 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
         printf( "readBodyFromPipe error\n");
         return;
     }
-  
-   
 }
 
 
@@ -623,7 +620,7 @@ void createWorkerProcess( aeServer* serv )
         {
             //parent
             close( serv->workers[i].pipefd[1] );
-	    anetSetSendBuffer( neterr , serv->workers[i].pipefd[0] , SOCKET_SND_BUF_SIZE );
+			anetSetSendBuffer( neterr , serv->workers[i].pipefd[0] , SOCKET_SND_BUF_SIZE );
             anetNonBlock( neterr , serv->workers[i].pipefd[0] );
             continue;
         }
@@ -632,7 +629,7 @@ void createWorkerProcess( aeServer* serv )
             //child
             close( serv->workers[i].pipefd[0] );
             anetNonBlock( neterr, serv->workers[i].pipefd[1] );
-	    anetSetSendBuffer( neterr , serv->workers[i].pipefd[1] , SOCKET_SND_BUF_SIZE );
+			anetSetSendBuffer( neterr , serv->workers[i].pipefd[1] , SOCKET_SND_BUF_SIZE );
             runWorkerProcess( i , serv->workers[i].pipefd[1]  );
             exit( 0 );
         }
@@ -700,6 +697,7 @@ int freeConnectBuffers( aeServer* serv )
     }
     return count;
 }
+
 void destroyServer( aeServer* serv )
 {
     printf( "destroyServer...\n");
@@ -766,16 +764,33 @@ int setOption( char* key , char* val )
 	}
 	else if( strcmp( key , APPNET_HTTP_DOCS_ROOT  ) == 0 )
 	{
+		if( strlen( val ) >  sizeof(  servG->http_docs_root ) )
+		{
+			printf( "Option Value Too Long!\n");
+			reutrn AE_FALSE;
+		}
+		
 		memset( servG->http_docs_root ,  0 , sizeof(  servG->http_docs_root ) );
 		memcpy( servG->http_docs_root , val , strlen( val ) );
 	}
 	else if( strcmp( key , APPNET_HTTP_404_PAGE  ) == 0 )
 	{
+		if( strlen( val ) >  sizeof(  servG->http_404_page ) )
+		{
+			printf( "Option Value Too Long!\n");
+			reutrn AE_FALSE;
+		}
+		
 		memset( servG->http_404_page ,  0 , sizeof(  servG->http_404_page ) );
 		memcpy( servG->http_404_page , val , strlen( val ) );
 	}
 	else if( strcmp( key , APPNET_HTTP_50X_PAGE  ) == 0 )
 	{
+		if( strlen( val ) >  sizeof(  servG->http_50x_page ) )
+		{
+			printf( "Option Value Too Long!\n");
+			reutrn AE_FALSE;
+		}
 		memset( servG->http_50x_page ,  0 , sizeof(  servG->http_50x_page ) );
 		memcpy( servG->http_50x_page , val , strlen( val ) );
 	}
@@ -851,7 +866,6 @@ aeServer* aeServerCreate( char* ip,int port )
     memcpy( serv->http_docs_root , DEFAULT_HTTP_DOCS_ROOT , strlen( DEFAULT_HTTP_DOCS_ROOT ) );
     memcpy( serv->http_404_page  , DEFALUT_HTTP_404_PAGE , strlen( DEFALUT_HTTP_404_PAGE ) );
     memcpy( serv->http_50x_page  , DEFALUT_HTTP_50X_PAGE , strlen( DEFALUT_HTTP_50X_PAGE ) );
-
 
     servG = serv;
     return serv;
