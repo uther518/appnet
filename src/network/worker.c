@@ -345,6 +345,7 @@ void finalCallback(struct aeEventLoop *l,void *data)
 }
 void childTermHandler( int sig )
 {
+    printf( "222------childTermHandler pid=%d \n" , getpid() );
     aeStop( servG->worker->el );
 }
 
@@ -383,9 +384,10 @@ void runWorkerProcess( int pidx ,int pipefd )
     sdsclear( servG->worker->recv_buffer );
     sdsclear( servG->worker->response );
  
-	//install signal
     addSignal( SIGTERM, childTermHandler, 0 );
-    addSignal( SIGCHLD, childChildHandler , 1 );
+    signal(SIGINT , childTermHandler ); 
+   //addSignal( SIGCHLD, childChildHandler , 1 );
+
     worker->el = aeCreateEventLoop( worker->maxEvent );
     aeSetBeforeSleepProc( worker->el,initWorkerOnLoopStart );
     int res;
@@ -411,5 +413,6 @@ void runWorkerProcess( int pidx ,int pipefd )
     zfree( worker );
     shm_free( servG->connlist , 0 );
     close( pipefd );
+    printf( "3333-------child exist pid=%d \n", getpid());
     exit( 0 );
 }

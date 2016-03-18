@@ -333,26 +333,12 @@ void runMainReactor( aeServer* serv )
 
 void masterKillHandler( int sig )
 {
+    printf( "1111---masterKillHandler \n" );
     kill( 0, SIGTERM);
-    pid_t pid;
-    int stat,pidx;
-    //WNOHANG
-    while ( ( pid = waitpid( -1, &stat, 0 ) ) > 0 )
-    {
-        for( pidx = 0; pidx < servG->workerNum; pidx++ )
-        {
-            if( servG->workers[pidx].pid == pid )
-            {
-                close( servG->workers[pidx].pipefd[0] );
-                servG->workers[pidx].pid = -1;
-            }
-        }
-    }
     aeStop( servG->mainReactor->eventLoop );
     servG->running = 0;
-    //destroyServer( servG );
-    //printf( "Master Stoped pid=%d..\n", getpid() );
 }
+
 void addSignal( int sig, void(*handler)(int), int restart  )
 {
     struct sigaction sa;
@@ -367,14 +353,34 @@ void addSignal( int sig, void(*handler)(int), int restart  )
 }
 
 
+void waitChild(int signo)
+{ 
+	int status;
+	int pid; 
+	while( ( pid = waitpid(-1, &status, 0 ) ) > 0)
+	{
+		printf( "44444child exist pid=%d \n" , pid );
+	}
+	printf( "555waitChild End \n");
+} 
+
+void masterTermHandler( int signo )
+{
+   printf( "---masterTermHandler \n");
+}
+
+
 void installMasterSignal( aeServer* serv )
 {
     //printf( "installMasterSignal...pid=%d \n" , getpid() );
     signal(SIGPIPE, SIG_IGN);
     addSignal (SIGINT, masterKillHandler , 1  );
+    signal(SIGTERM, masterTermHandler );
+    signal(SIGCHLD, waitChild ); 
+
 //  signal (SIGKILL, masterSignalHandler );
 //  signal (SIGQUIT, masterSignalHandler );
-//  signal (SIGTERM, masterSignalHandler );
+    
 //  signal (SIGHUP, masterSignalHandler );
 //  signal(SIGSEGV, masterSignalHandler );
 }
@@ -843,7 +849,8 @@ int startServer( aeServer* serv )
 	
     runMainReactor( serv );
 
-    destroyServer( serv );
+    getchar();
+//    destroyServer( serv );
     return 0;
 }
 
