@@ -606,63 +606,68 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 {
 	char* buff = buffer;
 	int vlen;
-        char *crlf = 0 , *cl = 0;
+    char *crlf = 0 , *cl = 0;
 	char key[255] = {0};
 	char filename[255] = {0};
 	char val[1024] = {0};
 
-        int sep_len = strlen( "\r\n--") + strlen( header->boundary );
+    int sep_len = strlen( "\r\n--") + strlen( header->boundary );
 	char sep[sep_len+1];
 	snprintf( sep , sizeof( sep ) , "\r\n--%s" , header->boundary  );
-        int pos = sep_len;	
+    int pos = sep_len;	
 
 	//sdscatprintf 
 	//设置栈大小ulimit -s
-	char data[1024] = {0};
+	sds data = sdsnewlen(  NULL , header->content_length  );
+	//char data[1024] = {0};
 	while( 1 )
 	{
-             memset( key , 0 , sizeof( key ));
-	     memset( key , 0 , sizeof( val ));
-	     memset( filename , 0 , sizeof( filename ));		
- 	     if( pos + 2 >= header->content_length )break;
+		memset( key , 0 , sizeof( key ));
+		memset( key , 0 , sizeof( val ));
+		memset( filename , 0 , sizeof( filename ));		
+		if( pos + 2 >= header->content_length )break;
 
-	     sscanf( buffer+pos,
-             	"Content-Disposition: form-data; name=\"%255[^\"]\"; filename=\"%255[^\"]\"",
-                key, filename);
-	
-	     crlf = strstr((char *) buffer+pos , AE_HEADER_END );
-	     if( crlf == NULL)return;
-	     //cl = strstr( crlf , sep );
-             cl = binstrstr( crlf, header->content_length - pos , sep , sep_len );
-	     if( cl == NULL )
-	     {
-		printf( "Form Data One Part Is NULL \n");
-		return;
-	     }
-             vlen = cl - crlf;
-	     pos += cl - ( buffer+pos ) + sep_len +2;
-	     
-	     if( strlen( filename) )
-	     {
-		//filename ,data
-		printf( "Vlen=%d \n" , vlen );
-		char destfile[64] = {0};
-	
-		put_upload_file( header->connfd , filename , crlf + strlen( AE_HEADER_END ) , vlen-strlen( "\r\n--" ) , &destfile );
-		snprintf( data + strlen( data ) ,  sizeof( data ) - strlen( data ) , 
-			"%s=org_file:%s;dest_file:%s;size=%d&" ,
-		 key , filename , destfile , vlen-strlen( "\r\n--" ) );
+		sscanf( buffer+pos,
+		"Content-Disposition: form-data; name=\"%255[^\"]\"; filename=\"%255[^\"]\"",
+		key, filename);
 
-		
-	     }
-	     else
-	     {
-		memcpy( val , crlf + strlen( AE_HEADER_END ) , vlen-strlen( "\r\n--" ) );
-                snprintf( data + strlen( data ) ,  sizeof( data ) - strlen( data ) , "%s=%s&" , key , val  );
-	     }
-	}
-	createWorkerTask(  header->connfd , data  , strlen( data )  , PIPE_EVENT_MESSAGE, "parse_multipart_form" );
+		crlf = strstr((char *) buffer+pos , AE_HEADER_END );
+		if( crlf == NULL)return;
+		//cl = strstr( crlf , sep );
+		cl = binstrstr( crlf, header->content_length - pos , sep , sep_len );
+		if( cl == NULL )
+		{
+			printf( "Form Data One Part Is NULL \n");
+			return;
+		}
+		vlen = cl - crlf;
+		pos += cl - ( buffer+pos ) + sep_len +2;
+
+		vlen -= strlen( "\r\n--" );
+		if( strlen( filename) )
+		{
+			//filename ,data
+			printf( "Vlen=%d \n" , vlen );
+			char destfile[64] = {0};
+
+			if( vlen > sdsavail( data ))
+			{
+				printf( "Upload File Data Error,Long than Sds Buffer %d > %d \n" , vlen , sdsavail( data ) );
+				return;
+			}
+			put_upload_file( header->connfd , filename , crlf + strlen( AE_HEADER_END ) , vlen , &destfile );
+			data = sdscatprintf( data , "%s=org_file:%s;dest_file:%s;size=%d&" , key , filename , destfile , vlen  );
+			
+		}
+		else
+		{
+			memcpy( val , crlf + strlen( AE_HEADER_END ) , vlen );
+			data = sdscatprintf( data ,  "%s=%s&" , key , val  );
+		}
+	}	
+	createWorkerTask(  header->connfd , data  , sdslen( data )  , PIPE_EVENT_MESSAGE, "parse_multipart_form" );
 	//printf( "data[%s] \n" , data );
+	sdsfree( data );
 }
 
 
