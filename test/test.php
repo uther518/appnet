@@ -186,11 +186,12 @@ $server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
 $server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
 $server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
 
+
 $server->setOption( APPNET_HTTP_DOCS_ROOT , $_SERVER['PWD']."/example/www/" );
 $server->setOption( APPNET_HTTP_UPLOAD_DIR, "/home/www/"  );
-$server->setOption( APPNET_HTTP_404_PAGE , "/404.html" );
-$server->setOption( APPNET_HTTP_50X_PAGE , "/50x.html" );
-
+$server->setOption( APPNET_HTTP_404_PAGE , "404.html" );
+$server->setOption( APPNET_HTTP_50X_PAGE , "50x.html" );
+$server->setOption( APPNET_HTTP_KEEP_ALIVE , 1 );
 
 $server->addEventListener( APPNET_EVENT_CONNECT , "onConnect");
 $server->addEventListener( APPNET_EVENT_RECV ,    "onRecv");

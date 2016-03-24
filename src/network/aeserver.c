@@ -804,9 +804,18 @@ int setOption( char* key , char* val )
                 memset( servG->http_upload_dir ,  0 , sizeof(  servG->http_upload_dir ) );
                 memcpy( servG->http_upload_dir , val , strlen( val ) );
         }
+	else if( strcmp( key , APPNET_HTTP_KEEP_ALIVE  ) == 0 )
+        {
+		int keep =  atoi( val );
+                if( keep < 0 )
+                {
+                        return AE_FALSE;
+                }
+                servG->http_keep_alive = keep;
+        }
 	else
 	{
-	    printf( "Unkown Option\n" );
+	    printf( "Unkown Option %s \n" , key  );
 	    return AE_FALSE;
 	}
 
@@ -861,6 +870,7 @@ aeServer* aeServerCreate( char* ip,int port )
     serv->reactorNum = 1;
     serv->workerNum = 1;
     serv->maxConnect = 1024;
+    serv->http_keep_alive = 1;
     serv->protocolType = PROTOCOL_TYPE_WEBSOCKET_MIX;
     serv->runForever = startServer;
     serv->send =  sendMessageToReactor;

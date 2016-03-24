@@ -4,6 +4,7 @@
 #define _HTTP_RESPONSE_H_
 
 #include "sds.h"
+#include "aeserver.h"
 #include "http_request.h"
 #include <stdarg.h>
 
@@ -359,7 +360,7 @@ typedef struct
 	char data[4096];
 }header_out_t;
 
-
+void http_close( httpHeader* reqHeader );
 int is_file(char *path);
 int is_dir(char *path);
 void http_response_static( httpHeader* reqHeader  );

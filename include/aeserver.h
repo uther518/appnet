@@ -28,6 +28,7 @@
 #define APPNET_HTTP_404_PAGE   "http_404_page"
 #define APPNET_HTTP_50X_PAGE   "http_50x_page"
 #define APPNET_HTTP_UPLOAD_DIR  "http_upload_dir"
+#define APPNET_HTTP_KEEP_ALIVE  "http_keep_alive"
 
 #define DEFAULT_HTTP_DOCS_ROOT "/home/www"
 #define DEFALUT_HTTP_404_PAGE "/404.html"
@@ -149,7 +150,7 @@ struct _aeServer
    int maxConnect;
    int connectNum;
    int protocolType;
-
+   int  http_keep_alive;
    char http_404_page[64];
    char http_50x_page[64];
    char http_docs_root[255];

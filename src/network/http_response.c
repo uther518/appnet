@@ -2,7 +2,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "aeserver.h"
+//#include "include/aeserver.h"
 #include "http_response.h"
 #include <fcntl.h>
 #include "ae.h"
@@ -162,7 +162,7 @@ void http_redirect( httpHeader* reqHeader ,  char* uri )
 	header_out_t  header_out;
 	memset( &header_out , 0 , sizeof( header_out ));
 	header_out.req = reqHeader;
-    header_status_t  error_page = get_http_status( 301 );        //header append
+    	header_status_t  error_page = get_http_status( 301 );        //header append
 
 	create_common_header(  &header_out , 301 );
 	resp_append_header( &header_out , HEADER_LOCATION , uri );
@@ -170,6 +170,7 @@ void http_redirect( httpHeader* reqHeader ,  char* uri )
 	resp_append_header( &header_out , HEADER_END_LINE );
 	
 	http_response_write( reqHeader->connfd , header_out.data , header_out.length );
+	http_close( reqHeader );
 }
 
 int page_is_defined( char* page )
@@ -243,15 +244,25 @@ void resp_error_page( header_out_t*  header_out, int status_code )
 	//resp_append_header( header_out , HEADER_STATUS , error_page.status  );
 	//resp_append_header( header_out , HEADER_SERVER );
 	
-	create_common_header( header_out , error_page.status );
+	create_common_header( header_out , status_code );
 	header_append_length( header_out , datalen );
 	resp_append_header( header_out , HEADER_END_LINE );
 	
 	//send
 	http_response_write( header_out->req->connfd, header_out->data , header_out->length );
 	http_response_write( header_out->req->connfd, error_page.data , datalen );
+	http_close( header_out->req );
 }
 
+
+void http_close( httpHeader* reqHeader )
+{
+	if( reqHeader->keep_alive == 0 || servG->http_keep_alive == 0  )
+	{
+		aeConnection c  = servG->connlist[reqHeader->connfd];
+		freeClient( &c );
+	}
+}
 
 //response static resource
 void http_response_static_proc( httpHeader* reqHeader )
@@ -263,9 +274,9 @@ void http_response_static_proc( httpHeader* reqHeader )
 	header_out.req = reqHeader;
 	
 	
-    get_file_path( reqHeader->uri , path );
+    	get_file_path( reqHeader->uri , path );
 	struct stat stat_file;
-    int ret =  stat( path , &stat_file );
+    	int ret =  stat( path , &stat_file );
 	
 
 	if( ret < 0 )
@@ -285,7 +296,7 @@ void http_response_static_proc( httpHeader* reqHeader )
 		return;
 	}
 
-    int fd = open( path , O_RDONLY );
+    	int fd = open( path , O_RDONLY );
 	if( fd < 0 )
 	{
 	 	printf( "Open file Error:%s,errno=%d \n" , strerror(errno) , errno );
@@ -303,6 +314,7 @@ void http_response_static_proc( httpHeader* reqHeader )
 		}
 	}
 	close( fd );
+	http_close( reqHeader );
 }
 
 
