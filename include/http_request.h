@@ -75,6 +75,7 @@ typedef struct
 	int content_length;//body长
 	int complete_length; //整包长
 	int multipart_data;
+	int keep_alive;
 	int filed_nums; //headerFiled numbers
 	int buffer_pos; //解析的位置,作为起始位置
 	char method[8]; //
@@ -83,6 +84,8 @@ typedef struct
 	char mime_type[32];
 	char boundary[64];
 	int  protocol;
+	int  major;
+	int  minor;
 	headerFiled fileds[30]; 
 	headerParams params;   //分析的结果结构体
 	sds buffer;

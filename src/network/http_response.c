@@ -124,12 +124,37 @@ int resp_append_header( header_out_t*  header_out , int line_type , ...  )
 			arg_string = va_arg( ap, char* );
 			len = snprintf( line , sizeof( line ) , header_formats[HEADER_LOCATION] , arg_string );
 		break;
+		case HEADER_KEEP_ALIVE:
+			if( header_out->req->keep_alive == 0 )
+			{
+				len = snprintf( line , sizeof( line ) , header_formats[HEADER_KEEP_ALIVE] , "close" );
+			}
+			else
+			{
+				len = snprintf( line , sizeof( line ) , header_formats[HEADER_KEEP_ALIVE] , "keep-alive" );
+			}
+		break;
+		
 		case HEADER_END_LINE:
 			len = snprintf( line , sizeof( line ) , header_formats[HEADER_END_LINE] );
 		break;
+		
 	}
 	header_buffer_append( header_out , line , strlen( line ) );
 	return len;
+}
+
+
+
+//this function only process status=200 page, not include resp_error_page
+void create_common_header( header_out_t*  header_out, int status_code   )
+{
+	header_status_t  error_page = get_http_status( status_code );
+	//header append
+	resp_append_header( header_out , HEADER_STATUS , error_page.status  );
+	resp_append_header( header_out , HEADER_SERVER );
+	resp_append_header( header_out , HEADER_CONTENT_TYPE  );
+	resp_append_header( header_out , HEADER_KEEP_ALIVE );
 }
 
 void http_redirect( httpHeader* reqHeader ,  char* uri )
@@ -137,13 +162,10 @@ void http_redirect( httpHeader* reqHeader ,  char* uri )
 	header_out_t  header_out;
 	memset( &header_out , 0 , sizeof( header_out ));
 	header_out.req = reqHeader;
+    header_status_t  error_page = get_http_status( 301 );        //header append
 
-    	header_status_t  error_page = get_http_status( 301 );        //header append
-
-	resp_append_header( &header_out , HEADER_STATUS , error_page.status );
-	resp_append_header( &header_out , HEADER_SERVER );
+	create_common_header(  &header_out , 301 );
 	resp_append_header( &header_out , HEADER_LOCATION , uri );
-	resp_append_header( &header_out , HEADER_CONTENT_TYPE  );
 	resp_append_header( &header_out , HEADER_CONTENT_LENGTH , 0  );
 	resp_append_header( &header_out , HEADER_END_LINE );
 	
@@ -200,15 +222,6 @@ void header_append_chunked(  header_out_t  header_out )
 	//resp_append_header( header_out , HEADER_CONTENT_LENGTH  , datalen );
 }
 
-//this function only process status=200 page, not include resp_error_page
-void create_common_header( header_out_t*  header_out, int status_code   )
-{
-	header_status_t  error_page = get_http_status( status_code );
-	//header append
-	resp_append_header( header_out , HEADER_STATUS , error_page.status  );
-	resp_append_header( header_out , HEADER_SERVER );
-	resp_append_header( header_out , HEADER_CONTENT_TYPE  );
-}
 
 //404
 void resp_error_page( header_out_t*  header_out, int status_code )
@@ -227,8 +240,10 @@ void resp_error_page( header_out_t*  header_out, int status_code )
 	int datalen = strlen( error_page.data );
 	
 	//header append
-	resp_append_header( header_out , HEADER_STATUS , error_page.status  );
-	resp_append_header( header_out , HEADER_SERVER );
+	//resp_append_header( header_out , HEADER_STATUS , error_page.status  );
+	//resp_append_header( header_out , HEADER_SERVER );
+	
+	create_common_header( header_out , error_page.status );
 	header_append_length( header_out , datalen );
 	resp_append_header( header_out , HEADER_END_LINE );
 	
@@ -248,9 +263,9 @@ void http_response_static_proc( httpHeader* reqHeader )
 	header_out.req = reqHeader;
 	
 	
-    	get_file_path( reqHeader->uri , path );
+    get_file_path( reqHeader->uri , path );
 	struct stat stat_file;
-    	int ret =  stat( path , &stat_file );
+    int ret =  stat( path , &stat_file );
 	
 
 	if( ret < 0 )
@@ -270,7 +285,7 @@ void http_response_static_proc( httpHeader* reqHeader )
 		return;
 	}
 
-    	int fd = open( path , O_RDONLY );
+    int fd = open( path , O_RDONLY );
 	if( fd < 0 )
 	{
 	 	printf( "Open file Error:%s,errno=%d \n" , strerror(errno) , errno );

@@ -332,6 +332,7 @@ typedef enum
    HEADER_CONTENT_TYPE,
    HEADER_CONTENT_LENGTH,
    HEADER_LOCATION,
+   HEADER_KEEP_ALIVE,
    HEADER_END_LINE
 }header_key;
 
@@ -341,6 +342,7 @@ static char* header_formats[] = {
 	"Content-Type: %s"CRLF,
 	"Content-Length: %d"CRLF,
 	"Location: %s"CRLF,
+	"Connection: %s"CRLF,
 	CRLF
 };
 

@@ -52,68 +52,65 @@ class Websocket
 	public static function onLogin( $serv , $fd , $msg )
 	{
 		self::$connections[$fd]['name'] = $msg['name'];
-                self::$connections[$fd]['avatar'] = $msg['avatar'];
+        self::$connections[$fd]['avatar'] = $msg['avatar'];
 
-		 $resMsg = array(
-                        'cmd' => 'login',
-                        'fd' => $fd,
-                        'name' => $msg['name'],
-                        'avatar' => $msg['avatar'],
-                 );
-		 $len = $serv->send(  $fd , json_encode( $resMsg )  );
-		 self::broadcastNewUser( $serv , $fd , $msg , $resMsg );
+		$resMsg = array(
+					'cmd' => 'login',
+					'fd' => $fd,
+					'name' => $msg['name'],
+					'avatar' => $msg['avatar'],
+			 );
+		$len = $serv->send(  $fd , json_encode( $resMsg )  );
+		self::broadcastNewUser( $serv , $fd , $msg , $resMsg );
 	}
 
 	public static function broadcastNewUser( $serv , $fd , $msg , $resMsg )
 	{
-		 	$resMsg['cmd'] = 'newUser';
-                        $loginMsg = array(
-                                'cmd' => 'fromMsg',
-                                'from' => 0,
-                                'channal' => 0 ,
-                                'data' => $msg['name']."上线鸟。。",
-                        );
+		$resMsg['cmd'] = 'newUser';
+		$loginMsg = array(
+				'cmd' => 'fromMsg',
+				'from' => 0,
+				'channal' => 0 ,
+				'data' => $msg['name']."上线鸟。。",
+		);
 
-                        //将上线消息发送给所有人
-                        foreach ( self::$connections as $clid => $info )
-                        {
-                                if( $fd  !=  $clid )
-                                {
-                                        $serv->send( $clid , json_encode( $resMsg ) );
-                                        $serv->send( $clid , json_encode( $loginMsg ) );
-                                }
-                        }
-
-
+		//将上线消息发送给所有人
+		foreach ( self::$connections as $clid => $info )
+		{
+				if( $fd  !=  $clid )
+				{
+						$serv->send( $clid , json_encode( $resMsg ) );
+						$serv->send( $clid , json_encode( $loginMsg ) );
+				}
+		}
 	}
 
 
 	public static function onMessage( $serv , $fd , $msg )
 	{
 
-			echo "onMessage php.................\n";
+		echo "onMessage php.................\n";
+		$resMsg = $msg;
+		$resMsg['cmd'] = 'fromMsg';
 
-                        $resMsg = $msg;
-                        $resMsg['cmd'] = 'fromMsg';
+		//表示群发
+		if( $msg['channal'] == 0 )
+		{
+				foreach ( self::$connections as $clid => $info )
+				{
+						$serv->send( $clid , json_encode( $resMsg ) );
+				}
 
-                        //表示群发
-                        if( $msg['channal'] == 0 )
-                        {
-                                foreach ( self::$connections as $clid => $info )
-                                {
-                                        $serv->send( $clid , json_encode( $resMsg ) );
-                                }
-
-                        }
-                        //表示私聊
-                        elseif ( $msg['channal'] == 1 )
-                        {
-                                $serv->send( $msg['to'] , json_encode( $resMsg ) );
-                                $serv->send( $msg['from'] , json_encode( $resMsg ) );
-                        }
+		}
+		//表示私聊
+		elseif ( $msg['channal'] == 1 )
+		{
+				$serv->send( $msg['to'] , json_encode( $resMsg ) );
+				$serv->send( $msg['from'] , json_encode( $resMsg ) );
+		}
 
 			//$serv->close( $fd );
-         }
+    }
 }
 
 

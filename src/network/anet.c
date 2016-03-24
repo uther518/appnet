@@ -774,8 +774,8 @@ int listenToPort( char *bindaddr, int port, int* fds , int *count )
             (*count)++;
         }
         /* Exit the loop if we were able to bind * on IPv4 or IPv6,
-        *              * otherwise fds[*count] will be ANET_ERR and we'll print an
-        *                           * error and return to the caller with an error. */
+        * * otherwise fds[*count] will be ANET_ERR and we'll print an
+        * * error and return to the caller with an error. */
         if (*count)
         {
             return 1;
