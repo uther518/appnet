@@ -136,7 +136,7 @@ const zend_function_entry appnet_functions[] = {
     PHP_ME(appnetServer,    send,          arginfo_appnet_server_send , ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer,    close,         arginfo_appnet_server_close , ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer,    getHeader,     NULL ,                 ZEND_ACC_PUBLIC )
-	PHP_ME(appnetServer,    setHeader,     arginfo_appnet_set_header, ZEND_ACC_PUBLIC )
+    PHP_ME(appnetServer,    setHeader,     arginfo_appnet_set_header, ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer,    timerAdd,      arginfo_appnet_server_timer_add , ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer,    timerRemove,   arginfo_appnet_server_timer_remove , ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer ,   setOption,     arginfo_appnet_server_set_option , ZEND_ACC_PUBLIC )

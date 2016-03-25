@@ -34,7 +34,7 @@ class Websocket
 
 	public static function getOnline( $serv , $fd , $msg )
 	{
-	   $resMsg = array(
+         	   $resMsg = array(
 					 'cmd' => 'getOnline',
 		);
 		foreach ( self::$connections as $clid => $info )
@@ -52,7 +52,7 @@ class Websocket
 	public static function onLogin( $serv , $fd , $msg )
 	{
 		self::$connections[$fd]['name'] = $msg['name'];
-        self::$connections[$fd]['avatar'] = $msg['avatar'];
+        	self::$connections[$fd]['avatar'] = $msg['avatar'];
 
 		$resMsg = array(
 					'cmd' => 'login',
@@ -130,14 +130,15 @@ function onRecv( $server , $fd , $buffer )
 	   Websocket::onReceive( $server , $fd,  $buffer );
 	}
 	elseif(  $header['Protocol'] == "HTTP"  )
-    {
+        {
 		$data  = $buffer;
-		$server->send( $fd , $data );	
+		$server->setHeader( "Connection:keep-alive" );
+		$server->send( $fd , "xxxxxxxxxx".$data );	
 	}
 	else
 	{
 		$buffer = file_get_contents( "test/rfc.txt");
-        $server->send( $fd , $buffer );
+        	$server->send( $fd , $buffer );
 	}
 };
 
