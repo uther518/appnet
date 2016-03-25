@@ -285,6 +285,15 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
 		}
     }
 	
+	if( memcmp( org  , "Transfer-Encoding" ,  ret-org  ) == 0 )
+    {
+		header->trunked = 0;
+		if( strstr( header->fileds[header->filed_nums].value , "chunked" ))
+		{
+			header->trunked = 1;
+		}
+    }
+	
     char* mfd = "multipart/form-data";
     if( memcmp( header->fileds[header->filed_nums].value , mfd ,  strlen( mfd )  ) == 0 )
     {
@@ -361,6 +370,12 @@ void parsePostRequest( httpHeader* header , sds buffer , int len  )
 	}
 }
 
+int parse_trunked_body( httpHeader* header , sds buffer  )
+{
+	
+	return 1;
+}
+
 
 static int httpBodyParse( httpHeader* header , sds buffer , int len )
 {
@@ -385,11 +400,17 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
                 return BREAK_RECV;
             }
         }
-        else//trunk模式
+        else if( header->trunked == 1 )//trunk模式
         {
             printf( "Http trunk body,Not Support ....\n" );
+			//parse_trunked_body( header , buffer );
             return BREAK_RECV;
         }
+		else
+		{
+			printf( "Bad Header,Unkown Length body \n" );
+            return BREAK_RECV;
+		}
     }
     else if( strncmp( header->method , "GET" , 3 ) == 0  )
     {
@@ -489,7 +510,6 @@ enum wsFrameType parseHandshake( httpHeader* header  ,  handshake* hs  )
     }
     return hs->frameType;
 }
-
 
 
 #define BUF_LEN 0xFFFF
@@ -711,7 +731,6 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 	sdsfree( data );
 }
 
-
 void parse_multipart_data( httpHeader* header , sds buffer , int len )
 {
 	if( header->multipart_data == MULTIPART_TYPE_FORM_DATA )
@@ -724,8 +743,5 @@ void parse_multipart_data( httpHeader* header , sds buffer , int len )
 	else
 	{
 		printf( "Not Support Mutipart Data:%d \n" , header->multipart_data );
-	}
-	
+	}	
 }
-
-

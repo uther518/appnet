@@ -379,20 +379,6 @@ void installMasterSignal( aeServer* serv )
 //  signal(SIGSEGV, masterSignalHandler );
 }
 
-/*
-void testsds( char* str )
-{
-    printf( "===========testsds=====================%s\n" , str );
-    char* p1 = "xxxxxxxxxxxxx";
-    sds snd = sdsempty();
-    snd = sdscatlen( snd , p1 ,strlen( p1 ));
-    snd = sdscatlen( snd , p1 ,strlen( p1 ));
-    snd = sdscatlen( snd , p1 ,strlen( p1 ));
-    snd = sdscatlen( snd , p1 ,strlen( p1 ));
-    printf( "snd len=%d,buff=%s \n" , sdslen( snd ) , snd );
-}
-*/
-
 void createReactorThreads( aeServer* serv  )
 {
     int i,res;
@@ -795,24 +781,24 @@ int setOption( char* key , char* val )
 		memcpy( servG->http_50x_page , val , strlen( val ) );
 	}
 	else if( strcmp( key , APPNET_HTTP_UPLOAD_DIR  ) == 0 )
-        {
-                if( strlen( val ) >  sizeof(  servG->http_upload_dir ) )
-                {
-                        printf( "Option Value Too Long!\n");
-                        return AE_FALSE;
-                }
-                memset( servG->http_upload_dir ,  0 , sizeof(  servG->http_upload_dir ) );
-                memcpy( servG->http_upload_dir , val , strlen( val ) );
-        }
+	{
+		if( strlen( val ) >  sizeof(  servG->http_upload_dir ) )
+		{
+				printf( "Option Value Too Long!\n");
+				return AE_FALSE;
+		}
+		memset( servG->http_upload_dir ,  0 , sizeof(  servG->http_upload_dir ) );
+		memcpy( servG->http_upload_dir , val , strlen( val ) );
+	}
 	else if( strcmp( key , APPNET_HTTP_KEEP_ALIVE  ) == 0 )
-        {
+	{
 		int keep =  atoi( val );
-                if( keep < 0 )
-                {
-                        return AE_FALSE;
-                }
-                servG->http_keep_alive = keep;
-        }
+		if( keep < 0 )
+		{
+				return AE_FALSE;
+		}
+		servG->http_keep_alive = keep;
+	}
 	else
 	{
 	    printf( "Unkown Option %s \n" , key  );

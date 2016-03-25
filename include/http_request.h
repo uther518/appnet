@@ -76,6 +76,7 @@ typedef struct
 	int complete_length; //整包长
 	int multipart_data;
 	int keep_alive;
+	int trunked;
 	int filed_nums; //headerFiled numbers
 	int buffer_pos; //解析的位置,作为起始位置
 	char method[8]; //
