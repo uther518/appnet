@@ -58,6 +58,25 @@ ZEND_METHOD( appnetServer , setOption )
     RETURN_FALSE;
 }
 
+
+ZEND_METHOD( appnetServer , setHeader )
+{
+    size_t val_len;
+    char*  val;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",  &val , &val_len ) == FAILURE)
+    {
+        return;
+    }
+    aeServer* appserv = APPNET_G( appserv );
+    int ret = appserv->setHeader( val );
+    if( ret == AE_TRUE )
+    {
+		RETURN_TRUE;
+    }
+    RETURN_FALSE;
+}
+
 ZEND_METHOD( appnetServer , getInfo )
 {
 	array_init(return_value);

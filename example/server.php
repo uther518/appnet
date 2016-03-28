@@ -34,18 +34,18 @@ class Websocket
 
 	public static function getOnline( $serv , $fd , $msg )
 	{
-		   $resMsg = array(
-                         'cmd' => 'getOnline',
-                    );
-                    foreach ( self::$connections as $clid => $info )
-                    {
-                          $resMsg['list'][] = array(
-                               'fd' => $clid,
-                               'name' => $info['name'],
-                               'avatar' => $info['avatar'],
-                          );
-                   }
-                   $serv->send( $fd , json_encode( $resMsg ) );
+	   $resMsg = array(
+					 'cmd' => 'getOnline',
+		);
+		foreach ( self::$connections as $clid => $info )
+		{
+			  $resMsg['list'][] = array(
+				   'fd' => $clid,
+				   'name' => $info['name'],
+				   'avatar' => $info['avatar'],
+			  );
+	   }
+	   $serv->send( $fd , json_encode( $resMsg ) );
 
 	}
 
@@ -130,14 +130,14 @@ function onRecv( $server , $fd , $buffer )
 	   Websocket::onReceive( $server , $fd,  $buffer );
 	}
 	elseif(  $header['Protocol'] == "HTTP"  )
-        {
+    {
 		$data  = $buffer;
 		$server->send( $fd , $data );	
 	}
 	else
 	{
 		$buffer = file_get_contents( "test/rfc.txt");
-           	$server->send( $fd , $buffer );
+        $server->send( $fd , $buffer );
 	}
 };
 

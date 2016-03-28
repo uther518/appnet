@@ -862,6 +862,7 @@ aeServer* aeServerCreate( char* ip,int port )
     serv->send =  sendMessageToReactor;
     serv->close = sendCloseEventToReactor;
     serv->setOption = setOption;
+	serv->setHeader = setHeader;
     serv->sendToClient = anetWrite;
     serv->closeClient = freeClient;
 

@@ -88,19 +88,26 @@ int createResponse( int connfd , char* buff , int len , char prototype , sds res
 {
     if( prototype == HTTP )
     {
-	char content_length[64];
-	int clen;
-	clen = sprintf( content_length , "Content-Length: %d\r\n" , len );	
+		char content_length[64];
+		int clen;
+		clen = sprintf( content_length , "Content-Length: %d\r\n" , len );	
 
-	response = sdscat( response , "HTTP/1.1 200 OK \r\n" );
-	response = sdscat( response , "Server: appnet/1.0.0\r\n" );
-	response = sdscatlen( response , content_length , clen );
-	response = sdscat( response , "Content-Type: text/html\r\n" );
-	//response = sdscat( response , "Content-Type: image/png\r\n");
-	response = sdscat( response , "\r\n" );
-	//printf( "Response:[%d][%s] \n" , sdslen( response ) , response );
-	servG->worker->response = sdscatlen( response ,  buff , len );
-	return sdslen( servG->worker->response );
+		response = sdscat( response , "HTTP/1.1 200 OK \r\n" );
+		response = sdscat( response , "Server: appnet/1.0.0\r\n" );
+		response = sdscatlen( response , content_length , clen );
+		response = sdscat( response , "Content-Type: text/html\r\n" );
+		//response = sdscat( response , "Content-Type: image/png\r\n");
+		if( sdslen( servG->worker->header ) > 0 )
+		{
+			response = sdscat( response , servG->worker->header );
+		}
+		
+		response = sdscat( response , "\r\n" );
+		//printf( "Response:[%d][%s] \n" , sdslen( response ) , response );
+		servG->worker->response = sdscatlen( response ,  buff , len );
+		
+		sdsclear(  servG->worker->header );
+		return sdslen( servG->worker->response );
     }
     else
     {
@@ -346,6 +353,12 @@ void childChildHandler( int sig )
   
 }
 
+int setHeader( char* headerLine )
+{
+	servG->worker->header= sdscatprintf(  servG->worker->header , "%s%s" , headerLine , "\r\n" );
+	return AE_TRUE;
+}
+
 /**
  * process event types:
  * 1,parent process send readable event
@@ -363,6 +376,7 @@ void runWorkerProcess( int pidx ,int pipefd )
     worker->send_buffer = sdsnewlen( NULL , SEND_BUFFER_LENGTH  );
     worker->recv_buffer = sdsnewlen( NULL , RECV_BUFFER_LENGTH  );
     worker->response = sdsnewlen( NULL , SEND_BUFFER_LENGTH );
+	worker->header = sdsempty();
 	
     servG->worker = worker;
     sdsclear( servG->worker->send_buffer );
@@ -392,6 +406,7 @@ void runWorkerProcess( int pidx ,int pipefd )
     sdsfree( worker->send_buffer );
     sdsfree( worker->recv_buffer );
     sdsfree( worker->response );
+	sdsfree( worker->header );
 	
     zfree( worker );
     shm_free( servG->connlist , 0 );

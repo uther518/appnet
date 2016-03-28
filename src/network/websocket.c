@@ -124,14 +124,14 @@ static size_t getPayloadLength(const uint8_t *inputFrame, size_t inputLength,
         *frameType = WS_ERROR_FRAME;
         return 0;
     }
-    if (payloadLength == 0x7E)
+    if (payloadLength == 0x7E)//126
     {
         uint16_t payloadLength16b = 0;
         *payloadFieldExtraBytes = 2;
         memcpy(&payloadLength16b, &inputFrame[2], *payloadFieldExtraBytes);
         payloadLength = ntohs(payloadLength16b);
     }
-    else if (payloadLength == 0x7F)
+    else if (payloadLength == 0x7F)//127
     {
         *frameType = WS_ERROR_FRAME;
         return 0;

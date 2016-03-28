@@ -109,8 +109,8 @@ typedef struct _aeWorker
 	aeEventLoop *el;
 	sds send_buffer;	//send to master pipe
 	sds recv_buffer;	//recv from master pipe
-	sds response;
-
+	sds response;		//response
+	sds header;			//header buffer
 }aeWorker;
 
 typedef struct _aeReactorThread
@@ -170,6 +170,7 @@ struct _aeServer
    int  (*send)(  int fd, char* data , int len );
    int  (*close)( int fd );
    int  (*setOption)( char* key , char* val );
+   int  (*setHeader)( char* val );
    
    void (*onConnect)( aeServer* serv ,int fd );
    void (*onRecv)( aeServer *serv, aeConnection* c , char* buff , int len );
@@ -249,6 +250,7 @@ void runWorkerProcess( int pidx ,int pipefd );
 void createWorkerTask(  int connfd , char* buffer , int len , int eventType , char* from );
 aeEventLoop* getThreadEventLoop( int connfd );
 
+int setHeader( char* headerLine );
 int setOption( char* key , char* val );
 void timerAdd( int ms , void* cb , void* params  );
 //void testsds( char* str );
