@@ -212,7 +212,7 @@ PHP_MINIT_FUNCTION(appnet)
  */
 PHP_MSHUTDOWN_FUNCTION(appnet)
 {
-	printf( "PHP_MSHUTDOWN_FUNCTION....\n");
+	//printf( "PHP_MSHUTDOWN_FUNCTION....\n");
 	/* uncomment this line if you have INI entries
 	UNREGISTER_INI_ENTRIES();
 	*/

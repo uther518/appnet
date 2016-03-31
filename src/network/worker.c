@@ -345,9 +345,9 @@ void finalCallback(struct aeEventLoop *l,void *data)
 }
 void childTermHandler( int sig )
 {
-    printf( "222------childTermHandler pid=%d \n" , getpid() );
     aeStop( servG->worker->el );
 }
+
 
 void childChildHandler( int sig )
 {
@@ -377,7 +377,7 @@ void runWorkerProcess( int pidx ,int pipefd )
     worker->send_buffer = sdsnewlen( NULL , SEND_BUFFER_LENGTH  );
     worker->recv_buffer = sdsnewlen( NULL , RECV_BUFFER_LENGTH  );
     worker->response = sdsnewlen( NULL , SEND_BUFFER_LENGTH );
-	worker->header = sdsempty();
+    worker->header = sdsempty();
 	
     servG->worker = worker;
     sdsclear( servG->worker->send_buffer );
@@ -408,11 +408,10 @@ void runWorkerProcess( int pidx ,int pipefd )
     sdsfree( worker->send_buffer );
     sdsfree( worker->recv_buffer );
     sdsfree( worker->response );
-	sdsfree( worker->header );
+    sdsfree( worker->header );
 	
     zfree( worker );
     shm_free( servG->connlist , 0 );
     close( pipefd );
-    printf( "3333-------child exist pid=%d \n", getpid());
     exit( 0 );
 }

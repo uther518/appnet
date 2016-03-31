@@ -333,9 +333,9 @@ void runMainReactor( aeServer* serv )
 
 void masterKillHandler( int sig )
 {
-    printf( "1111---masterKillHandler \n" );
     kill( 0, SIGTERM);
     aeStop( servG->mainReactor->eventLoop );
+    stopReactorThread( servG );
     servG->running = 0;
 }
 
@@ -359,14 +359,17 @@ void waitChild(int signo)
 	int pid; 
 	while( ( pid = waitpid(-1, &status, 0 ) ) > 0)
 	{
-		printf( "44444child exist pid=%d \n" , pid );
 	}
-	printf( "555waitChild End \n");
+	
+	if( servG->exit_code == 1 )
+	{
+	   return;
+	}
+        servG->exit_code = 1;
 } 
 
 void masterTermHandler( int signo )
 {
-   printf( "---masterTermHandler \n");
 }
 
 
@@ -634,9 +637,13 @@ void stopReactorThread( aeServer* serv  )
     {
         aeStop( serv->reactorThreads[i].reactor.eventLoop );
     }
+}
+
+void freeReactorThread( aeServer* serv  )
+{
+    int i;
     for( i=0; i<serv->reactorNum; i++)
     {
-        usleep( 1000 );
         pthread_cancel( serv->reactorThreads[i].thread_id );
         if( pthread_join( serv->reactorThreads[i].thread_id , NULL ) )
         {
@@ -650,12 +657,10 @@ void stopReactorThread( aeServer* serv  )
         {
             zfree( serv->reactorThreads[i].param );
         }
-        if( serv->reactorThreads[i].reactor.eventLoop != NULL )
-        {
-            aeDeleteEventLoop( serv->reactorThreads[i].reactor.eventLoop  );
-        }
     }
+
 }
+
 void freeWorkerBuffer( aeServer* serv )
 {
     int i;
@@ -692,9 +697,8 @@ int freeConnectBuffers( aeServer* serv )
 
 void destroyServer( aeServer* serv )
 {
-    printf( "destroyServer...\n");
-    stopReactorThread( serv );
-   
+    freeReactorThread( serv );
+    
     freeConnectBuffers( serv );
    
     shm_free( serv->connlist,1 );
@@ -849,8 +853,7 @@ int startServer( aeServer* serv )
 	
     runMainReactor( serv );
 
-    getchar();
-//    destroyServer( serv );
+    destroyServer( serv );
     return 0;
 }
 
@@ -863,6 +866,7 @@ aeServer* aeServerCreate( char* ip,int port )
     serv->reactorNum = 1;
     serv->workerNum = 1;
     serv->maxConnect = 1024;
+    serv->exit_code = 0;
     serv->http_keep_alive = 1;
     serv->protocolType = PROTOCOL_TYPE_WEBSOCKET_MIX;
     serv->runForever = startServer;

@@ -141,7 +141,7 @@ typedef enum
 struct _aeServer
 {
    char* listen_ip;
-   int listenfd;
+   int   listenfd;
    int   port;
    int   running;
    void *ptr2;
@@ -149,6 +149,7 @@ struct _aeServer
    int workerNum;
    int maxConnect;
    int connectNum;
+   int exit_code;
    int protocolType;
    int  http_keep_alive;
    char http_404_page[64];
