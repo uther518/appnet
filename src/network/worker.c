@@ -353,12 +353,46 @@ void childChildHandler( int sig )
 {
   
 }
-
+/*
 int setHeader( char* headerLine )
 {
 	servG->worker->header= sdscatprintf(  servG->worker->header , "%s%s" , headerLine , "\r\n" );
 	return AE_TRUE;
 }
+*/
+static int http_header_is_valid_value(const char *value)
+{
+	const char *p = value;
+	while ((p = strpbrk(p, "\r\n")) != NULL)
+	{
+		/* we really expect only one new line */
+		p += strspn(p, "\r\n");
+		/* we expect a space or tab for continuation */
+		if (*p != ' ' && *p != '\t')
+			return (0);
+	}
+	return (1);
+}
+
+int setHeader( char* key , char* value )
+{
+	if (strchr(key, '\r') != NULL || strchr(key, '\n') != NULL)
+	{
+		/* drop illegal headers */
+		printf( "%s: dropping illegal header key\n", __func__ );
+		return (-1);
+	}
+
+	if (!http_header_is_valid_value(value))
+	{
+		printf("%s: dropping illegal header value\n", __func__ );
+		return (-1);
+	}
+
+	servG->worker->header= sdscatprintf(  servG->worker->header , "%s:%s%s" , key , value , "\r\n" );
+	return AE_TRUE;
+}
+
 
 /**
  * process event types:

@@ -171,7 +171,7 @@ struct _aeServer
    int  (*send)(  int fd, char* data , int len );
    int  (*close)( int fd );
    int  (*setOption)( char* key , char* val );
-   int  (*setHeader)( char* val );
+   int  (*setHeader)( char* key , char* val );
    
    void (*onConnect)( aeServer* serv ,int fd );
    void (*onRecv)( aeServer *serv, aeConnection* c , char* buff , int len );
@@ -251,7 +251,7 @@ void runWorkerProcess( int pidx ,int pipefd );
 void createWorkerTask(  int connfd , char* buffer , int len , int eventType , char* from );
 aeEventLoop* getThreadEventLoop( int connfd );
 
-int setHeader( char* headerLine );
+int setHeader( char* key , char* val );
 int setOption( char* key , char* val );
 void timerAdd( int ms , void* cb , void* params  );
 //void testsds( char* str );

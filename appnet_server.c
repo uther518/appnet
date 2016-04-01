@@ -61,18 +61,21 @@ ZEND_METHOD( appnetServer , setOption )
 
 ZEND_METHOD( appnetServer , setHeader )
 {
+    size_t key_len;
     size_t val_len;
+    char*  key;
     char*  val;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",  &val , &val_len ) == FAILURE)
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &key, &key_len, &val , &val_len ) == FAILURE)
     {
         return;
     }
+
     aeServer* appserv = APPNET_G( appserv );
-    int ret = appserv->setHeader( val );
+    int ret = appserv->setHeader( key , val );
     if( ret == AE_TRUE )
     {
-		RETURN_TRUE;
+	RETURN_TRUE;
     }
     RETURN_FALSE;
 }

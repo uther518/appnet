@@ -132,12 +132,11 @@ function onRecv( $server , $fd , $buffer )
 	elseif(  $header['Protocol'] == "HTTP"  )
         {
 		$data  = $buffer;
-		$server->setHeader( "Connection:keep-alive" );
+		$server->setHeader( "Connection" , "keep-alive" );
 		$server->send( $fd , "xxxxxxxxxx".$data );	
 	}
 	else
 	{
-		$buffer = file_get_contents( "test/rfc.txt");
         	$server->send( $fd , $buffer );
 	}
 };
