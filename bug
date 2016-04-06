@@ -1,0 +1,5 @@
+
+aeserver.h中httpHeader hh改为了httpHeader* hh ，其它地方也对应改了下。
+出现的问题 http_request.c解析header头出错，httpHeaderParse方法,如果在前面httpRequestParse方法里
+ memset( header->fileds , 0 , sizeof( header->fileds  ));   的话，那么在aeserver.c中的readBodyFromPipe方法中，
+servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );将会出错。
