@@ -56,8 +56,8 @@ typedef struct _aeConnection
   char disable; 
   char* client_ip;
   int client_port;
-  handshake hs; //websocket握手数据
-  httpHeader hh; //http/websocket header
+//  handshake hs; //websocket握手数据
+//  httpHeader hh; //http/websocket header
   sds send_buffer; //send to client
   sds recv_buffer; //recv from client
   
@@ -78,8 +78,9 @@ struct _aeReactor
 	int max_event_num;
 	int running :1;
 	void *object;
-    void *ptr;  //reserve
+    	void *ptr;  //reserve
 	aeEventLoop *eventLoop;
+	
 };
 
 //主进程中的worker数组
@@ -113,12 +114,14 @@ typedef struct _aeWorker
 	sds header;			//header buffer
 }aeWorker;
 
+//reactor thread info..
 typedef struct _aeReactorThread
 {
     pthread_t thread_id;
     aeReactor reactor;
     reactorThreadParam* param;
-    //swLock lock;
+    handshake* hs; //websocket握手数据
+    httpHeader* hh; //http/websocket header
 } aeReactorThread;
 
 typedef enum

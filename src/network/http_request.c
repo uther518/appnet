@@ -382,9 +382,9 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
     if( strncmp( header->method , "POST" , 4 ) == 0 )
     {
         //判断包体是否完整
-        //包的总长-当前偏移量 < content_length , 半包
-        //包的总长-当前偏移量 > content_length ,粘包
-		if( header->content_length > 0 )
+        //包的总长-包头 < content_length,半包
+        //包的总长-包头 > content_length,粘包
+	if( header->content_length > 0 )
         {
             //半包
             if(  sdslen( buffer ) - header->buffer_pos < header->content_length )
@@ -395,35 +395,35 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
             else
             {
                 header->complete_length = header->buffer_pos + header->content_length;
-				//parsePostRequest(  header , data  , header->content_length );   
-				parsePostRequest(  header , buffer , header->complete_length );
+		//parsePostRequest(  header , data  , header->content_length );   
+		parsePostRequest(  header , buffer , header->complete_length );
                 return BREAK_RECV;
             }
         }
         else if( header->trunked == 1 )//trunk模式
         {
-            printf( "Http trunk body,Not Support ....\n" );
-			//parse_trunked_body( header , buffer );
-            return BREAK_RECV;
+            	printf( "Http trunk body,Not Support ....\n" );
+		//parse_trunked_body( header , buffer );
+            	return BREAK_RECV;
         }
-		else
-		{
-			printf( "Bad Header,Unkown Length body \n" );
-            return BREAK_RECV;
-		}
+	else
+	{
+		printf( "Bad Header,Unkown Length body \n" );
+            	return BREAK_RECV;
+	}
     }
     else if( strncmp( header->method , "GET" , 3 ) == 0  )
     {
         char* uri;
         uri = strstr( header->uri , "?" );
-		int ret;
-		memset( header->mime_type , 0 , sizeof( header->mime_type ) );
-		ret = get_mime_type( header->uri , header->mime_type );
-		if( ret == 1 )
-		{
-			http_response_static( header );
-			return BREAK_RECV;
-		}
+	int ret;
+	memset( header->mime_type , 0 , sizeof( header->mime_type ) );
+	ret = get_mime_type( header->uri , header->mime_type );
+	if( ret == 1 )
+	{
+		http_response_static( header );
+		return BREAK_RECV;
+	}
 		
         if( uri != NULL  )
         {
@@ -440,14 +440,18 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
 int httpRequestParse(  int connfd , sds buffer , int len  )
 {
     int ret = 0;
-    servG->connlist[connfd].hh.connfd = connfd;
-    httpHeader* header = &servG->connlist[connfd].hh;
+    int thid =  connfd%servG->reactorNum;
+    httpHeader* header = servG->reactorThreads[thid].hh;
+    memset( header , 0 , sizeof( header ));
+    header->connfd = connfd;
+    printf( "httpHeaderParse start buffer=[%s] \n" , buffer );
+
     ret = httpHeaderParse( header , buffer , sdslen( buffer ) );
     if( ret < AE_OK  )
     {
         if( header->protocol == WEBSOCKET )
         {
-            servG->connlist[connfd].hs.frameType = WS_INCOMPLETE_FRAME;
+            servG->reactorThreads[thid].hs->frameType = WS_INCOMPLETE_FRAME;
         }
         return CONTINUE_RECV;
     }
@@ -462,14 +466,14 @@ int httpRequestParse(  int connfd , sds buffer , int len  )
     }
     //if body not complete need return to contuine recv;
     //need move to response case
-    if( servG->connlist[connfd].hh.protocol == HTTP )
+    if( header->protocol == HTTP )
     {
-        ret = httpBodyParse( &servG->connlist[connfd].hh  , buffer , sdslen( buffer ) );
+        ret = httpBodyParse( header  , buffer , sdslen( buffer ) );
     }
     else
     {
-        //websocket
-        ret = wesocketRequestRarse( connfd, buffer , len , &servG->connlist[connfd].hh , &servG->connlist[connfd].hs );
+        //websocket 
+	 ret = wesocketRequestRarse( connfd, buffer , len , header , servG->reactorThreads[thid].hs  );
     }
     return ret;
 }
@@ -668,15 +672,15 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 {
 	char* buff = buffer;
 	int vlen;
-    char *crlf = 0 , *cl = 0;
+    	char *crlf = 0 , *cl = 0;
 	char key[255] = {0};
 	char* filename;
 	char filepath[255] = {0};
 
-    int sep_len = strlen( "\r\n--") + strlen( header->boundary );
+    	int sep_len = strlen( "\r\n--") + strlen( header->boundary );
 	char sep[sep_len+1];
 	snprintf( sep , sizeof( sep ) , "\r\n--%s" , header->boundary  );
-    int pos = sep_len;	
+    	int pos = sep_len;	
 
 	//设置栈大小ulimit -s
 	sds data = sdsnewlen(  0 , TMP_BUFFER_LENGTH );

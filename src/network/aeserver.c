@@ -109,6 +109,9 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
     data.len = len;
     data.type = eventType;
     data.connfd = connfd;
+
+printf( "createWorkerTask from %s, connfd=%d \n" , from , data.connfd );
+
     datalen = PIPE_DATA_HEADER_LENG + data.len;
     aeEventLoop* reactor_el = getThreadEventLoop( connfd );
     int worker_id  = connfd % servG->workerNum;
@@ -136,18 +139,19 @@ int parseRequestMessage( int connfd , sds buffer , int len )
     {
         if( isHttpProtocol( buffer  , 8 ) == AE_TRUE 
             || servG->connlist[connfd].protoType == WEBSOCKET                 
-			|| servG->connlist[connfd].protoType == HTTP 
+	    || servG->connlist[connfd].protoType == HTTP 
           )
         {
             if( servG->connlist[connfd].protoType != WEBSOCKET  )
             {
                 servG->connlist[connfd].protoType = HTTP;
-                memset( &servG->connlist[connfd].hh , 0 , sizeof( httpHeader ));
+                //memset( &servG->connlist[connfd].hh , 0 , sizeof( httpHeader ));
                 ret = httpRequestParse(  connfd , buffer , sdslen( buffer ) );
             }
             else
             {
-                ret = wesocketRequestRarse(  connfd ,buffer , len ,&servG->connlist[connfd].hh ,&servG->connlist[connfd].hs );
+		int thid =  connfd%servG->reactorNum;
+                ret = wesocketRequestRarse(  connfd ,buffer , len , servG->reactorThreads[thid].hh  , servG->reactorThreads[thid].hs );
             }
             return ret;
         }
@@ -171,6 +175,7 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
     ssize_t nread;
     unsigned int readlen, rcvbuflen ,datalen;
     int worker_id = fd % serv->workerNum;
+    int thid = fd % serv->reactorNum;
     char buffer[TMP_BUFFER_LENGTH];
     while(1)
     {
@@ -193,7 +198,7 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
             int ret = parseRequestMessage( fd , servG->connlist[fd].recv_buffer  , sdslen( servG->connlist[fd].recv_buffer ) );
             if( ret == BREAK_RECV )
             {
-                int complete_length = servG->connlist[fd].hh.complete_length;
+                int complete_length = servG->reactorThreads[thid].hh->complete_length;
                 if( complete_length > 0 )
                 {
                     sdsrange( servG->connlist[fd].recv_buffer ,  complete_length  , -1);
@@ -260,7 +265,6 @@ void acceptCommonHandler( aeServer* serv ,int fd,char* client_ip,int client_port
     serv->connlist[fd].send_buffer = sdsempty();
     serv->connlist[fd].recv_buffer = sdsempty();
     serv->connlist[fd].protoType = 0;
-    bzero( & serv->connlist[fd].hs , sizeof( handshake  ) );
     int reactor_id = fd % serv->reactorNum;
     int worker_id  = fd % serv->workerNum;
     if (fd != -1)
@@ -565,6 +569,9 @@ void *reactorThreadRun(void *arg)
     int thid = param->thid;
     aeEventLoop* el = aeCreateEventLoop( MAX_EVENT );
     serv->reactorThreads[thid].reactor.eventLoop = el;
+    serv->reactorThreads[thid].hh = (httpHeader*)malloc( sizeof( httpHeader ));   
+    serv->reactorThreads[thid].hs = (handshake*)malloc( sizeof( handshake ));
+
     int ret,i;
     for(  i = 0; i < serv->workerNum; i++ )
     {
@@ -578,6 +585,9 @@ void *reactorThreadRun(void *arg)
     aeSetBeforeSleepProc( el ,initThreadOnLoopStart );
     aeMain( el );
     aeDeleteEventLoop( el );
+
+    free( serv->reactorThreads[thid].hh );
+    free( serv->reactorThreads[thid].hs );
     el = NULL;
 }
 
@@ -615,7 +625,7 @@ void createWorkerProcess( aeServer* serv )
         {
             //parent
             close( serv->workers[i].pipefd[1] );
-			anetSetSendBuffer( neterr , serv->workers[i].pipefd[0] , SOCKET_SND_BUF_SIZE );
+	    anetSetSendBuffer( neterr , serv->workers[i].pipefd[0] , SOCKET_SND_BUF_SIZE );
             anetNonBlock( neterr , serv->workers[i].pipefd[0] );
             continue;
         }
