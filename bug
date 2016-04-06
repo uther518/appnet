@@ -1,4 +1,17 @@
 
+测试方法:
+1,服务器启动:php example/server.php
+2,客户端连接,浏览器访问:http://192.168.68.131:3011/do.php?fff=ggggg,将其中ip相应改下
+
+调试:
+gdb php -c core
+
+修改文件后，重新编译和运行
+make 
+make install
+php example/server.php
+
+问题:
 aeserver.h中httpHeader hh改为了httpHeader* hh ，其它地方也对应改了下。
 出现的问题 http_request.c解析header头出错，httpHeaderParse方法,如果在前面httpRequestParse方法里
  memset( header->fileds , 0 , sizeof( header->fileds  ));   的话，那么在aeserver.c中的readBodyFromPipe方法中，
