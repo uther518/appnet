@@ -45,6 +45,8 @@ void freeClient( aeConnection* c  )
         sdsfree( c->send_buffer );
         sdsfree( c->recv_buffer );
         servG->connectNum -= 1;
+//	zfree( c->hh );
+//	zfree( c->hs );
         close(c->fd);
     }
     //zfree(c);
@@ -84,6 +86,8 @@ void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask )
         return;
     }
     nwritten = write( fd, servG->connlist[fd].send_buffer, sdslen(servG->connlist[fd].send_buffer));
+    printf( "onClientWritable send len=%d \n" , nwritten );
+
     if (nwritten <= 0)
     {
         printf( "I/O error writing to client: %s", strerror(errno));
@@ -121,7 +125,17 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
         servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , buffer , len );
     }
     pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
+
 }
+
+void test( int connfd )
+{
+    printf( "------xxxxxxxxxxxxxxxxxxxxxx 1111----------\n");
+     //           servG->connlist[connfd].send_buffer = sdscatlen( servG->connlist[connfd].send_buffer , "xxxxxxxxxxxxxxxxx" , 10 );
+    printf( "------xxxxxxxxxxxxxxxxxxxxxx-2222--------\n");
+
+}
+
 
 int parseRequestMessage( int connfd , sds buffer , int len )
 {
@@ -136,14 +150,17 @@ int parseRequestMessage( int connfd , sds buffer , int len )
     {
         if( isHttpProtocol( buffer  , 8 ) == AE_TRUE 
             || servG->connlist[connfd].protoType == WEBSOCKET                 
-			|| servG->connlist[connfd].protoType == HTTP 
+	    || servG->connlist[connfd].protoType == HTTP 
           )
         {
             if( servG->connlist[connfd].protoType != WEBSOCKET  )
             {
                 servG->connlist[connfd].protoType = HTTP;
-                memset( &servG->connlist[connfd].hh , 0 , sizeof( httpHeader ));
+       //         memset( servG->connlist[connfd].hh , 0 , sizeof( httpHeader ));
+		printf( "parseRequestMessage httpRequestParse \n");
+
                 ret = httpRequestParse(  connfd , buffer , sdslen( buffer ) );
+
             }
             else
             {
@@ -188,12 +205,12 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
         }
         else if( nread > 0 )
         {
-			//printf( "Recv From Client:[%d][%d][%s] \n" ,fd , nread, buffer );
-            servG->connlist[fd].recv_buffer = sdscatlen( servG->connlist[fd].recv_buffer , &buffer , nread );
+	      servG->connlist[fd].recv_buffer = sdscatlen( servG->connlist[fd].recv_buffer , &buffer , nread );
             int ret = parseRequestMessage( fd , servG->connlist[fd].recv_buffer  , sdslen( servG->connlist[fd].recv_buffer ) );
+
             if( ret == BREAK_RECV )
             {
-                int complete_length = servG->connlist[fd].hh.complete_length;
+                int complete_length = servG->connlist[fd].hh->complete_length;
                 if( complete_length > 0 )
                 {
                     sdsrange( servG->connlist[fd].recv_buffer ,  complete_length  , -1);
@@ -260,7 +277,11 @@ void acceptCommonHandler( aeServer* serv ,int fd,char* client_ip,int client_port
     serv->connlist[fd].send_buffer = sdsempty();
     serv->connlist[fd].recv_buffer = sdsempty();
     serv->connlist[fd].protoType = 0;
-    bzero( & serv->connlist[fd].hs , sizeof( handshake  ) );
+
+    serv->connlist[fd].hh = zmalloc( sizeof( serv->connlist[fd].hh) );
+    serv->connlist[fd].hs = zmalloc( sizeof( serv->connlist[fd].hs) );
+
+    //bzero( & serv->connlist[fd].hs , sizeof( handshake  ) );
     int reactor_id = fd % serv->reactorNum;
     int worker_id  = fd % serv->workerNum;
     if (fd != -1)
@@ -426,8 +447,8 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
     {
         return;
     }
-	
-	char read_buff[TMP_BUFFER_LENGTH];
+
+        char read_buff[TMP_BUFFER_LENGTH];
 	while( 1 )
 	{
 		nread  = read( fd , read_buff  , TMP_BUFFER_LENGTH );
@@ -439,9 +460,11 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 			{
 				aeCreateFileEvent( el, data.connfd , AE_WRITABLE, onClientWritable, NULL );      
 			}
+			
+  			printf( "RecvFromPipe connfd=%d,read_buff=%s,nread=%d \n" , data.connfd ,  read_buff  , nread  );
 			servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );
 	 
-			//printf( "RecvFromPipe Need:[%d][%d]\n" , needlen , bodylen );
+			printf( "RecvFromPipe Need:[%d][%d]\n" , nread , bodylen );
 			if( bodylen == data.len )
 			{
 				//printf( "RecvFromPipe Break:[%d]=[%d]\n" , bodylen , data.len  );
@@ -615,7 +638,7 @@ void createWorkerProcess( aeServer* serv )
         {
             //parent
             close( serv->workers[i].pipefd[1] );
-			anetSetSendBuffer( neterr , serv->workers[i].pipefd[0] , SOCKET_SND_BUF_SIZE );
+	    anetSetSendBuffer( neterr , serv->workers[i].pipefd[0] , SOCKET_SND_BUF_SIZE );
             anetNonBlock( neterr , serv->workers[i].pipefd[0] );
             continue;
         }
@@ -624,7 +647,7 @@ void createWorkerProcess( aeServer* serv )
             //child
             close( serv->workers[i].pipefd[0] );
             anetNonBlock( neterr, serv->workers[i].pipefd[1] );
-			anetSetSendBuffer( neterr , serv->workers[i].pipefd[1] , SOCKET_SND_BUF_SIZE );
+	    anetSetSendBuffer( neterr , serv->workers[i].pipefd[1] , SOCKET_SND_BUF_SIZE );
             runWorkerProcess( i , serv->workers[i].pipefd[1]  );
             exit( 0 );
         }
@@ -700,7 +723,7 @@ void destroyServer( aeServer* serv )
     freeReactorThread( serv );
     
     freeConnectBuffers( serv );
-   
+    //zfree( serv->connlist );
     shm_free( serv->connlist,1 );
     if( serv->reactorThreads )
     {
@@ -824,7 +847,9 @@ int setOption( char* key , char* val )
 
 void initServer(  aeServer* serv )
 {
+    //serv->connlist = (aeConnection*)zmalloc( serv->maxConnect * sizeof( aeConnection ));
     serv->connlist = shm_calloc( serv->maxConnect , sizeof( aeConnection ));
+
     serv->reactorThreads = zmalloc( serv->reactorNum * sizeof( aeReactorThread  ));
     serv->workers = zmalloc( serv->workerNum * sizeof(aeWorkerProcess));
     serv->mainReactor = zmalloc( sizeof( aeReactor ));

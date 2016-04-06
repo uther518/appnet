@@ -86,6 +86,7 @@ if test "$PHP_APPNET" != "no"; then
 	src/network/ae.c \
 	src/network/zmalloc.c \
 	src/network/sds.c \
+	src/network/adlist.c \
 	src/network/dict.c \
 	src/network/http_request.c \
 	src/network/sha1.c \

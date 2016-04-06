@@ -173,9 +173,9 @@ function onTimerCallback( $server , $timer_id ,  $params )
 dl( "appnet.so");
 $server = new appnetServer( "0.0.0.0" , 3011 );
 
-$server->setOption( APPNET_OPT_WORKER_NUM , 5 );
-$server->setOption( APPNET_OPT_REACTOR_NUM, 3 );
-$server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
+$server->setOption( APPNET_OPT_WORKER_NUM , 1 );
+$server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
+$server->setOption( APPNET_OPT_MAX_CONNECTION , 100 );
 $server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
 
 $server->setOption( APPNET_HTTP_DOCS_ROOT , $_SERVER['PWD']."/example/www/" );

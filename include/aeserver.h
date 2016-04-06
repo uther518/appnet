@@ -56,8 +56,8 @@ typedef struct _aeConnection
   char disable; 
   char* client_ip;
   int client_port;
-  handshake hs; //websocket握手数据
-  httpHeader hh; //http/websocket header
+  handshake* hs; //websocket握手数据
+  httpHeader* hh; //http/websocket header
   sds send_buffer; //send to client
   sds recv_buffer; //recv from client
   
@@ -255,6 +255,7 @@ int setHeader( char* key , char* val );
 int setOption( char* key , char* val );
 void timerAdd( int ms , void* cb , void* params  );
 //void testsds( char* str );
+void test( int connfd );
 
 aeServer*  servG;
 #endif

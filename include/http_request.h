@@ -89,7 +89,7 @@ typedef struct
 	int  minor;
 	headerFiled fileds[30]; 
 	headerParams params;   //分析的结果结构体
-	sds buffer;
+//	sds buffer;
 }httpHeader;
 
 

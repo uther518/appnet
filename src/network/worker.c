@@ -126,6 +126,7 @@ int sendMessageToReactor( int connfd , char* buff , int len )
     {
         return -1;
     }
+    printf( "sendMessageToReactor fd=%d \n" , connfd );
     aePipeData data;
     data.type = PIPE_EVENT_MESSAGE;
     data.len = len;
@@ -145,6 +146,7 @@ int sendMessageToReactor( int connfd , char* buff , int len )
 			int retlen;
 			//buffer...
 			retlen = createResponse(  connfd , buff , len , prototype , servG->worker->response  );
+			printf( "CreateResponse Done \n");
 			if( retlen < 0 )
 			{
 			   printf( "CreateResponse Error \n");

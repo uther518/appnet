@@ -228,6 +228,7 @@ static int readingHeaders( httpHeader* header , const char* buffer , int len )
         ret = readingSingleLine( header , buffer + header->buffer_pos , offset );
         if( ret < AE_OK )
         {
+	    printf( "readingSingleLine Error \n");
             return AE_ERR;
         }
         //如果解析好了，指针往后移
@@ -266,7 +267,7 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
         header->protocol = WEBSOCKET;
     }
 	
-	//multipart/form-data
+    //multipart/form-data
     value_len = len - ( ret - org ) - 1;//:
     int eolen=0;
     eolen = getLeftEolLength( ret + 1 );
@@ -276,7 +277,7 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
         header->content_length = atoi( header->fileds[header->filed_nums].value );
     }
 
-	if( memcmp( org  , "Connection" ,  ret-org  ) == 0 )
+    if( memcmp( org  , "Connection" ,  ret-org  ) == 0 )
     {
 		header->keep_alive = 0;
 		if( strstr( header->fileds[header->filed_nums].value , "keep-alive" ))
@@ -285,7 +286,7 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
 		}
     }
 	
-	if( memcmp( org  , "Transfer-Encoding" ,  ret-org  ) == 0 )
+    if( memcmp( org  , "Transfer-Encoding" ,  ret-org  ) == 0 )
     {
 		header->trunked = 0;
 		if( strstr( header->fileds[header->filed_nums].value , "chunked" ))
@@ -328,14 +329,17 @@ static int httpHeaderParse( httpHeader* header ,  sds buffer , int len )
     header->buffer_pos = 0;
     header->filed_nums = 0;
     int ret = 0;
+
     ret = readingHeaderFirstLine( header , buffer , len );
     if( ret < AE_OK )
     {
+	printf( "readingHeaderFirstLine error \n");
         return AE_ERR;
     }
     ret = readingHeaders( header , buffer , len );
     if( ret < AE_OK )
     {
+	printf( "readingHeaders Error \n");
         return AE_ERR;
     }
     //getHeaderParams( header , " " );
@@ -414,8 +418,8 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
     }
     else if( strncmp( header->method , "GET" , 3 ) == 0  )
     {
-        char* uri;
-        uri = strstr( header->uri , "?" );
+        char* query_string;
+        query_string = strstr( header->uri , "?" );
 		int ret;
 		memset( header->mime_type , 0 , sizeof( header->mime_type ) );
 		ret = get_mime_type( header->uri , header->mime_type );
@@ -425,9 +429,9 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
 			return BREAK_RECV;
 		}
 		
-        if( uri != NULL  )
+        if( query_string != NULL  )
         {
-            createWorkerTask(  header->connfd , uri+1 , strlen( uri) - 1 , PIPE_EVENT_MESSAGE, "parseGetRequest" );
+	    createWorkerTask(  header->connfd , query_string+1 , strlen( query_string ) - 1 , PIPE_EVENT_MESSAGE, "parseGetRequest" );
         }
         else
         {
@@ -440,14 +444,19 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
 int httpRequestParse(  int connfd , sds buffer , int len  )
 {
     int ret = 0;
-    servG->connlist[connfd].hh.connfd = connfd;
-    httpHeader* header = &servG->connlist[connfd].hh;
+    httpHeader* header = servG->connlist[connfd].hh;
+   // test( connfd );
+  //printf( "sizeoffffffff=%d" , sizeof( header->fileds  ) ); 
+  //  memset( header->fileds , 0 , sizeof( header->fileds  ));   
+
+    header->connfd = connfd; 
     ret = httpHeaderParse( header , buffer , sdslen( buffer ) );
     if( ret < AE_OK  )
     {
+	printf( "httpHeaderParse error \n");
         if( header->protocol == WEBSOCKET )
         {
-            servG->connlist[connfd].hs.frameType = WS_INCOMPLETE_FRAME;
+            servG->connlist[connfd].hs->frameType = WS_INCOMPLETE_FRAME;
         }
         return CONTINUE_RECV;
     }
@@ -462,14 +471,16 @@ int httpRequestParse(  int connfd , sds buffer , int len  )
     }
     //if body not complete need return to contuine recv;
     //need move to response case
-    if( servG->connlist[connfd].hh.protocol == HTTP )
+    if( servG->connlist[connfd].hh->protocol == HTTP )
     {
-        ret = httpBodyParse( &servG->connlist[connfd].hh  , buffer , sdslen( buffer ) );
+   	printf( "buffer len=%d \n" , sdslen( servG->workers[0].send_buffer ) ); 
+        ret = httpBodyParse( servG->connlist[connfd].hh  , buffer , sdslen( buffer ) );
     }
     else
     {
+	printf( "wesocketRequestRarse \n");
         //websocket
-        ret = wesocketRequestRarse( connfd, buffer , len , &servG->connlist[connfd].hh , &servG->connlist[connfd].hs );
+        ret = wesocketRequestRarse( connfd, buffer , len , servG->connlist[connfd].hh , servG->connlist[connfd].hs );
     }
     return ret;
 }
@@ -668,15 +679,15 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 {
 	char* buff = buffer;
 	int vlen;
-    char *crlf = 0 , *cl = 0;
+    	char *crlf = 0 , *cl = 0;
 	char key[255] = {0};
 	char* filename;
 	char filepath[255] = {0};
 
-    int sep_len = strlen( "\r\n--") + strlen( header->boundary );
+    	int sep_len = strlen( "\r\n--") + strlen( header->boundary );
 	char sep[sep_len+1];
 	snprintf( sep , sizeof( sep ) , "\r\n--%s" , header->boundary  );
-    int pos = sep_len;	
+    	int pos = sep_len;	
 
 	//设置栈大小ulimit -s
 	sds data = sdsnewlen(  0 , TMP_BUFFER_LENGTH );
@@ -737,7 +748,7 @@ void parse_multipart_data( httpHeader* header , sds buffer , int len )
 	{
 		printf( "multipart_data[%d][%d],content-length=%d \n" , 
 		header->buffer_pos, len , header->content_length  );
-		//	char boundary[64];
+		//char boundary[64];
 		parse_multipart_form( header , buffer + header->buffer_pos , header->content_length );	
 	}
 	else
