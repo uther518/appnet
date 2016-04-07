@@ -86,6 +86,7 @@ int appendSendBuffer( const char *buff , size_t len)
     return AE_OK;
 }
 
+#define BUF_LEN 0xFFFF
 int createResponse( int connfd , char* buff , int len , char prototype , sds response )
 {
     if( prototype == HTTP )
@@ -95,7 +96,7 @@ int createResponse( int connfd , char* buff , int len , char prototype , sds res
 		clen = sprintf( content_length , "Content-Length: %d\r\n" , len );	
 
 		response = sdscat( response , "HTTP/1.1 200 OK \r\n" );
-		response = sdscat( response , "Server: appnet/1.0.0\r\n" );
+		response = sdscat( response , "Server: appnet/1.1.0\r\n" );
 		response = sdscatlen( response , content_length , clen );
 		response = sdscat( response , "Content-Type: text/html\r\n" );
 		//response = sdscat( response , "Content-Type: image/png\r\n");
@@ -113,9 +114,9 @@ int createResponse( int connfd , char* buff , int len , char prototype , sds res
     }
     else
     {
-        int outlen = 0;
-        char res[len+256];
-        wsMakeFrame( buff ,  len , &res , &outlen , WS_TEXT_FRAME );
+        size_t outlen = BUF_LEN;
+	uint8_t res[BUF_LEN];
+        wsMakeFrame( buff ,  len , res , &outlen , WS_TEXT_FRAME );
         sdscatlen( servG->worker->response , res , outlen );
         return outlen;
     }
@@ -135,8 +136,9 @@ int sendMessageToReactor( int connfd , char* buff , int len )
     int writeable = 0;
     if (sdslen( servG->worker->send_buffer ) == 0  )
     {
-		writeable = 1;
+	writeable = 1;
     }
+
     //append data
     if( len >= 0 )
     {
@@ -170,7 +172,8 @@ int sendMessageToReactor( int connfd , char* buff , int len )
 			appendSendBuffer(  buff , len );
 		}
 
-		if( data.len+PIPE_DATA_HEADER_LENG  == sdslen( servG->worker->send_buffer ) )
+		
+		if( writeable > 0 ||  data.len+PIPE_DATA_HEADER_LENG  == sdslen( servG->worker->send_buffer ) )
 		{
 			int ret;
 			ret = aeCreateFileEvent( servG->worker->el,servG->worker->pipefd , AE_WRITABLE ,onWorkerPipeWritable,NULL );
@@ -179,6 +182,7 @@ int sendMessageToReactor( int connfd , char* buff , int len )
 			   printf( "Error aeCreateFileEvent..\n");
 			}
 		}
+		
     }
     return len;
 }
@@ -223,7 +227,6 @@ void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
 		printf( "Worker httpHeaderParse Error \n");
 	}	
 	//getHeaderParams( header , " " );	
-
 	callUserRecvFunc( data.connfd , data.data+data.header_len , data.len - data.header_len );
     }
     else
@@ -236,7 +239,6 @@ void onWorkerPipeWritable( aeEventLoop *el, int fd, void *privdata, int mask )
 {
     ssize_t nwritten;
     nwritten = write( fd, servG->worker->send_buffer, sdslen(servG->worker->send_buffer));
-    //printf( "onWorkerPipeWritable[%d] \n" , nwritten );
     if (nwritten <= 0)
     {
         printf( "Worker I/O error writing to worker: %s \n", strerror(errno));

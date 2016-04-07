@@ -88,11 +88,8 @@ class Websocket
 
 	public static function onMessage( $serv , $fd , $msg )
 	{
-
-		echo "onMessage php.................\n";
 		$resMsg = $msg;
 		$resMsg['cmd'] = 'fromMsg';
-
 		//表示群发
 		if( $msg['channal'] == 0 )
 		{
@@ -123,12 +120,11 @@ function onConnect( $server , $fd )
 function onRecv( $server , $fd , $buffer )
 {
 	$header = $server->getHeader();
-	print_r( $header );
 	echo "Client Recv:[{$header['Protocol']}][{$header['Uri']}][{$buffer}][{$fd}] \n";	
 
 	if( $header['Protocol'] == "WEBSOCKET" )
 	{
-	   Websocket::onReceive( $server , $fd,  $buffer );
+	  	 Websocket::onReceive( $server , $fd,  $buffer );
 	}
 	elseif(  $header['Protocol'] == "HTTP"  )
         {
@@ -174,8 +170,8 @@ function onTimerCallback( $server , $timer_id ,  $params )
 dl( "appnet.so");
 $server = new appnetServer( "0.0.0.0" , 3011 );
 
-$server->setOption( APPNET_OPT_WORKER_NUM , 3 );
-$server->setOption( APPNET_OPT_REACTOR_NUM, 2 );
+$server->setOption( APPNET_OPT_WORKER_NUM , 1 );
+$server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
 $server->setOption( APPNET_OPT_MAX_CONNECTION , 100 );
 $server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
 

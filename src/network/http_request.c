@@ -242,6 +242,7 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
     char* ret;
     int value_len = 0;
     char value[1024] = {0};
+    int upgrade = 0;
 	
     ret = findChar( ':' , org , len );
     if( ret == NULL )
@@ -270,7 +271,7 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
     //"Upgrade"
     if( memcmp( org  , "Upgrade" ,  ret-org  ) == 0 )
     {
-        header->protocol = WEBSOCKET;
+	upgrade = 1;
     }
 	
 	//multipart/form-data
@@ -283,13 +284,18 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
 	header->fileds[header->filed_nums].val.len = value_len-eolen;
 	
 	memcpy( value  , ret+eolen+1  ,  value_len-eolen  );
+    	if( upgrade == 1 &&  memcmp( value , "websocket" , value_len-eolen  ) == 0  )
+    	{
+		header->protocol = WEBSOCKET;
+    	}		
+
 	
     if(  header->content_length == -2 )
     {
         header->content_length = atoi( value );
     }
 
-	if( memcmp( org  , "Connection" ,  ret-org  ) == 0 )
+    if( memcmp( org  , "Connection" ,  ret-org  ) == 0 )
     {
 		header->keep_alive = 0;
 		if( strstr( value , "keep-alive" ))
@@ -435,6 +441,7 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
         char* uri;
         uri = strstr( header->uri , "?" );
 		int ret;
+		header->complete_length = header->buffer_pos;
 		memset( header->mime_type , 0 , sizeof( header->mime_type ) );
 		ret = get_mime_type( header->uri , header->mime_type );
 		if( ret == 1 )
@@ -459,15 +466,18 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
 
 int httpRequestParse(  int connfd , sds buffer , int len  )
 {
+    //printf( "httpRequestParse.....buffer=[%d] \n" , len  );
     int ret = 0;
     int thid =  connfd%servG->reactorNum;
     httpHeader* header = servG->reactorThreads[thid].hh;
     memset( header , 0 , sizeof( header ));
     header->connfd = connfd;
+    header->protocol = HTTP;
 
     ret = httpHeaderParse( header , buffer , sdslen( buffer ) );
     if( ret < AE_OK  )
     {
+    	printf( "httpHeaderParse Error \n");
         if( header->protocol == WEBSOCKET )
         {
             servG->reactorThreads[thid].hs->frameType = WS_INCOMPLETE_FRAME;
@@ -485,14 +495,16 @@ int httpRequestParse(  int connfd , sds buffer , int len  )
     }
     //if body not complete need return to contuine recv;
     //need move to response case
-    if( header->protocol == HTTP )
+    if(  servG->connlist[connfd].protoType == HTTP )
     {
         ret = httpBodyParse( header  , buffer , sdslen( buffer ) );
     }
     else
     {
-        //websocket 
-	 ret = wesocketRequestRarse( connfd, buffer , len , header , servG->reactorThreads[thid].hs  );
+        //websocket
+	memset( servG->reactorThreads[thid].hs , 0 , sizeof( servG->reactorThreads[thid].hs ) ); 
+	servG->reactorThreads[thid].hs->state = WS_STATE_OPENING;
+	ret = wesocketRequestRarse( connfd, buffer , len , header , servG->reactorThreads[thid].hs  );
     }
     return ret;
 }
@@ -559,7 +571,8 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
         createWorkerTask(  connfd , recv_data  , recv_len  , PIPE_EVENT_MESSAGE, "parseWebsocket" );
         //sdsfree( recv_data );
     }
-    
+   
+ 
     if( hs->frameType == WS_ERROR_FRAME ||  hs->frameType == WS_INCOMPLETE_FRAME )
     {
         printf( "InitHandshake Error Frame..\n");

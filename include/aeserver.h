@@ -78,7 +78,7 @@ struct _aeReactor
 	int max_event_num;
 	int running :1;
 	void *object;
-    void *ptr;  //reserve
+    	void *ptr;  //reserve
 	aeEventLoop *eventLoop;
 	
 };
@@ -257,8 +257,6 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
 //http,websocket
 void createHttpTask(  int connfd , char* header ,  int header_len , char* body,  int body_len , 
 						int eventType , char* from );
-
-
 aeEventLoop* getThreadEventLoop( int connfd );
 
 int setHeader( char* key , char* val );

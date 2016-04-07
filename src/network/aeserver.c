@@ -111,8 +111,6 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
     data.type = eventType;
     data.connfd = connfd;
 
-	printf( "createWorkerTask from %s, connfd=%d \n" , from , data.connfd );
-
     datalen = PIPE_DATA_HEADER_LENG + data.len;
     aeEventLoop* reactor_el = getThreadEventLoop( connfd );
     int worker_id  = connfd % servG->workerNum;
@@ -139,7 +137,7 @@ void createHttpTask(  int connfd , char* header ,  int header_len ,
     data.type = eventType;
     data.connfd = connfd;
 
-	printf( "createHttpTask from %s, connfd=%d \n" , from , data.connfd );
+    //printf( "createHttpTask from %s, connfd=%d \n" , from , data.connfd );
 
     datalen = PIPE_DATA_HEADER_LENG + data.len;
     aeEventLoop* reactor_el = getThreadEventLoop( connfd );
@@ -226,7 +224,7 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
         }
         else if( nread > 0 )
         {
-			//printf( "Recv From Client:[%d][%d][%s] \n" ,fd , nread, buffer );
+	    //printf( "Recv From Client:[%d][%d][%s] \n" ,fd , nread, buffer );
             servG->connlist[fd].recv_buffer = sdscatlen( servG->connlist[fd].recv_buffer , &buffer , nread );
             int ret = parseRequestMessage( fd , servG->connlist[fd].recv_buffer  , sdslen( servG->connlist[fd].recv_buffer ) );
             if( ret == BREAK_RECV )
@@ -234,7 +232,8 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
                 int complete_length = servG->reactorThreads[thid].hh->complete_length;
                 if( complete_length > 0 )
                 {
-                    sdsrange( servG->connlist[fd].recv_buffer ,  complete_length  , -1);
+		 	sdsrange( servG->connlist[fd].recv_buffer ,  complete_length  , -1);
+			//printf( "clear complete_length ========= %d,after len=%d \n" , complete_length , sdslen( servG->connlist[fd].recv_buffer) );
                 }
                 else
                 {
@@ -463,11 +462,10 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
     {
         return;
     }
-	
 	char read_buff[TMP_BUFFER_LENGTH];
 	while( 1 )
 	{
-		nread  = read( fd , read_buff  , TMP_BUFFER_LENGTH );
+		nread  = read( fd , read_buff  , data.len );
 		if( nread > 0 )
 		{
 			bodylen += nread;
@@ -476,6 +474,7 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 			{
 				aeCreateFileEvent( el, data.connfd , AE_WRITABLE, onClientWritable, NULL );      
 			}
+			//printf( "readBodyFromPipe fd=%d,header.len=%d,nread=%d \n" , data.connfd , data.len , nread );
 			servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );
 	 
 			//printf( "RecvFromPipe Need:[%d][%d]\n" , needlen , bodylen );
@@ -507,6 +506,7 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
    
     while(  ( readlen = read( fd, &data , PIPE_DATA_HEADER_LENG ) ) > 0 )
     {
+	//printf( "onMasterPipeReadable len=%d,fd=%d \n" , readlen , data.connfd );
         if( readlen == 0 )
         {
             close( fd );
