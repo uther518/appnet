@@ -192,7 +192,7 @@ struct _reactorThreadParam
 };
 
 #define PIPE_DATA_LENG 90
-#define PIPE_DATA_HEADER_LENG 1+2*sizeof(int)
+#define PIPE_DATA_HEADER_LENG 1+3*sizeof(int)
 
 #define  CONTINUE_RECV 1
 #define  BREAK_RECV  2
@@ -202,8 +202,10 @@ struct _reactorThreadParam
 typedef struct _aePipeData
 {
 	char type;
+	int header_len;
 	int len;
 	int connfd;
+	sds data;
 }aePipeData;
 
 void initOnLoopStart(struct aeEventLoop *el);

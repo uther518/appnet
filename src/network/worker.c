@@ -206,6 +206,9 @@ void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
             bodylen += readlen;
         }
     }
+
+    //printf( "header_len=%d,len=%d \n" , data.header_len , data.len );
+
     callUserRecvFunc( data.connfd , data.data , bodylen );
 }
 
@@ -277,7 +280,7 @@ int sendCloseEventToReactor( int connfd  )
     data.connfd = connfd;
     data.len = 0;
 	
-	if (sdslen( servG->worker->send_buffer ) == 0  )
+    if (sdslen( servG->worker->send_buffer ) == 0  )
     {
         aeCreateFileEvent( servG->worker->el,
                            servG->worker->pipefd , AE_WRITABLE,

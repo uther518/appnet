@@ -133,7 +133,7 @@ function onRecv( $server , $fd , $buffer )
         {
 		$data  = $buffer;
 		$server->setHeader( "Connection" , "keep-alive" );
-		$server->send( $fd , "xxxxxxxxxx".$data );	
+		$server->send( $fd , $data );	
 	}
 	else
 	{
@@ -175,7 +175,7 @@ $server = new appnetServer( "0.0.0.0" , 3011 );
 
 $server->setOption( APPNET_OPT_WORKER_NUM , 3 );
 $server->setOption( APPNET_OPT_REACTOR_NUM, 2 );
-$server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
+$server->setOption( APPNET_OPT_MAX_CONNECTION , 100 );
 $server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
 
 $server->setOption( APPNET_HTTP_DOCS_ROOT , $_SERVER['PWD']."/example/www/" );

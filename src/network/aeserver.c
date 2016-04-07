@@ -134,6 +134,7 @@ void createHttpTask(  int connfd , char* header ,  int header_len ,
 {
     aePipeData  data = {0};
     unsigned int datalen;
+    data.header_len = header_len;
     data.len = header_len + body_len;
     data.type = eventType;
     data.connfd = connfd;
@@ -147,7 +148,7 @@ void createHttpTask(  int connfd , char* header ,  int header_len ,
     //append
     pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
     servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , &data, PIPE_DATA_HEADER_LENG );
-    if( len > 0 )
+    if( data.len > 0 )
     {
 		servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , header, header_len );
         servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , body, 	body_len );
