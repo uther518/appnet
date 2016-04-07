@@ -112,6 +112,7 @@ typedef struct _aeWorker
 	sds recv_buffer;	//recv from master pipe
 	sds response;		//response
 	sds header;			//header buffer
+	httpHeader req_header;
 }aeWorker;
 
 //reactor thread info..

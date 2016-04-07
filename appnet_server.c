@@ -106,7 +106,7 @@ ZEND_METHOD( appnetServer , getHeader )
 	aeServer* appserv = APPNET_G( appserv );
 	int i;
 	int connfd = appserv->worker->connfd;
-	//httpHeader* header = &appserv->connlist[connfd].hh;
+	httpHeader* header = &appserv->worker->req_header;
 	if( appserv->connlist[connfd].protoType == HTTP )
 	{
 		add_assoc_string(return_value, "Protocol" , "HTTP" );
@@ -120,16 +120,22 @@ ZEND_METHOD( appnetServer , getHeader )
 		add_assoc_string(return_value, "Protocol" , "TCP" );
 		return;
 	}
-	/*
+	
 	add_assoc_string(return_value, "Method" , header->method );
 	add_assoc_string(return_value, "Uri" , header->uri );
 	add_assoc_string(return_value, "Version" , header->version );
 
+	char key[64];
+	char val[1024];
 	for( i = 0 ; i < header->filed_nums ; i++ )
 	{
-		add_assoc_string(return_value, header->fileds[i].key  , header->fileds[i].value  );
+		memset( key , 0 , sizeof( key ));		
+		memset( val , 0 , sizeof( val ));
+		memcpy( key , header->fileds[i].key.pos , header->fileds[i].key.len  );
+		memcpy( val , header->fileds[i].val.pos , header->fileds[i].val.len  );
+		add_assoc_string(return_value, key  , val );
 	}
-*/
+
 }
 
 ZEND_METHOD( appnetServer , send )

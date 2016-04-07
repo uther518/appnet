@@ -8,6 +8,8 @@
 #include <sys/socket.h>
 #include "aeserver.h"
 #include "dict.h"
+#include "http_request.h"
+
 //======================
 void initWorkerOnLoopStart( aeEventLoop *l)
 {
@@ -196,6 +198,7 @@ void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
     int needlen = ( data.len > PIPE_DATA_LENG ) ? PIPE_DATA_LENG : data.len;
     int bodylen = 0;
     int readTotal = 0;
+    int ret;
     if( data.len > 0 )
     {
         data.data = sdsempty();
@@ -207,9 +210,26 @@ void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
         }
     }
 
-    //printf( "header_len=%d,len=%d \n" , data.header_len , data.len );
+    if( servG->connlist[data.connfd].protoType == HTTP )
+    {
+    	//printf( "header_len=%d,len=%d \n" , data.header_len , data.len );
+	httpHeader* header =  &servG->worker->req_header;
+ 	memset( header , 0 , sizeof( header ));
+    	header->connfd = data.connfd;
 
-    callUserRecvFunc( data.connfd , data.data , bodylen );
+	ret = httpHeaderParse( header , data.data , data.header_len );
+	if( ret < AE_OK )
+	{
+		printf( "Worker httpHeaderParse Error \n");
+	}	
+	//getHeaderParams( header , " " );	
+
+	callUserRecvFunc( data.connfd , data.data+data.header_len , data.len - data.header_len );
+    }
+    else
+    {
+    	callUserRecvFunc( data.connfd , data.data , bodylen );
+    }
 }
 
 void onWorkerPipeWritable( aeEventLoop *el, int fd, void *privdata, int mask )
@@ -415,6 +435,7 @@ void runWorkerProcess( int pidx ,int pipefd )
     worker->recv_buffer = sdsnewlen( NULL , RECV_BUFFER_LENGTH  );
     worker->response = sdsnewlen( NULL , SEND_BUFFER_LENGTH );
     worker->header = sdsempty();
+    
 	
     servG->worker = worker;
     sdsclear( servG->worker->send_buffer );

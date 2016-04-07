@@ -84,7 +84,7 @@ typedef struct
 	int  protocol;
 	int  major;
 	int  minor;
-	list* out;
+	//list* out;
 	
 	headerFiled fileds[20]; 
 	headerParams params;   //分析的结果结构体
@@ -125,15 +125,14 @@ The elements are separated by SP characters. No CR or LF is allowed except in th
 Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
 */
 static int parseFirstLine( httpHeader* header , const char* buffer , int len );
-static int  readingHeaderFirstLine( httpHeader* header ,
-	const char* buffer , int len );
+static int  readingHeaderFirstLine( httpHeader* header ,const char* buffer , int len );
 static int readingHeaders( httpHeader* header , const char* buffer , int len );
 int readingSingleLine(  httpHeader* header , const char* org , int len );
-static char* getHeaderParams(  httpHeader* header , char* pkey );
+char* getHeaderParams(  httpHeader* header , char* pkey );
 int isHttpProtocol( char* buffer , int len );
 void getGetMethodBody();
 void getPostMethodBody();
 int httpRequestParse( int connfd , sds buffer , int len  );
-static int httpHeaderParse( httpHeader* header ,  sds buffer , int len );
+int httpHeaderParse( httpHeader* header ,  sds buffer , int len );
 
 #endif

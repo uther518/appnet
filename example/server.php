@@ -123,6 +123,7 @@ function onConnect( $server , $fd )
 function onRecv( $server , $fd , $buffer )
 {
 	$header = $server->getHeader();
+	print_r( $header );
 	echo "Client Recv:[{$header['Protocol']}][{$header['Uri']}][{$buffer}][{$fd}] \n";	
 
 	if( $header['Protocol'] == "WEBSOCKET" )
@@ -179,7 +180,7 @@ $server->setOption( APPNET_OPT_MAX_CONNECTION , 100 );
 $server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
 
 $server->setOption( APPNET_HTTP_DOCS_ROOT , $_SERVER['PWD']."/example/www/" );
-$server->setOption( APPNET_HTTP_UPLOAD_DIR, "/home/www/"  );
+$server->setOption( APPNET_HTTP_UPLOAD_DIR, "/home/upload/"  );
 $server->setOption( APPNET_HTTP_404_PAGE , "404.html" );
 $server->setOption( APPNET_HTTP_50X_PAGE , "50x.html" );
 $server->setOption( APPNET_HTTP_KEEP_ALIVE , 1 );

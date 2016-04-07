@@ -241,7 +241,7 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
 {
     char* ret;
     int value_len = 0;
-	char value[1024] = {0};
+    char value[1024] = {0};
 	
     ret = findChar( ':' , org , len );
     if( ret == NULL )
@@ -250,12 +250,9 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
         {
             return AE_ERR;
         }
-        //放在上一个域的值里
-        //header->fileds[header->filed_nums-1].value.str_len += len;
-        //memcpy( header->fileds[header->filed_nums-1].value , org , len   );
 		
-		header->fileds[header->filed_nums-1].val.pos = org;
-		header->fileds[header->filed_nums-1].val.len += len;
+	header->fileds[header->filed_nums-1].val.pos = org;
+	header->fileds[header->filed_nums-1].val.len += len;
 		
         return AE_OK;
     }
@@ -325,22 +322,25 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
 }
 
 
-static char* getHeaderParams(  httpHeader* header , char* pkey )
+char* getHeaderParams(  httpHeader* header , char* pkey )
 {
     int i;
-	char key[64];
-	char val[1024];
+    char key[64];
+    char val[1024];
+    printf( "Test Header Params size=%d,headerFiled size=%d \n" , sizeof( header->fileds ) , sizeof( headerFiled ));
     for( i = 0 ; i < header->filed_nums ; i++ )
     {
-		memcpy( key ,  memcmp( header->fileds[i].key.pos  , header->fileds[i].key.len );
-		memcpy( val ,  memcmp( header->fileds[i].val.pos  , header->fileds[i].val.len );
+		memset( key , 0 , sizeof( key ));
+		memset( val , 0 , sizeof( val ));
+		memcpy( key ,  header->fileds[i].key.pos  , header->fileds[i].key.len );
+		memcpy( val ,  header->fileds[i].val.pos  , header->fileds[i].val.len );
         printf( "key==[%s],value=[%s]\n" , key , val );
     }
     return "";
 }
 
 
-static int httpHeaderParse( httpHeader* header ,  sds buffer , int len )
+int httpHeaderParse( httpHeader* header ,  sds buffer , int len )
 {
     header->buffer_pos = 0;
     header->filed_nums = 0;
@@ -464,7 +464,6 @@ int httpRequestParse(  int connfd , sds buffer , int len  )
     httpHeader* header = servG->reactorThreads[thid].hh;
     memset( header , 0 , sizeof( header ));
     header->connfd = connfd;
-    printf( "httpHeaderParse start buffer=[%s] \n" , buffer );
 
     ret = httpHeaderParse( header , buffer , sdslen( buffer ) );
     if( ret < AE_OK  )
@@ -505,21 +504,21 @@ enum wsFrameType parseHandshake( httpHeader* header  ,  handshake* hs  )
     for( i = 0 ; i < header->filed_nums ; i++ )
     {
         //Sec-WebSocket-Key
-        if( memcmp( header->fileds[i].key , "Sec-WebSocket-Key" ,  strlen( header->fileds[i].key ) ) == 0 )
+        if( memcmp( header->fileds[i].key.pos , "Sec-WebSocket-Key" ,  header->fileds[i].key.len ) == 0 )
         {
-            memcpy( hs->key , header->fileds[i].value , strlen( header->fileds[i].value ) );
+            memcpy( hs->key , header->fileds[i].val.pos , header->fileds[i].val.len  );
             count++;
         }
         //Sec-WebSocket-Version
-        if( memcmp( header->fileds[i].key  , "Sec-WebSocket-Version" , strlen( header->fileds[i].key ) ) == 0 )
+        if( memcmp( header->fileds[i].key.pos  , "Sec-WebSocket-Version" ,  header->fileds[i].key.len  ) == 0 )
         {
-            memcpy( hs->ver , header->fileds[i].value ,  strlen ( header->fileds[i].value  ) );
+            memcpy( hs->ver , header->fileds[i].val.pos, header->fileds[i].val.len );
             count++;
         }
         //Sec-WebSocket-Extensions
-        if( memcmp( header->fileds[i].key , "Sec-WebSocket-Extensions" , strlen(  header->fileds[i].key ) ) == 0 )
+        if( memcmp( header->fileds[i].key.pos , "Sec-WebSocket-Extensions" , header->fileds[i].key.len  ) == 0 )
         {
-            memcpy( hs->key_ext , header->fileds[i].value , strlen(  header->fileds[i].value )  );
+            memcpy( hs->key_ext , header->fileds[i].val.pos , header->fileds[i].val.len  );
             count++;
         }
     }
