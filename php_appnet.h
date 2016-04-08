@@ -71,13 +71,14 @@ ZEND_TSRMLS_CACHE_EXTERN();
  */
 
 
-#define APPNET_SERVER_CALLBACK_NUM              6
+#define APPNET_SERVER_CALLBACK_NUM              7
 #define APPNET_SERVER_CB_onConnect              0 //accept new connection(worker)
 #define APPNET_SERVER_CB_onReceive              1 //receive data(worker)
 #define APPNET_SERVER_CB_onClose                2 //close tcp connection(worker)
 #define APPNET_SERVER_CB_onStart		3
 #define APPNET_SERVER_CB_onFinal		4
 #define APPNET_SERVER_CB_onTimer                5 //timer call(master)
+#define APPNET_SERVER_CB_onTask                 6               
 
 #define APPNET_EVENT_CONNECT  "connect"
 #define APPNET_EVENT_RECV     "receive"
@@ -85,7 +86,7 @@ ZEND_TSRMLS_CACHE_EXTERN();
 #define APPNET_EVENT_START    "start"
 #define APPNET_EVENT_FINAL    "final"
 #define APPNET_EVENT_TIMER    "timer"
-
+#define APPNET_EVENT_TASK     "task"
 
 
 extern zval* appnet_serv_callback[APPNET_SERVER_CALLBACK_NUM];

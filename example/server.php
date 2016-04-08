@@ -144,6 +144,13 @@ function onConnect( $server , $fd )
         echo "Client Connect:{$fd} pid={$pid} \n"; 
 }
 
+//在worker进程中，表示回调，在task进程中表示请求
+function onTask( $server, $data , $taskid, $from , $callback )
+{
+	sleep( 10 );
+	echo "Task Worker Recv data=[{$data}],taskid=[{$taskid}],from=[{$from}],callback=[{$callback}] \n";	
+}
+
 function onRecv( $server , $fd , $buffer )
 {
 	$header = $server->getHeader();
@@ -156,7 +163,7 @@ function onRecv( $server , $fd , $buffer )
 	elseif(  $header['Protocol'] == "HTTP"  )
     	{
 		$data  = $buffer;
-		//$server->addAsynTask( $data , "sendMailCallback" );
+		$server->addAsynTask( $data , "sendMailCallback" , 1 );
 		
 		$server->setHeader( "Connection" , "keep-alive" );
 		$server->send( $fd , $data );	
@@ -205,7 +212,7 @@ dl( "appnet.so");
 $server = new appnetServer( "0.0.0.0" , 3011 );
 
 $server->setOption( APPNET_OPT_WORKER_NUM , 1 );
-$server->setOption( APPNET_OPT_ATASK_WORKER_NUM , 0 );
+$server->setOption( APPNET_OPT_ATASK_WORKER_NUM , 1 );
 
 $server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
 $server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
@@ -222,6 +229,7 @@ $server->addEventListener( APPNET_EVENT_RECV ,    "onRecv");
 $server->addEventListener( APPNET_EVENT_CLOSE ,   "onClose");
 $server->addEventListener( APPNET_EVENT_START ,   "onStart");
 $server->addEventListener( APPNET_EVENT_FINAL ,   "onFinal");
+$server->addEventListener( APPNET_EVENT_TASK ,    "onTask");
 $server->run();
 
 $info = $server->getInfo();

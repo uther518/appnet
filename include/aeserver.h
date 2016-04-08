@@ -190,6 +190,7 @@ struct _aeServer
    
    void (*onConnect)( aeServer* serv ,int fd );
    void (*onRecv)( aeServer *serv, aeConnection* c , char* buff , int len );
+   void (*onTask)( char* data , int len , int id , int from , char* callback );
    void (*onClose)( aeServer *serv , aeConnection *c );
    void (*onStart)( aeServer *serv  );
    void (*onFinal)( aeServer *serv  );
@@ -226,7 +227,7 @@ typedef struct
 	int id;
 	int to;
 	int from;
-	char* cb;
+	char cb[64];
 }asyncTask;
 
 

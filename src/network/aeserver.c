@@ -511,27 +511,29 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 			{
 				asyncTask task;
 				memcpy( &task , read_buff , sizeof( asyncTask ) );
-				int worker_id = randTaskWorkerId();
-				if( task.to == 0 )
-				{
-					//task.to = servG->workers[wid].pipefd[0];
-					 
-				}
 
-				/*
-    				aeEventLoop* reactor_el = getThreadEventLoop( connfd );
-    				setPipeWritable( reactor_el , worker_id , connfd );
+				int worker_id  = task.to + servG->workerNum;
+							
+				int index = ( servG->workerNum + task.id%servG->reactorNum ) * servG->reactorNum + task.to; 
+    				if (sdslen( servG->workers[worker_id].send_buffer ) == 0  )
+    				{
+        				aeCreateFileEvent( el,
+		   			servG->worker_pipes[index].pipefd[0],
+		   			AE_WRITABLE,
+		   			onMasterPipeWritable, worker_id );
+    				}
+				//SendTaskWorker workerid=2,pipe_index=3,task pipefd=0,task.to=1 
+
+				//printf( "SendTaskWorker workerid=%d,pipe_index=%d,task pipefd=%d,task.to=%d \n" , 
+				//	worker_id , index, servG->worker_pipes[index].pipefd[0],task.to );
+    				//setPipeWritable( reactor_el , worker_id , connfd );
     				//append
     				pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
     				servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , &data, PIPE_DATA_HEADER_LENG );
-    				if( len > 0 )
-    				{
-        				servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , buffer , len );
-    				}
+        			servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , read_buff , nread );
     				pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
-				*/
 
-				printf( "Recv Body params=%s,nread=%d,cb=%s,to fd=%d \n" , read_buff +sizeof( asyncTask ) , nread , task.cb , task.to );
+				//printf( "Recv Body params=%s,nread=%d,cb=%s,to fd=%d \n" , read_buff +sizeof( asyncTask ) , nread , task.cb , task.to );
 			}
 			//printf( "RecvFromPipe Need:[%d][%d]\n" , needlen , bodylen );
 			if( bodylen == data.len )
@@ -579,7 +581,6 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
             }
 	    else if( data.type == PIPE_EVENT_ATASK )
 	    {
-		printf( "Reactor Recv ATask,data.len=%d \n" , data.len );
 		readBodyFromPipe( el, fd , data );
 	    }
             else if( data.type == PIPE_EVENT_CLOSE )
@@ -670,7 +671,7 @@ void *reactorThreadRun(void *arg)
 	//线程1   1 4 7 10 13
 	//线程2   2 5 8 11 14
     int ret,i,index;
-    for(  i = 0; i < serv->workerNum; i++ )
+    for(  i = 0; i < serv->workerNum + serv->ataskWorkerNum; i++ )
     {
 	//当个线程监听worker个pipe
 	index = i * serv->reactorNum + thid;
@@ -724,7 +725,7 @@ void createWorkerProcess( aeServer* serv )
 			index = i * serv->reactorNum + j;
 			ret = socketpair( PF_UNIX, SOCK_STREAM, 0, serv->worker_pipes[index].pipefd );
 			assert( ret != -1 );
-			//printf( "index=%d,pipe0=%d,pipe1=%d \n" , index,serv->worker_pipes[index].pipefd[0],serv->worker_pipes[index].pipefd[1]);
+			printf( "woker_id=%d,pipe_index=%d,pipe0=%d,pipe1=%d \n" ,i, index,serv->worker_pipes[index].pipefd[0],serv->worker_pipes[index].pipefd[1]);
 		}
 	}
 

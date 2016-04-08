@@ -217,16 +217,19 @@ ZEND_METHOD( appnetServer , timerAdd )
 
 ZEND_METHOD( appnetServer , addAsynTask )
 {
-    zval* cb;
-    zval* arg;
+    char* cb;
+    size_t cb_len;
+    long task_worker_id;
+    size_t len;
+    char* arg;
 	
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz",  &arg , &cb ) == FAILURE)
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ssl",  &arg , &len , &cb , &cb_len ,&task_worker_id ) == FAILURE)
     {
         RETURN_FALSE;
     }
 	
-	addAsyncTask( arg , cb );
-	RETURN_TRUE;
+    addAsyncTask( arg , cb , task_worker_id );
+    RETURN_TRUE;
 }
 
 
@@ -287,9 +290,10 @@ ZEND_METHOD( appnetServer , on )
         APPNET_EVENT_CONNECT,
         APPNET_EVENT_RECV,
         APPNET_EVENT_CLOSE,
-		APPNET_EVENT_START,
-		APPNET_EVENT_FINAL,
-        APPNET_EVENT_TIMER
+	APPNET_EVENT_START,
+	APPNET_EVENT_FINAL,
+        APPNET_EVENT_TIMER,
+	APPNET_EVENT_TASK
     };
 	
     for (i = 0; i < APPNET_SERVER_CALLBACK_NUM; i++)
@@ -318,6 +322,60 @@ static int appnet_set_callback(int key, zval* cb TSRMLS_DC)
     zval_copy_ctor( appnet_serv_callback[key]);
     return AE_OK;
 }
+
+//data异步任务数据，
+//len异步任务数据长度，二进制安全
+//id任务id
+//from逻辑wokerid
+//callback回调函数
+void appnetServer_onTask( char* data , int len , int id , int from , char* callback )
+{
+        aeServer* appserv = APPNET_G( appserv );
+        zval retval;
+        zval *args;
+        zval *zserv = (zval*)appserv->ptr2;
+        zval zdata;
+        zval zid;
+	zval zfrom;
+	zval zcb;
+
+        args = safe_emalloc(sizeof(zval),5, 0 );
+
+        ZVAL_STRINGL( &zdata , data , len );
+	ZVAL_LONG( &zid , (long)id );
+	ZVAL_LONG( &zfrom , (long)from );
+	ZVAL_STRINGL( &zcb , callback , strlen( callback ));
+
+        ZVAL_COPY(&args[0], zserv  );
+	ZVAL_COPY(&args[1], &zdata  );
+        ZVAL_COPY(&args[2], &zid  );
+	ZVAL_COPY(&args[3], &zfrom  );
+	ZVAL_COPY(&args[4], &zcb  );
+
+        if (call_user_function_ex(EG(function_table), NULL, appnet_serv_callback[APPNET_SERVER_CB_onTask],
+			&retval, 5, args, 0, NULL) == FAILURE )
+        {
+                php_error_docref(NULL TSRMLS_CC, E_WARNING, "call_user_function_ex task error");
+        }
+
+	if (EG(exception))
+        {
+                php_error_docref(NULL, E_WARNING, "bind onTask callback failed");
+        }
+
+        zval_ptr_dtor(&zid);
+        zval_ptr_dtor(&zdata);
+	zval_ptr_dtor(&zfrom);
+        zval_ptr_dtor(&zcb);
+
+        efree( args );
+        if ( &retval != NULL)
+        {
+        	zval_ptr_dtor(&retval);
+        }
+
+}
+
 
 void appnetServer_onRecv( aeServer* s, aeConnection *c, sds buff , int len )
 {
@@ -489,10 +547,11 @@ aeServer* appnetServInit( char* listen_ip , int port  )
 {
 	serv = aeServerCreate( listen_ip , port );
 	serv->onConnect = 	&appnetServer_onConnect;
-	serv->onRecv = 	&appnetServer_onRecv;
+	serv->onRecv = 		&appnetServer_onRecv;
 	serv->onClose = 	&appnetServer_onClose;
-	serv->onStart =    &appnetServer_onStart;
-	serv->onFinal =    &appnetServer_onFinal;
+	serv->onStart =    	&appnetServer_onStart;
+	serv->onFinal =    	&appnetServer_onFinal;
+	serv->onTask = 		&appnetServer_onTask;
 	return serv;
 }
 

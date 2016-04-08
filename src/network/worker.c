@@ -72,40 +72,47 @@ void timerAdd( int ms , void* cb , void* params  )
 
 
 //这个callbackfunc地址要记好
-int addAsyncTask(  void* params , void* callbackfunc )
+int addAsyncTask(  char* params , char* callbackfunc , int task_worker_id  )
 {
-	servG->worker->task_id += 1;
-	aePipeData data;
+	aePipeData data = {0};
 	data.type = PIPE_EVENT_ATASK;
 
 	asyncTask task;
-	task.id = servG->worker->task_id;
-	task.to = 0;
-	task.from = 0;
-	task.cb = callbackfunc;
+	task.id = servG->worker->task_id+1;
+	task.to = task_worker_id-1;
+	task.from = servG->worker->pidx;
+	memcpy( &task.cb , callbackfunc , sizeof( task.cb ));
 
 	data.len = 0;
 	data.len += sizeof( asyncTask );
 	data.len += strlen( params );
 
-	printf( "data=%s,callbackfunc=%p,data.len=%d \n" ,params , callbackfunc , data.len );
-/*
-	if( sdslen( servG->worker->send_buffer ) == 0 )
+	int index;
+	int min = servG->worker->pidx * servG->reactorNum;
+	index = task.id%servG->reactorNum + min;
 
+	/*
+	printf( "data=%s,callbackfunc=%s,task.id=%d,pipe_index=%d,pipefd=%d,task.to=%d \n" ,params , callbackfunc , task.id , index, 
+		servG->worker_pipes[index].pipefd[1],task.to
+	 );
+	*/
+
+	if( sdslen( servG->worker->send_buffer ) == 0 )
 	{
 		int ret;
-		ret = aeCreateFileEvent( servG->worker->el,servG->worker->pipefd , AE_WRITABLE ,onWorkerPipeWritable,NULL );
+		ret = aeCreateFileEvent( servG->worker->el,servG->worker_pipes[index].pipefd[1] ,
+			AE_WRITABLE ,onWorkerPipeWritable,NULL );
 		if( ret == AE_ERR )
 		{
 		   printf( "Error aeCreateFileEvent..\n");
 		}
 	}
-	*/
 	
 	appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
 	appendSendBuffer( &task , sizeof( asyncTask ) );
 	appendSendBuffer( params , strlen( params ) );
-	
+	servG->worker->task_id += 1;
+
 	return servG->worker->task_id;
 }
 
@@ -236,6 +243,34 @@ void callUserRecvFunc( int connfd , sds buffer , int length )
         servG->onRecv( servG , &servG->connlist[connfd] , buffer , length  );
     }
 }
+
+void readTaskFromPipe( int pipe_fd , aePipeData data )
+{
+    int readlen;
+    if( data.len > 0 )
+    {
+        char buff[TMP_BUFFER_LENGTH] = {0};
+        while( ( readlen = read( pipe_fd , buff , data.len ) ) > 0 )
+        {
+		if( readlen == data.len )
+		{
+			break;
+		}
+        }
+	asyncTask task;
+	char param[1024] = {0};
+	memcpy( &task , buff , sizeof( asyncTask ) );
+	memcpy( &param, buff+sizeof( asyncTask ) , data.len-sizeof( asyncTask ) );		
+	
+	//printf( "readTaskFromPipe in task_worker_id=%d,task.id=%d,task.cb=%s,data.len=%d  \n" , servG->worker->pidx , task.id , task.cb, data.len  );
+	if( servG->onTask )
+	{
+		servG->onTask( param , strlen( param ) , task.id  , task.from , task.cb );
+	}
+    }
+
+}
+
 void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
 {
     int pos = PIPE_DATA_HEADER_LENG;
@@ -322,6 +357,10 @@ void onWorkerPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
         {
             readWorkerBodyFromPipe(  fd ,data );
         }
+	else if( data.type == PIPE_EVENT_ATASK )
+	{
+	    readTaskFromPipe( fd , data );
+	}
         else if( data.type == PIPE_EVENT_CLOSE )
         {
             if( servG->onClose )
@@ -498,7 +537,7 @@ void runWorkerProcess( int pidx  )
     int res,index,thid;
 
     //listen pipe event expect reactor message come in;
-	//此处要监听reactor M个pipefd[1]
+    //此处要监听reactor M个pipefd[1]
 	for( thid = 0 ; thid < servG->reactorNum ; thid++ )
 	{
 		index = pidx * servG->reactorNum + thid;
@@ -507,7 +546,7 @@ void runWorkerProcess( int pidx  )
 			 AE_READABLE,
 			 onWorkerPipeReadable,NULL
 		);
-//		printf("Worker Run index=%d, pidx=%d and listen pipefd=%d is ok? [%d]\n",index, pidx ,	servG->worker_pipes[index].pipefd[1],res==0 );
+		printf("Worker Run index=%d, pidx=%d and listen pipefd=%d is ok? [%d]\n",index, pidx ,	servG->worker_pipes[index].pipefd[1],res==0 );
 	}
 	
     aeMain(worker->el);
