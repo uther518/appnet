@@ -20,6 +20,7 @@
 #define AE_FALSE       0
 
 #define OPT_WORKER_NUM  "opt_worker_num"
+#define OPT_ATASK_WORKER_NUM "opt_atask_worker_num"
 #define OPT_REACTOR_NUM "opt_reactor_num"
 #define OPT_MAX_CONNECTION "opt_max_connection"
 #define OPT_PROTOCOL_TYPE  "opt_protocol_type"
@@ -78,7 +79,7 @@ struct _aeReactor
 	int max_event_num;
 	int running :1;
 	void *object;
-    	void *ptr;  //reserve
+    void *ptr;  //reserve
 	aeEventLoop *eventLoop;
 	
 };
@@ -98,6 +99,11 @@ typedef struct _aeWorkerProcess
 	
 }aeWorkerProcess;
 
+typedef struct _aeWorkerPipes
+{
+    int pipefd[2];
+}aeWorkerPipes;
+
 typedef struct _aeWorker
 {
 	int pidx; //主进程中分的编号0-x
@@ -107,6 +113,7 @@ typedef struct _aeWorker
 	int maxEvent;
 	int connfd;
 	int start;
+	int task_id;
 	aeEventLoop *el;
 	sds send_buffer;	//send to master pipe
 	sds recv_buffer;	//recv from master pipe
@@ -130,6 +137,7 @@ typedef enum
 	PIPE_EVENT_CONNECT = 1,
 	PIPE_EVENT_MESSAGE,
 	PIPE_EVENT_CLOSE,
+	PIPE_EVENT_ATASK
 }PipeEventType;	
 
 
@@ -151,6 +159,7 @@ struct _aeServer
    void *ptr2;
    int reactorNum;
    int workerNum;
+   int ataskWorkerNum;
    int maxConnect;
    int connectNum;
    int exit_code;
@@ -165,7 +174,9 @@ struct _aeServer
    aeConnection* connlist;
    aeReactorThread *reactorThreads;
    //pthread_barrier_t barrier;
-   aeWorkerProcess *workers; //主进程中保存的worker相关信息数组。
+   aeWorkerProcess *workers; //处理客户端请求
+   aeWorkerPipes *worker_pipes;//每个worker对应各线程均有一个pipe
+
    aeWorker* worker;	//子进程中的全局变量,子进程是独立空间，所以只要一个标识当前进程
    int sigPipefd[2];
    //reactor->client
@@ -209,6 +220,16 @@ typedef struct _aePipeData
 	sds data;
 }aePipeData;
 
+
+typedef struct
+{
+	int id;
+	int to;
+	int from;
+	char* cb;
+}asyncTask;
+
+
 void initOnLoopStart(struct aeEventLoop *el);
 void initThreadOnLoopStart( struct aeEventLoop *el );
 void onSignEvent( aeEventLoop *el, int fd, void *privdata, int mask);
@@ -251,7 +272,7 @@ int timerCallback(struct aeEventLoop *l,long long id,void *data);
 void finalCallback(struct aeEventLoop *l,void *data);
 void childTermHandler( int sig );
 void childChildHandler( int sig );
-void runWorkerProcess( int pidx ,int pipefd );
+void runWorkerProcess( int pidx );
 void createWorkerTask(  int connfd , char* buffer , int len , int eventType , char* from );
 
 //http,websocket
@@ -263,6 +284,8 @@ int setHeader( char* key , char* val );
 int setOption( char* key , char* val );
 void timerAdd( int ms , void* cb , void* params  );
 //void testsds( char* str );
-
 aeServer*  servG;
+
+int getPipeIndex( int connfd );
+
 #endif

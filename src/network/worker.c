@@ -70,6 +70,46 @@ void timerAdd( int ms , void* cb , void* params  )
    aeCreateTimeEvent( servG->worker->el, ms , cb  , params  , NULL );
 }
 
+
+//这个callbackfunc地址要记好
+int addAsyncTask(  void* params , void* callbackfunc )
+{
+	servG->worker->task_id += 1;
+	aePipeData data;
+	data.type = PIPE_EVENT_ATASK;
+
+	asyncTask task;
+	task.id = servG->worker->task_id;
+	task.to = 0;
+	task.from = 0;
+	task.cb = callbackfunc;
+
+	data.len = 0;
+	data.len += sizeof( asyncTask );
+	data.len += strlen( params );
+
+	printf( "data=%s,callbackfunc=%p,data.len=%d \n" ,params , callbackfunc , data.len );
+/*
+	if( sdslen( servG->worker->send_buffer ) == 0 )
+
+	{
+		int ret;
+		ret = aeCreateFileEvent( servG->worker->el,servG->worker->pipefd , AE_WRITABLE ,onWorkerPipeWritable,NULL );
+		if( ret == AE_ERR )
+		{
+		   printf( "Error aeCreateFileEvent..\n");
+		}
+	}
+	*/
+	
+	appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
+	appendSendBuffer( &task , sizeof( asyncTask ) );
+	appendSendBuffer( params , strlen( params ) );
+	
+	return servG->worker->task_id;
+}
+
+
 void timerRemove( int tid  )
 {
     aeDeleteTimeEvent( servG->worker->el, tid );
@@ -176,7 +216,8 @@ int sendMessageToReactor( int connfd , char* buff , int len )
 		if( writeable > 0 ||  data.len+PIPE_DATA_HEADER_LENG  == sdslen( servG->worker->send_buffer ) )
 		{
 			int ret;
-			ret = aeCreateFileEvent( servG->worker->el,servG->worker->pipefd , AE_WRITABLE ,onWorkerPipeWritable,NULL );
+			int index = getPipeIndex( connfd );
+			ret = aeCreateFileEvent( servG->worker->el,servG->worker_pipes[index].pipefd[1] , AE_WRITABLE ,onWorkerPipeWritable,NULL );
 			if( ret == AE_ERR )
 			{
 			   printf( "Error aeCreateFileEvent..\n");
@@ -301,11 +342,12 @@ int sendCloseEventToReactor( int connfd  )
     data.type = PIPE_EVENT_CLOSE;
     data.connfd = connfd;
     data.len = 0;
+	int index = getPipeIndex( connfd );
 	
     if (sdslen( servG->worker->send_buffer ) == 0  )
     {
         aeCreateFileEvent( servG->worker->el,
-                           servG->worker->pipefd , AE_WRITABLE,
+                           servG->worker_pipes[index].pipefd[1] , AE_WRITABLE,
                            onWorkerPipeWritable,NULL );
     }
     else
@@ -346,10 +388,12 @@ int socketWrite(int __fd, void *__data, int __len)
 
 int send2ReactorThread( int connfd , aePipeData data )
 {
+	int index = getPipeIndex( connfd );
+	
     if (sdslen( servG->worker->send_buffer ) == 0  )
     {
         aeCreateFileEvent( servG->worker->el,
-		   servG->worker->pipefd , AE_WRITABLE,
+		   servG->worker_pipes[index].pipefd[1] , AE_WRITABLE,
 		   onWorkerPipeWritable,NULL );
     }
     else
@@ -423,16 +467,17 @@ int setHeader( char* key , char* value )
  * process event types:
  * 1,parent process send readable event
  */
-void runWorkerProcess( int pidx ,int pipefd )
+void runWorkerProcess( int pidx  )
 {
     //servG->worker have private memory space in every process
     aeWorker* worker = zmalloc( sizeof( aeWorker ));
     worker->pid = getpid();
     worker->maxEvent = MAX_EVENT;
     worker->pidx = pidx;
-    worker->pipefd = pipefd;
+    //worker->pipefd = pipefd;
     worker->running = 1;
     worker->start = 0;
+    worker->task_id = 0;
     worker->send_buffer = sdsnewlen( NULL , SEND_BUFFER_LENGTH  );
     worker->recv_buffer = sdsnewlen( NULL , RECV_BUFFER_LENGTH  );
     worker->response = sdsnewlen( NULL , SEND_BUFFER_LENGTH );
@@ -450,16 +495,21 @@ void runWorkerProcess( int pidx ,int pipefd )
 
     worker->el = aeCreateEventLoop( worker->maxEvent );
     aeSetBeforeSleepProc( worker->el,initWorkerOnLoopStart );
-    int res;
+    int res,index,thid;
 
     //listen pipe event expect reactor message come in;
-    res = aeCreateFileEvent( worker->el,
-		 worker->pipefd,
-		 AE_READABLE,
-		 onWorkerPipeReadable,NULL
-	);
-    printf("Worker Run pid=%d and listen pipefd=%d is ok? [%d]\n",worker->pid,pipefd,res==0 );
-
+	//此处要监听reactor M个pipefd[1]
+	for( thid = 0 ; thid < servG->reactorNum ; thid++ )
+	{
+		index = pidx * servG->reactorNum + thid;
+		res = aeCreateFileEvent( worker->el,
+			 servG->worker_pipes[index].pipefd[1],
+			 AE_READABLE,
+			 onWorkerPipeReadable,NULL
+		);
+//		printf("Worker Run index=%d, pidx=%d and listen pipefd=%d is ok? [%d]\n",index, pidx ,	servG->worker_pipes[index].pipefd[1],res==0 );
+	}
+	
     aeMain(worker->el);
     aeDeleteEventLoop(worker->el);
     servG->onFinal( servG );
@@ -472,6 +522,6 @@ void runWorkerProcess( int pidx ,int pipefd )
 	
     zfree( worker );
     shm_free( servG->connlist , 0 );
-    close( pipefd );
+    //close( pipefd );
     exit( 0 );
 }

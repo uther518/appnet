@@ -123,6 +123,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_server_set_option, 0, 0, 2 )
     ZEND_ARG_INFO(0, val )
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_server_add_task, 0, 0, 2 )
+	ZEND_ARG_INFO(0, arg )
+    ZEND_ARG_INFO(0, cb )
+ZEND_END_ARG_INFO()
+
 /* {{{ appnet_functions[]
  *
  * Every user visible function must have an entry in appnet_functions[].
@@ -142,6 +147,7 @@ const zend_function_entry appnet_functions[] = {
     PHP_ME(appnetServer,    timerRemove,   arginfo_appnet_server_timer_remove , ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer ,   setOption,     arginfo_appnet_server_set_option , ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer,    getInfo,     NULL ,                 ZEND_ACC_PUBLIC )
+	PHP_ME(appnetServer,    addAsynTask,      arginfo_appnet_server_add_task , ZEND_ACC_PUBLIC )
 	{NULL, NULL, NULL} 
 };
 /* }}} */
@@ -159,7 +165,7 @@ PHP_MINIT_FUNCTION(appnet)
 	/* If you have INI entries, uncomment these lines
 	REGISTER_INI_ENTRIES();
 	*/
-        ZEND_INIT_MODULE_GLOBALS( appnet , php_appnet_init_globals , NULL);
+    ZEND_INIT_MODULE_GLOBALS( appnet , php_appnet_init_globals , NULL);
 
 
 	zend_class_entry ce;
@@ -173,9 +179,10 @@ PHP_MINIT_FUNCTION(appnet)
 	zend_declare_class_constant_stringl( appnetServer, const_name, sizeof(const_name)-1, value, sizeof(value)-1);
 
 	REGISTER_STRING_CONSTANT( "APPNET_OPT_WORKER_NUM" , 	OPT_WORKER_NUM  , CONST_CS | CONST_PERSISTENT );
+	REGISTER_STRING_CONSTANT( "APPNET_OPT_ATASK_WORKER_NUM" , OPT_ATASK_WORKER_NUM  , CONST_CS | CONST_PERSISTENT );
 	REGISTER_STRING_CONSTANT( "APPNET_OPT_REACTOR_NUM", 	OPT_REACTOR_NUM , CONST_CS | CONST_PERSISTENT );
 	REGISTER_STRING_CONSTANT( "APPNET_OPT_MAX_CONNECTION", 	OPT_MAX_CONNECTION , CONST_CS | CONST_PERSISTENT  );
-        REGISTER_STRING_CONSTANT( "APPNET_OPT_PROTO_TYPE", 		OPT_PROTOCOL_TYPE , CONST_CS | CONST_PERSISTENT );
+    REGISTER_STRING_CONSTANT( "APPNET_OPT_PROTO_TYPE", 		OPT_PROTOCOL_TYPE , CONST_CS | CONST_PERSISTENT );
 
 	//class const style
 	//REGISTER_APPNET_CLASS_CONST_STRING("OPT_WORKER_NUM", 	OPT_WORKER_NUM );
@@ -189,7 +196,7 @@ PHP_MINIT_FUNCTION(appnet)
 	REGISTER_STRING_CONSTANT( "APPNET_EVENT_CLOSE",		APPNET_EVENT_CLOSE, 	CONST_CS | CONST_PERSISTENT  );
 	REGISTER_STRING_CONSTANT( "APPNET_EVENT_START",     APPNET_EVENT_START , 	CONST_CS | CONST_PERSISTENT );
 	REGISTER_STRING_CONSTANT( "APPNET_EVENT_FINAL",  	APPNET_EVENT_FINAL, 	CONST_CS | CONST_PERSISTENT  );
-        REGISTER_STRING_CONSTANT( "APPNET_EVENT_TIMER",     APPNET_EVENT_TIMER , 	CONST_CS | CONST_PERSISTENT );
+    REGISTER_STRING_CONSTANT( "APPNET_EVENT_TIMER",     APPNET_EVENT_TIMER , 	CONST_CS | CONST_PERSISTENT );
 
 	REGISTER_LONG_CONSTANT( "APPNET_PROTO_TCP_ONLY", 	PROTOCOL_TYPE_TCP_ONLY , CONST_CS | CONST_PERSISTENT  );
 	REGISTER_LONG_CONSTANT( "APPNET_PROTO_HTTP_ONLY", 	PROTOCOL_TYPE_HTTP_ONLY , CONST_CS | CONST_PERSISTENT  );

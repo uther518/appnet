@@ -28,10 +28,10 @@ void http_response_static( httpHeader* reqHeader  )
 
 void http_response_write( int connfd , char* buff , int len )
 {
-	int nwritten = write( connfd , buff , strlen( buff ));
+	int nwritten = write( connfd , buff , len);
 	if (nwritten <= 0)
 	{
-		printf( "I/O error writing to client: %s \n", strerror(errno));
+		printf( "I/O error writing to client,connfd=%d,len=%d: %s \n", connfd, len, strerror(errno));
 		return;
 	}
 }
@@ -290,7 +290,7 @@ void http_response_static_proc( httpHeader* reqHeader )
 	int nwritten = write( reqHeader->connfd , header_out.data , header_out.length );
 	if (nwritten <= 0)
 	{
-		printf( "I/O error writing to client: %s \n", strerror(errno));
+		printf( "I/O error writing to client connfd=%d,len=%d: %s \n",reqHeader->connfd , header_out.length , strerror(errno));
 		return;
 	}
 

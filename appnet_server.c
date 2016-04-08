@@ -211,10 +211,24 @@ ZEND_METHOD( appnetServer , timerAdd )
     timerArg->ts = ms;
     timerArg->params = args; 
 
-
     timerAdd(  ms , onTimer , timerArg  );   
     RETURN_TRUE;
 }
+
+ZEND_METHOD( appnetServer , addAsynTask )
+{
+    zval* cb;
+    zval* arg;
+	
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz",  &arg , &cb ) == FAILURE)
+    {
+        RETURN_FALSE;
+    }
+	
+	addAsyncTask( arg , cb );
+	RETURN_TRUE;
+}
+
 
 ZEND_METHOD( appnetServer , timerRemove )
 {
@@ -323,12 +337,12 @@ void appnetServer_onRecv( aeServer* s, aeConnection *c, sds buff , int len )
 
 	if (call_user_function_ex(EG(function_table), NULL, appnet_serv_callback[APPNET_SERVER_CB_onReceive],&retval, 3, args, 0, NULL) == FAILURE )
 	{
-	php_error_docref(NULL TSRMLS_CC, E_WARNING, "call_user_function_ex recv error");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "call_user_function_ex recv error");
 	} 
 
 	if (EG(exception))
 	{
-	php_error_docref(NULL, E_WARNING, "bind recv callback failed");
+		php_error_docref(NULL, E_WARNING, "bind recv callback failed");
 	}
 
 	zval_ptr_dtor(&zfd);

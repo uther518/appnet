@@ -34,8 +34,8 @@ class Websocket
 
 	public static function getOnline( $serv , $fd , $msg )
 	{
-         	   $resMsg = array(
-					 'cmd' => 'getOnline',
+	        $resMsg = array(
+			'cmd' => 'getOnline',
 		);
 		foreach ( self::$connections as $clid => $info )
 		{
@@ -46,7 +46,6 @@ class Websocket
 			  );
 	   }
 	   $serv->send( $fd , json_encode( $resMsg ) );
-
 	}
 
 	public static function onLogin( $serv , $fd , $msg )
@@ -55,10 +54,10 @@ class Websocket
         	self::$connections[$fd]['avatar'] = $msg['avatar'];
 
 		$resMsg = array(
-					'cmd' => 'login',
-					'fd' => $fd,
-					'name' => $msg['name'],
-					'avatar' => $msg['avatar'],
+				'cmd' => 'login',
+				'fd' => $fd,
+				'name' => $msg['name'],
+				'avatar' => $msg['avatar'],
 			 );
 		$len = $serv->send(  $fd , json_encode( $resMsg )  );
 		self::broadcastNewUser( $serv , $fd , $msg , $resMsg );
@@ -68,23 +67,42 @@ class Websocket
 	{
 		$resMsg['cmd'] = 'newUser';
 		$loginMsg = array(
-				'cmd' => 'fromMsg',
-				'from' => 0,
-				'channal' => 0 ,
-				'data' => $msg['name']."上线鸟。。",
+			'cmd' => 'fromMsg',
+			'from' => 0,
+			'channal' => 0 ,
+			'data' => $msg['name']."上线鸟。。",
 		);
 
 		//将上线消息发送给所有人
 		foreach ( self::$connections as $clid => $info )
 		{
-				if( $fd  !=  $clid )
-				{
-						$serv->send( $clid , json_encode( $resMsg ) );
-						$serv->send( $clid , json_encode( $loginMsg ) );
-				}
+			if( $fd  !=  $clid )
+			{
+				$serv->send( $clid , json_encode( $resMsg ) );
+				$serv->send( $clid , json_encode( $loginMsg ) );
+			}
 		}
 	}
 
+	public static function broadcastOffLine( $serv , $fd  )
+	{
+                $resMsg = array(
+                        'cmd' => 'offline',
+                        'fd' => $fd,
+			'from' => 0,
+                        'channal' => 0 ,
+                        'data' => self::$connections[$fd]['name']."离开了。。",
+                );
+
+                //将下线消息发送给所有人
+                foreach ( self::$connections as $clid => $info )
+                {
+                        if( $fd  !=  $clid )
+                        {
+                                $serv->send( $clid , json_encode( $resMsg ) );
+                        }
+                }
+	}
 
 	public static function onMessage( $serv , $fd , $msg )
 	{
@@ -93,23 +111,32 @@ class Websocket
 		//表示群发
 		if( $msg['channal'] == 0 )
 		{
-				foreach ( self::$connections as $clid => $info )
-				{
-						$serv->send( $clid , json_encode( $resMsg ) );
-				}
-
+			foreach ( self::$connections as $clid => $info )
+			{
+				$serv->send( $clid , json_encode( $resMsg ) );
+			}
 		}
 		//表示私聊
 		elseif ( $msg['channal'] == 1 )
 		{
-				$serv->send( $msg['to'] , json_encode( $resMsg ) );
-				$serv->send( $msg['from'] , json_encode( $resMsg ) );
+			$serv->send( $msg['to'] , json_encode( $resMsg ) );
+			$serv->send( $msg['from'] , json_encode( $resMsg ) );
 		}
 
 			//$serv->close( $fd );
     }
 }
 
+//这里是异
+function onAsynTask( $server , $fd , $data )
+{
+	sleep( 2 );
+}
+
+function sendMailCallback( $server , $fd , $data )
+{
+	echo "sendMailCallback ok and callback ok \n";
+}
 
 function onConnect( $server , $fd )
 {
@@ -127,8 +154,10 @@ function onRecv( $server , $fd , $buffer )
 	  	 Websocket::onReceive( $server , $fd,  $buffer );
 	}
 	elseif(  $header['Protocol'] == "HTTP"  )
-        {
+    	{
 		$data  = $buffer;
+		//$server->addAsynTask( $data , "sendMailCallback" );
+		
 		$server->setHeader( "Connection" , "keep-alive" );
 		$server->send( $fd , $data );	
 	}
@@ -141,6 +170,11 @@ function onRecv( $server , $fd , $buffer )
 function onClose( $server , $fd )
 { 
 	echo "Client Close:$fd \n";
+	$header = $server->getHeader();
+	if( $header['Protocol'] == "WEBSOCKET" )
+        {
+                 Websocket::broadcastOffLine( $server , $fd  );
+	}
 };
 
 function onStart( $server  )
@@ -171,8 +205,10 @@ dl( "appnet.so");
 $server = new appnetServer( "0.0.0.0" , 3011 );
 
 $server->setOption( APPNET_OPT_WORKER_NUM , 1 );
+$server->setOption( APPNET_OPT_ATASK_WORKER_NUM , 0 );
+
 $server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
-$server->setOption( APPNET_OPT_MAX_CONNECTION , 100 );
+$server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
 $server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
 
 $server->setOption( APPNET_HTTP_DOCS_ROOT , $_SERVER['PWD']."/example/www/" );

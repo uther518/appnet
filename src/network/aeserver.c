@@ -23,6 +23,11 @@ void initOnLoopStart(struct aeEventLoop *el)
 {
 }
 
+int getPipeIndex( int connfd )
+{
+	return (connfd % servG->workerNum ) *servG->reactorNum + connfd%servG->reactorNum; 
+}
+
 //thread event loop
 void initThreadOnLoopStart( struct aeEventLoop *el )
 {
@@ -40,7 +45,7 @@ void freeClient( aeConnection* c  )
         //zfree( c->hs );
         int reactor_id = c->fd%servG->reactorNum;
         aeEventLoop* el = servG->reactorThreads[reactor_id].reactor.eventLoop;
-        aeDeleteFileEvent( el ,c->fd,AE_READABLE);
+        aeDeleteFileEvent( el,c->fd,AE_READABLE);
         aeDeleteFileEvent( el,c->fd,AE_WRITABLE);
         sdsfree( c->send_buffer );
         sdsfree( c->recv_buffer );
@@ -60,7 +65,7 @@ void onCloseByClient(  aeEventLoop *el, void *privdata , aeServer* serv , aeConn
     data.connfd = conn->fd;
     data.len = 0;
     int worker_id = conn->fd % servG->workerNum;
-    setPipeWritable( el , privdata , worker_id );
+    setPipeWritable( el , privdata , conn->fd );
     pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
     servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer, &data, PIPE_DATA_HEADER_LENG );
     pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
@@ -114,7 +119,7 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
     datalen = PIPE_DATA_HEADER_LENG + data.len;
     aeEventLoop* reactor_el = getThreadEventLoop( connfd );
     int worker_id  = connfd % servG->workerNum;
-    setPipeWritable( reactor_el , worker_id , worker_id  );
+    setPipeWritable( reactor_el , worker_id , connfd  );
     //append
     pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
     servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , &data, PIPE_DATA_HEADER_LENG );
@@ -142,7 +147,7 @@ void createHttpTask(  int connfd , char* header ,  int header_len ,
     datalen = PIPE_DATA_HEADER_LENG + data.len;
     aeEventLoop* reactor_el = getThreadEventLoop( connfd );
     int worker_id  = connfd % servG->workerNum;
-    setPipeWritable( reactor_el , worker_id , worker_id  );
+    setPipeWritable( reactor_el , worker_id , connfd  );
     //append
     pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
     servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , &data, PIPE_DATA_HEADER_LENG );
@@ -181,7 +186,7 @@ int parseRequestMessage( int connfd , sds buffer , int len )
             }
             else
             {
-		int thid =  connfd%servG->reactorNum;
+				int thid =  connfd%servG->reactorNum;
                 ret = wesocketRequestRarse(  connfd ,buffer , len , servG->reactorThreads[thid].hh  , servG->reactorThreads[thid].hs );
             }
             return ret;
@@ -258,12 +263,16 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
     }
 }
 
-void setPipeWritable( aeEventLoop *el , void *privdata ,  int worker_id  )
+void setPipeWritable( aeEventLoop *el , void *privdata ,  int connfd  )
 {
+	int worker_id = connfd % servG->workerNum;
+	//2线程,3进程时，fd=7,index=1*2+1 index=3
+	int index = worker_id*servG->reactorNum + connfd%servG->reactorNum; 
+	
     if (sdslen( servG->workers[worker_id].send_buffer ) == 0  )
     {
         aeCreateFileEvent( el,
-		   servG->workers[worker_id].pipefd[0],
+		   servG->worker_pipes[index].pipefd[0],
 		   AE_WRITABLE,
 		   onMasterPipeWritable, worker_id );
     }
@@ -315,7 +324,7 @@ void acceptCommonHandler( aeServer* serv ,int fd,char* client_ip,int client_port
         data.connfd = fd;
         data.len = 0;
         serv->connectNum += 1;
-        setPipeWritable( el , NULL , worker_id );
+        setPipeWritable( el , NULL , fd );
         //serv->connlist[fd].el = el;
         int sendlen = PIPE_DATA_HEADER_LENG;
         pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
@@ -354,12 +363,15 @@ void onAcceptEvent( aeEventLoop *el, int fd, void *privdata, int mask)
 void runMainReactor( aeServer* serv )
 {
     int res;
+	
+    //监听listenfd事件，监听异步事件
     res = aeCreateFileEvent( serv->mainReactor->eventLoop,
 		serv->listenfd,
 		AE_READABLE,
 		onAcceptEvent,
 		NULL
 	);
+	
     printf( "Master Run pid=%d and listen socketfd=%d is ok? [%d]\n",getpid(),serv->listenfd,res==0 );
     printf( "Server start ok ,You can exit program by Ctrl+C !!! \n");
     aeMain( serv->mainReactor->eventLoop );
@@ -451,6 +463,22 @@ aeReactorThread getReactorThread( aeServer* serv, int i )
     return (aeReactorThread)(serv->reactorThreads[i]);
 }
 
+int randNumber( int min , int max )
+{
+        int number = ( rand() % ( max - min +1 ) ) + min;
+        return number;
+}
+
+int randTaskWorkerId()
+{
+   int min,max,wid,pipe_fd;
+   min = servG->workerNum;
+   max = servG->workerNum + servG->ataskWorkerNum - 1;
+   wid = randNumber( min , max  );
+  
+   return wid;
+}
+
 
 //read data body from pipe,
 void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
@@ -469,14 +497,42 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 		if( nread > 0 )
 		{
 			bodylen += nread;
-			//strcatlen function can extend space when current space not enough
-			if ( sdslen( servG->connlist[data.connfd].send_buffer) == 0 )
+			if( data.type == PIPE_EVENT_MESSAGE )
 			{
-				aeCreateFileEvent( el, data.connfd , AE_WRITABLE, onClientWritable, NULL );      
+				//strcatlen function can extend space when current space not enough
+				if ( sdslen( servG->connlist[data.connfd].send_buffer) == 0 )
+				{
+					aeCreateFileEvent( el, data.connfd , AE_WRITABLE, onClientWritable, NULL );      
+				}
+				//printf( "readBodyFromPipe fd=%d,header.len=%d,nread=%d \n" , data.connfd , data.len , nread );
+				servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );
 			}
-			//printf( "readBodyFromPipe fd=%d,header.len=%d,nread=%d \n" , data.connfd , data.len , nread );
-			servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );
-	 
+			else
+			{
+				asyncTask task;
+				memcpy( &task , read_buff , sizeof( asyncTask ) );
+				int worker_id = randTaskWorkerId();
+				if( task.to == 0 )
+				{
+					//task.to = servG->workers[wid].pipefd[0];
+					 
+				}
+
+				/*
+    				aeEventLoop* reactor_el = getThreadEventLoop( connfd );
+    				setPipeWritable( reactor_el , worker_id , connfd );
+    				//append
+    				pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
+    				servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , &data, PIPE_DATA_HEADER_LENG );
+    				if( len > 0 )
+    				{
+        				servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , buffer , len );
+    				}
+    				pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
+				*/
+
+				printf( "Recv Body params=%s,nread=%d,cb=%s,to fd=%d \n" , read_buff +sizeof( asyncTask ) , nread , task.cb , task.to );
+			}
 			//printf( "RecvFromPipe Need:[%d][%d]\n" , needlen , bodylen );
 			if( bodylen == data.len )
 			{
@@ -521,6 +577,11 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
                     readBodyFromPipe( el, fd , data );
                 }
             }
+	    else if( data.type == PIPE_EVENT_ATASK )
+	    {
+		printf( "Reactor Recv ATask,data.len=%d \n" , data.len );
+		readBodyFromPipe( el, fd , data );
+	    }
             else if( data.type == PIPE_EVENT_CLOSE )
             {
                 char prototype = servG->connlist[data.connfd].protoType;
@@ -605,16 +666,23 @@ void *reactorThreadRun(void *arg)
     serv->reactorThreads[thid].hh = (httpHeader*)malloc( sizeof( httpHeader ));   
     serv->reactorThreads[thid].hs = (handshake*)malloc( sizeof( handshake ));
 
-    int ret,i;
+	//线程0   0 3 6 9 12
+	//线程1   1 4 7 10 13
+	//线程2   2 5 8 11 14
+    int ret,i,index;
     for(  i = 0; i < serv->workerNum; i++ )
     {
-        if ( aeCreateFileEvent( el,serv->workers[i].pipefd[0],
+	//当个线程监听worker个pipe
+	index = i * serv->reactorNum + thid;
+	//printf( "Thread_id=%d,pipefd=%d \n" , thid , serv->worker_pipes[index].pipefd[0] );
+        if ( aeCreateFileEvent( el,serv->worker_pipes[index].pipefd[0],
                                 AE_READABLE,onMasterPipeReadable, thid  ) == -1 )
         {
             printf( "CreateFileEvent error fd "  );
-            close(serv->workers[i].pipefd[0]);
+            close(serv->worker_pipes[index].pipefd[0]);
         }
     }
+	
     aeSetBeforeSleepProc( el ,initThreadOnLoopStart );
     aeMain( el );
     aeDeleteEventLoop( el );
@@ -640,15 +708,28 @@ int socketSetBufferSize(int fd, int buffer_size)
 void createWorkerProcess( aeServer* serv )
 {
     char* neterr;
-    int ret,i;
-    for(  i = 0; i < serv->workerNum; i++ )
+    int ret,i,j,index;
+	int total_worker = serv->workerNum + serv->ataskWorkerNum;
+	
+    for(  i = 0; i < total_worker; i++ )
     {
         serv->workers[i].send_buffer = sdsempty();
         //init mutex
         pthread_mutex_init( &(serv->workers[i].r_mutex) ,NULL);
         pthread_mutex_init( &(serv->workers[i].w_mutex) ,NULL);
-        ret = socketpair( PF_UNIX, SOCK_STREAM, 0, serv->workers[i].pipefd );
-        assert( ret != -1 );
+		
+		//每个进程有与reactorNum个pipe,与不同的线程通信
+		for( j = 0; j < serv->reactorNum ; j++ )
+		{
+			index = i * serv->reactorNum + j;
+			ret = socketpair( PF_UNIX, SOCK_STREAM, 0, serv->worker_pipes[index].pipefd );
+			assert( ret != -1 );
+			//printf( "index=%d,pipe0=%d,pipe1=%d \n" , index,serv->worker_pipes[index].pipefd[0],serv->worker_pipes[index].pipefd[1]);
+		}
+	}
+
+for(  i = 0; i < total_worker; i++ )
+{	
         serv->workers[i].pid = fork();
         if( serv->workers[i].pid < 0 )
         {
@@ -657,22 +738,32 @@ void createWorkerProcess( aeServer* serv )
         else if( serv->workers[i].pid > 0 )
         {
             //parent
-            close( serv->workers[i].pipefd[1] );
-	    anetSetSendBuffer( neterr , serv->workers[i].pipefd[0] , SOCKET_SND_BUF_SIZE );
-            anetNonBlock( neterr , serv->workers[i].pipefd[0] );
+			for( j = 0; j < serv->reactorNum ; j++ )
+			{
+				index = i * serv->reactorNum + j;
+				close( serv->worker_pipes[index].pipefd[1] );
+				anetSetSendBuffer( neterr , serv->worker_pipes[index].pipefd[0] , SOCKET_SND_BUF_SIZE );
+				anetNonBlock( neterr , serv->worker_pipes[index].pipefd[0] );
+			}
             continue;
         }
         else
         {
             //child
-            close( serv->workers[i].pipefd[0] );
-            anetNonBlock( neterr, serv->workers[i].pipefd[1] );
-			anetSetSendBuffer( neterr , serv->workers[i].pipefd[1] , SOCKET_SND_BUF_SIZE );
-            runWorkerProcess( i , serv->workers[i].pipefd[1]  );
+			for( j = 0; j < serv->reactorNum ; j++ )
+			{
+				index = i * serv->reactorNum + j;
+				close( serv->worker_pipes[index].pipefd[0] );
+				anetNonBlock( neterr, serv->worker_pipes[index].pipefd[1] );
+				anetSetSendBuffer( neterr , serv->worker_pipes[index].pipefd[1] , SOCKET_SND_BUF_SIZE );
+			}
+            runWorkerProcess( i );
             exit( 0 );
         }
     }
 }
+
+
 void stopReactorThread( aeServer* serv  )
 {
     int i;
@@ -776,6 +867,14 @@ int setOption( char* key , char* val )
 	    }	   
 	    servG->workerNum = atoi( val );
 	}
+	else if( strcmp( key , OPT_ATASK_WORKER_NUM ) == 0 )
+	{
+	    if( atoi( val ) <  0 )
+	    {
+			return AE_FALSE;
+	    }	   
+	    servG->ataskWorkerNum = atoi( val );
+	}
 	else if( strcmp( key , OPT_REACTOR_NUM ) == 0 )
 	{
 	        if( atoi( val ) <= 0 )
@@ -869,7 +968,12 @@ void initServer(  aeServer* serv )
 {
     serv->connlist = shm_calloc( serv->maxConnect , sizeof( aeConnection ));
     serv->reactorThreads = zmalloc( serv->reactorNum * sizeof( aeReactorThread  ));
-    serv->workers = zmalloc( serv->workerNum * sizeof(aeWorkerProcess));
+    serv->workers = zmalloc( (serv->workerNum + serv->ataskWorkerNum ) * sizeof(aeWorkerProcess));
+	
+	serv->worker_pipes = zmalloc( (serv->workerNum + serv->ataskWorkerNum ) *  serv->reactorNum * sizeof(aeWorkerPipes));
+	
+
+    srand((unsigned) time(NULL));	
     serv->mainReactor = zmalloc( sizeof( aeReactor ));
     serv->mainReactor->eventLoop = aeCreateEventLoop( 10 );
     aeSetBeforeSleepProc( serv->mainReactor->eventLoop ,initOnLoopStart );
@@ -908,6 +1012,7 @@ aeServer* aeServerCreate( char* ip,int port )
     serv->connectNum = 0;
     serv->reactorNum = 1;
     serv->workerNum = 1;
+    serv->ataskWorkerNum = 1;
     serv->maxConnect = 1024;
     serv->exit_code = 0;
     serv->http_keep_alive = 1;
