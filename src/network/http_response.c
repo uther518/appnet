@@ -20,10 +20,16 @@ void http_response_static( httpHeader* reqHeader  )
 {
 	int thid = reqHeader->connfd % servG->reactorNum;
 	aeEventLoop *el = servG->reactorThreads[thid].reactor.eventLoop;
-	if ( aeCreateFileEvent( el, reqHeader->connfd , AE_WRITABLE , onRespWritable, reqHeader ) == -1)
+
+
+	httpHeader* header = malloc( sizeof(httpHeader) );
+	memcpy( header , reqHeader , sizeof( httpHeader ) );
+
+	if ( aeCreateFileEvent( el, reqHeader->connfd , AE_WRITABLE , onRespWritable, header ) == -1)
 	{
 		return;
 	}
+
 }
 
 void http_response_write( int connfd , char* buff , int len )
@@ -162,7 +168,7 @@ void http_redirect( httpHeader* reqHeader ,  char* uri )
 	header_out_t  header_out;
 	memset( &header_out , 0 , sizeof( header_out ));
 	header_out.req = reqHeader;
-    header_status_t  error_page = get_http_status( 301 );        //header append
+    	header_status_t  error_page = get_http_status( 301 );        //header append
 
 	create_common_header(  &header_out , 301 );
 	resp_append_header( &header_out , HEADER_LOCATION , uri );
@@ -262,23 +268,25 @@ void http_close( httpHeader* reqHeader )
 		aeConnection c  = servG->connlist[reqHeader->connfd];
 		freeClient( &c );
 	}
+	free( reqHeader );
 }
 
 //response static resource
 void http_response_static_proc( httpHeader* reqHeader )
 {
 	int len, cllen , ctlen ;
-	char path[1024];
+	char path[1024] = {0};
 	header_out_t  header_out;
 	memset( &header_out , 0 , sizeof( header_out ));
 	header_out.req = reqHeader;
-	
-    get_file_path( reqHeader->uri , path );
+
+    	get_file_path( reqHeader->uri , path );
 	struct stat stat_file;
-    int ret =  stat( path , &stat_file );
+    	int ret =  stat( path , &stat_file );
 	
 	if( ret < 0 )
 	{
+		//printf( "not found page=%s \n" , path );
 		resp_error_page( &header_out , 404 );
 	   	return;
 	}
@@ -294,7 +302,7 @@ void http_response_static_proc( httpHeader* reqHeader )
 		return;
 	}
 
-    int fd = open( path , O_RDONLY );
+    	int fd = open( path , O_RDONLY );
 	if( fd < 0 )
 	{
 	 	printf( "Open file Error:%s,errno=%d \n" , strerror(errno) , errno );
@@ -310,6 +318,7 @@ void http_response_static_proc( httpHeader* reqHeader )
 		   if(errno == EAGAIN)continue;
 		   if(errno == EINTR)break;
 		}
+		//printf( "Response uri=%s, connfd=%d,len=%d,send=%d \n", reqHeader->uri , reqHeader->connfd ,stat_file.st_size  , sendn );
 	}
 	close( fd );
 	http_close( reqHeader );

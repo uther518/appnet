@@ -443,6 +443,7 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
 		int ret;
 		header->complete_length = header->buffer_pos;
 		memset( header->mime_type , 0 , sizeof( header->mime_type ) );
+		
 		ret = get_mime_type( header->uri , header->mime_type );
 		if( ret == 1 )
 		{
@@ -450,16 +451,16 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
 			return BREAK_RECV;
 		}
 		
-        if( uri != NULL  )
-        {
+        	if( uri != NULL  )
+        	{
 			createHttpTask(  header->connfd  , buffer ,  header->buffer_pos ,uri+1 , strlen( uri) - 1 , 
 				PIPE_EVENT_MESSAGE , "parseGetRequest"  );
-        }
-        else
-        {
+        	}
+        	else
+        	{
 			createHttpTask(  header->connfd  , buffer ,  header->buffer_pos ,  "" , 0 , 
 				PIPE_EVENT_MESSAGE , "parseGetRequest empty data"  );	
-        }
+        	}
     }
     return BREAK_RECV;
 }
@@ -473,8 +474,10 @@ int httpRequestParse(  int connfd , sds buffer , int len  )
     memset( header , 0 , sizeof( header ));
     header->connfd = connfd;
     header->protocol = HTTP;
+    memset( &header->uri , 0 , sizeof( header->uri ));
 
     ret = httpHeaderParse( header , buffer , sdslen( buffer ) );
+    
     if( ret < AE_OK  )
     {
     	printf( "httpHeaderParse Error \n");
