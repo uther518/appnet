@@ -123,10 +123,15 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_server_set_option, 0, 0, 2 )
     ZEND_ARG_INFO(0, val )
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_server_add_task, 0, 0, 3 )
+ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_server_add_task, 0, 0, 2 )
     ZEND_ARG_INFO(0, arg )
-    ZEND_ARG_INFO(0, cb )
     ZEND_ARG_INFO(0, task_worker_id )
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_server_task_cb, 0, 0, 3 )
+    ZEND_ARG_INFO(0, data )
+    ZEND_ARG_INFO(0, taskid )
+    ZEND_ARG_INFO(0, to )
 ZEND_END_ARG_INFO()
 
 /* {{{ appnet_functions[]
@@ -148,7 +153,8 @@ const zend_function_entry appnet_functions[] = {
     PHP_ME(appnetServer,    timerRemove,   arginfo_appnet_server_timer_remove , ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer ,   setOption,     arginfo_appnet_server_set_option , ZEND_ACC_PUBLIC )
     PHP_ME(appnetServer,    getInfo,     NULL ,                 ZEND_ACC_PUBLIC )
-	PHP_ME(appnetServer,    addAsynTask,      arginfo_appnet_server_add_task , ZEND_ACC_PUBLIC )
+    PHP_ME(appnetServer,    addAsynTask,      arginfo_appnet_server_add_task , ZEND_ACC_PUBLIC )
+    PHP_ME(appnetServer,    taskCallback,     arginfo_appnet_server_task_cb , ZEND_ACC_PUBLIC )
 	{NULL, NULL, NULL} 
 };
 /* }}} */
@@ -198,6 +204,7 @@ PHP_MINIT_FUNCTION(appnet)
 	REGISTER_STRING_CONSTANT( "APPNET_EVENT_FINAL",  	APPNET_EVENT_FINAL, 	CONST_CS | CONST_PERSISTENT  );
     	REGISTER_STRING_CONSTANT( "APPNET_EVENT_TIMER",     	APPNET_EVENT_TIMER , 	CONST_CS | CONST_PERSISTENT );
 	REGISTER_STRING_CONSTANT( "APPNET_EVENT_TASK",     	APPNET_EVENT_TASK ,     CONST_CS | CONST_PERSISTENT );
+	REGISTER_STRING_CONSTANT( "APPNET_EVENT_TASK_CB",       APPNET_EVENT_TASK_CB ,  CONST_CS | CONST_PERSISTENT );
 
 	REGISTER_LONG_CONSTANT( "APPNET_PROTO_TCP_ONLY", 	PROTOCOL_TYPE_TCP_ONLY , CONST_CS | CONST_PERSISTENT  );
 	REGISTER_LONG_CONSTANT( "APPNET_PROTO_HTTP_ONLY", 	PROTOCOL_TYPE_HTTP_ONLY , CONST_CS | CONST_PERSISTENT  );

@@ -511,29 +511,40 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 			{
 				asyncTask task;
 				memcpy( &task , read_buff , sizeof( asyncTask ) );
+				//worker->task_worker
+				
+				//printf( "Master Recv task.from=%d,task.to=%d \n" , task.from ,task.to );
 
-				int worker_id  = task.to + servG->workerNum;
-							
-				int index = ( servG->workerNum + task.id%servG->reactorNum ) * servG->reactorNum + task.to; 
-    				if (sdslen( servG->workers[worker_id].send_buffer ) == 0  )
-    				{
-        				aeCreateFileEvent( el,
-		   			servG->worker_pipes[index].pipefd[0],
-		   			AE_WRITABLE,
-		   			onMasterPipeWritable, worker_id );
-    				}
-				//SendTaskWorker workerid=2,pipe_index=3,task pipefd=0,task.to=1 
-
+				int worker_id,index;
+				if( task.from < servG->workerNum )
+				{
+					worker_id  = task.to + servG->workerNum;	
+					index = worker_id * servG->reactorNum + task.id%servG->reactorNum;
+				}
+				else
+				{
+					//task_worker->worker
+					worker_id  = task.to;	
+					index = worker_id * servG->reactorNum + task.id%servG->reactorNum;
+				}
+				
+				if (sdslen( servG->workers[worker_id].send_buffer ) == 0  )
+				{
+					aeCreateFileEvent( el,
+					servG->worker_pipes[index].pipefd[0],
+					AE_WRITABLE,
+					onMasterPipeWritable, worker_id );
+				}
+				
 				//printf( "SendTaskWorker workerid=%d,pipe_index=%d,task pipefd=%d,task.to=%d \n" , 
 				//	worker_id , index, servG->worker_pipes[index].pipefd[0],task.to );
-    				//setPipeWritable( reactor_el , worker_id , connfd );
-    				//append
-    				pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
-    				servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , &data, PIPE_DATA_HEADER_LENG );
-        			servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , read_buff , nread );
-    				pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
 
-				//printf( "Recv Body params=%s,nread=%d,cb=%s,to fd=%d \n" , read_buff +sizeof( asyncTask ) , nread , task.cb , task.to );
+				pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
+				servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , &data, PIPE_DATA_HEADER_LENG );
+				servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , read_buff , nread );
+				pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
+
+				//printf( "Recv Body params=%s,nread=%d,to fd=%d \n" , read_buff +sizeof( asyncTask ) , nread , task.to );
 			}
 			//printf( "RecvFromPipe Need:[%d][%d]\n" , needlen , bodylen );
 			if( bodylen == data.len )

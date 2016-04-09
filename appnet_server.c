@@ -175,12 +175,12 @@ int onTimer( aeEventLoop *l, int id,void *data  )
 
 	if (call_user_function_ex(EG(function_table), NULL, callback  ,&retval, 3 , args , 0, NULL) == FAILURE )
 	{
-	 php_error_docref(NULL TSRMLS_CC, E_WARNING, "call_user_function_ex timer callback error");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "call_user_function_ex timer callback error");
 	}
 
 	if (EG(exception))
 	{
-	 php_error_docref(NULL, E_WARNING, "timer callback failed");
+		php_error_docref(NULL, E_WARNING, "timer callback failed");
 	}
 
 	zval_ptr_dtor(&zid);
@@ -188,7 +188,7 @@ int onTimer( aeEventLoop *l, int id,void *data  )
 	efree( args );
 	if ( &retval != NULL)
 	{
-	zval_ptr_dtor(&retval);
+		zval_ptr_dtor(&retval);
 	}
 
 	return timerArg->ts;
@@ -217,18 +217,16 @@ ZEND_METHOD( appnetServer , timerAdd )
 
 ZEND_METHOD( appnetServer , addAsynTask )
 {
-    char* cb;
-    size_t cb_len;
     long task_worker_id;
     size_t len;
     char* arg;
 	
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ssl",  &arg , &len , &cb , &cb_len ,&task_worker_id ) == FAILURE)
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sl",  &arg , &len ,&task_worker_id ) == FAILURE)
     {
         RETURN_FALSE;
     }
 	
-    addAsyncTask( arg , cb , task_worker_id );
+    addAsyncTask( arg , task_worker_id );
     RETURN_TRUE;
 }
 
@@ -293,7 +291,8 @@ ZEND_METHOD( appnetServer , on )
 	APPNET_EVENT_START,
 	APPNET_EVENT_FINAL,
         APPNET_EVENT_TIMER,
-	APPNET_EVENT_TASK
+	APPNET_EVENT_TASK,
+	APPNET_EVENT_TASK_CB
     };
 	
     for (i = 0; i < APPNET_SERVER_CALLBACK_NUM; i++)
@@ -323,57 +322,115 @@ static int appnet_set_callback(int key, zval* cb TSRMLS_DC)
     return AE_OK;
 }
 
+
+//task worker专用函数,用于回调工作进程
+ZEND_METHOD( appnetServer , taskCallback )
+{
+	char* data;
+	size_t data_len;
+	long to,taskid;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sll",  &data, &data_len, &taskid , &to ) == FAILURE)
+    {
+		RETURN_FALSE;
+    }
+	//$data , $taskid , $to, $callback 
+	taskCallback( data , data_len , taskid , to );
+	
+    RETURN_TRUE;
+}
+
 //data异步任务数据，
 //len异步任务数据长度，二进制安全
 //id任务id
 //from逻辑wokerid
 //callback回调函数
-void appnetServer_onTask( char* data , int len , int id , int from , char* callback )
+void appnetServer_onTask( char* data , int len , int id , int from  )
 {
-        aeServer* appserv = APPNET_G( appserv );
-        zval retval;
-        zval *args;
-        zval *zserv = (zval*)appserv->ptr2;
-        zval zdata;
-        zval zid;
+	aeServer* appserv = APPNET_G( appserv );
+	zval retval;
+	zval *args;
+	zval *zserv = (zval*)appserv->ptr2;
+	zval zdata;
+	zval zid;
 	zval zfrom;
-	zval zcb;
 
-        args = safe_emalloc(sizeof(zval),5, 0 );
+	args = safe_emalloc(sizeof(zval),4, 0 );
 
-        ZVAL_STRINGL( &zdata , data , len );
+	ZVAL_STRINGL( &zdata , data , len );
 	ZVAL_LONG( &zid , (long)id );
 	ZVAL_LONG( &zfrom , (long)from );
-	ZVAL_STRINGL( &zcb , callback , strlen( callback ));
 
-        ZVAL_COPY(&args[0], zserv  );
+	ZVAL_COPY(&args[0], zserv  );
 	ZVAL_COPY(&args[1], &zdata  );
-        ZVAL_COPY(&args[2], &zid  );
+	ZVAL_COPY(&args[2], &zid  );
 	ZVAL_COPY(&args[3], &zfrom  );
-	ZVAL_COPY(&args[4], &zcb  );
 
-        if (call_user_function_ex(EG(function_table), NULL, appnet_serv_callback[APPNET_SERVER_CB_onTask],
-			&retval, 5, args, 0, NULL) == FAILURE )
-        {
-                php_error_docref(NULL TSRMLS_CC, E_WARNING, "call_user_function_ex task error");
-        }
+	if (call_user_function_ex(EG(function_table), NULL, appnet_serv_callback[APPNET_SERVER_CB_onTask],
+		&retval, 4, args, 0, NULL) == FAILURE )
+	{
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "call_user_function_ex task error");
+	}
 
 	if (EG(exception))
-        {
-                php_error_docref(NULL, E_WARNING, "bind onTask callback failed");
-        }
+	{
+		php_error_docref(NULL, E_WARNING, "bind onTask callback failed");
+	}
 
-        zval_ptr_dtor(&zid);
-        zval_ptr_dtor(&zdata);
+	zval_ptr_dtor(&zid);
+	zval_ptr_dtor(&zdata);
 	zval_ptr_dtor(&zfrom);
-        zval_ptr_dtor(&zcb);
 
-        efree( args );
-        if ( &retval != NULL)
-        {
-        	zval_ptr_dtor(&retval);
-        }
+	efree( args );
+	if ( &retval != NULL)
+	{
+		zval_ptr_dtor(&retval);
+	}
+}
 
+
+
+void appnetServer_onTaskCallback( char* data , int len , int id , int from )
+{
+	aeServer* appserv = APPNET_G( appserv );
+	zval retval;
+	zval *args;
+	zval *zserv = (zval*)appserv->ptr2;
+	zval zdata;
+	zval zid;
+	zval zfrom;
+
+	args = safe_emalloc(sizeof(zval),4, 0 );
+
+	ZVAL_STRINGL( &zdata , data , len );
+	ZVAL_LONG( &zid , (long)id );
+	ZVAL_LONG( &zfrom , (long)from );
+
+	ZVAL_COPY(&args[0], zserv  );
+	ZVAL_COPY(&args[1], &zdata  );
+	ZVAL_COPY(&args[2], &zid  );
+	ZVAL_COPY(&args[3], &zfrom  );
+
+	if (call_user_function_ex(EG(function_table), NULL, appnet_serv_callback[APPNET_SERVER_CB_onTask_CB],
+		&retval, 4, args, 0, NULL) == FAILURE )
+	{
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "call_user_function_ex taskcallback error");
+	}
+
+	if (EG(exception))
+	{
+		php_error_docref(NULL, E_WARNING, "bind onTaskCB callback failed");
+	}
+
+	zval_ptr_dtor(&zid);
+	zval_ptr_dtor(&zdata);
+	zval_ptr_dtor(&zfrom);
+
+	efree( args );
+	if ( &retval != NULL)
+	{
+		zval_ptr_dtor(&retval);
+	}
 }
 
 
@@ -552,6 +609,7 @@ aeServer* appnetServInit( char* listen_ip , int port  )
 	serv->onStart =    	&appnetServer_onStart;
 	serv->onFinal =    	&appnetServer_onFinal;
 	serv->onTask = 		&appnetServer_onTask;
+	serv->onTaskCallback=   &appnetServer_onTaskCallback;
 	return serv;
 }
 

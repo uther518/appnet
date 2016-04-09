@@ -71,17 +71,60 @@ void timerAdd( int ms , void* cb , void* params  )
 }
 
 
+//异步任务进程回调
+int taskCallback( char* task_data , int data_len , int taskid , int to  )
+{
+	aePipeData data = {0};
+	data.type = PIPE_EVENT_ATASK;
+
+	asyncTask task;
+	task.id = taskid;
+	task.to = to;
+	task.from = servG->worker->pidx;
+
+	data.len = 0;
+	data.len += sizeof( asyncTask );
+	data.len += data_len;
+
+	int index;
+	int min = servG->worker->pidx * servG->reactorNum;
+	index = task.id%servG->reactorNum + min;
+
+	
+	 //printf( "TaskWorker Callback pidx=%d,task.id=%d,pipe_index=%d,pipefd=%d,task.to=%d \n" , servG->worker->pidx ,  task.id , index, 
+	//	servG->worker_pipes[index].pipefd[1],task.to
+	// );
+	
+
+	if( sdslen( servG->worker->send_buffer ) == 0 )
+	{
+		int ret;
+		ret = aeCreateFileEvent( servG->worker->el,servG->worker_pipes[index].pipefd[1] ,
+			AE_WRITABLE ,onWorkerPipeWritable,NULL );
+		if( ret == AE_ERR )
+		{
+		   printf( "Error aeCreateFileEvent..\n");
+		}
+	}
+	
+	appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
+	appendSendBuffer( &task , sizeof( asyncTask ) );
+	appendSendBuffer( task_data , data_len );
+
+	return AE_TRUE;
+}
+
+
 //这个callbackfunc地址要记好
-int addAsyncTask(  char* params , char* callbackfunc , int task_worker_id  )
+int addAsyncTask(  char* params ,  int task_worker_id  )
 {
 	aePipeData data = {0};
 	data.type = PIPE_EVENT_ATASK;
 
 	asyncTask task;
 	task.id = servG->worker->task_id+1;
-	task.to = task_worker_id-1;
+	task.to = task_worker_id;
 	task.from = servG->worker->pidx;
-	memcpy( &task.cb , callbackfunc , sizeof( task.cb ));
 
 	data.len = 0;
 	data.len += sizeof( asyncTask );
@@ -91,11 +134,13 @@ int addAsyncTask(  char* params , char* callbackfunc , int task_worker_id  )
 	int min = servG->worker->pidx * servG->reactorNum;
 	index = task.id%servG->reactorNum + min;
 
+	
 	/*
-	printf( "data=%s,callbackfunc=%s,task.id=%d,pipe_index=%d,pipefd=%d,task.to=%d \n" ,params , callbackfunc , task.id , index, 
+	printf( "data=%s,task.id=%d,pipe_index=%d,pipefd=%d,task.to=%d \n" ,params , task.id , index, 
 		servG->worker_pipes[index].pipefd[1],task.to
 	 );
 	*/
+
 
 	if( sdslen( servG->worker->send_buffer ) == 0 )
 	{
@@ -249,26 +294,32 @@ void readTaskFromPipe( int pipe_fd , aePipeData data )
     int readlen;
     if( data.len > 0 )
     {
-        char buff[TMP_BUFFER_LENGTH] = {0};
-        while( ( readlen = read( pipe_fd , buff , data.len ) ) > 0 )
-        {
-		if( readlen == data.len )
+        	char buff[TMP_BUFFER_LENGTH] = {0};
+        	while( ( readlen = read( pipe_fd , buff , data.len ) ) > 0 )
+        	{
+			if( readlen == data.len )
+			{
+				break;
+			}
+        	}
+		asyncTask task;
+		char param[1024] = {0};
+		memcpy( &task , buff , sizeof( asyncTask ) );
+		memcpy( &param, buff+sizeof( asyncTask ) , data.len-sizeof( asyncTask ) );		
+		
+		//printf( "readTaskFromPipe in task_worker_id=%d,task.id=%d,data.len=%d  \n" , servG->worker->pidx , task.id , data.len  );
+		if( servG->worker->pidx >= servG->workerNum  )
 		{
-			break;
+			//in task_worker,onTask
+			servG->onTask( param , data.len-sizeof( asyncTask ) , task.id  , task.from  );
 		}
-        }
-	asyncTask task;
-	char param[1024] = {0};
-	memcpy( &task , buff , sizeof( asyncTask ) );
-	memcpy( &param, buff+sizeof( asyncTask ) , data.len-sizeof( asyncTask ) );		
-	
-	//printf( "readTaskFromPipe in task_worker_id=%d,task.id=%d,task.cb=%s,data.len=%d  \n" , servG->worker->pidx , task.id , task.cb, data.len  );
-	if( servG->onTask )
-	{
-		servG->onTask( param , strlen( param ) , task.id  , task.from , task.cb );
-	}
+		else
+		{
+			//in worker,onTaskCallback
+			//printf( "readTaskFromPipe Callback data=%s \n" , param );
+			servG->onTaskCallback( param , data.len-sizeof( asyncTask ) , task.id  , task.from  );		
+		}
     }
-
 }
 
 void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
@@ -357,10 +408,10 @@ void onWorkerPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
         {
             readWorkerBodyFromPipe(  fd ,data );
         }
-	else if( data.type == PIPE_EVENT_ATASK )
-	{
-	    readTaskFromPipe( fd , data );
-	}
+		else if( data.type == PIPE_EVENT_ATASK )
+		{
+			readTaskFromPipe( fd , data );
+		}
         else if( data.type == PIPE_EVENT_CLOSE )
         {
             if( servG->onClose )
@@ -381,7 +432,7 @@ int sendCloseEventToReactor( int connfd  )
     data.type = PIPE_EVENT_CLOSE;
     data.connfd = connfd;
     data.len = 0;
-	int index = getPipeIndex( connfd );
+    int index = getPipeIndex( connfd );
 	
     if (sdslen( servG->worker->send_buffer ) == 0  )
     {

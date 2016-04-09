@@ -123,38 +123,41 @@ class Websocket
 			$serv->send( $msg['from'] , json_encode( $resMsg ) );
 		}
 
-			//$serv->close( $fd );
+		//$serv->close( $fd );
     }
 }
 
-//这里是异
-function onAsynTask( $server , $fd , $data )
-{
-	sleep( 2 );
-}
 
-function sendMailCallback( $server , $fd , $data )
+function onTaskCallback( $server , $data , $taskid , $from )
 {
-	echo "sendMailCallback ok and callback ok \n";
+	 $pid = posix_getpid();
+	 echo "onTaskCallback data=[{$data}],taskid=[{$taskid}],from=[{$from}],pid={$pid} \n";
 }
 
 function onConnect( $server , $fd )
 {
 	$pid = posix_getpid();
-        echo "Client Connect:{$fd} pid={$pid} \n"; 
+        echo "\n\nClient Connect:{$fd} pid={$pid} \n"; 
 }
 
 //在worker进程中，表示回调，在task进程中表示请求
-function onTask( $server, $data , $taskid, $from , $callback )
+function onTask( $server, $data , $taskid, $from )
 {
-	sleep( 10 );
-	echo "Task Worker Recv data=[{$data}],taskid=[{$taskid}],from=[{$from}],callback=[{$callback}] \n";	
+	$pid = posix_getpid();
+	echo "onTask data=[{$data}],taskid=[{$taskid}],from=[{$from}],pid={$pid} \n";	
+	//sleep( 3 );
+	$ret = array(
+	   'status' => 'ok',
+	   'data' => array( 'a' => "aaaa" ),
+	);
+	$server->taskCallback( json_encode( $ret ) , $taskid , $from  );
 }
 
 function onRecv( $server , $fd , $buffer )
 {
 	$header = $server->getHeader();
-	echo "Client Recv:[{$header['Protocol']}][{$header['Uri']}][{$buffer}][{$fd}] \n";	
+	 $pid = posix_getpid();
+	echo "Client Recv:[{$header['Protocol']}][{$header['Uri']}][{$buffer}][{$fd}],pid={$pid} \n";	
 
 	if( $header['Protocol'] == "WEBSOCKET" )
 	{
@@ -163,7 +166,7 @@ function onRecv( $server , $fd , $buffer )
 	elseif(  $header['Protocol'] == "HTTP"  )
     	{
 		$data  = $buffer;
-		$server->addAsynTask( $data , "sendMailCallback" , 1 );
+		$server->addAsynTask( $data , 1 );
 		
 		$server->setHeader( "Connection" , "keep-alive" );
 		$server->send( $fd , $data );	
@@ -211,10 +214,10 @@ function onTimerCallback( $server , $timer_id ,  $params )
 dl( "appnet.so");
 $server = new appnetServer( "0.0.0.0" , 3011 );
 
-$server->setOption( APPNET_OPT_WORKER_NUM , 1 );
-$server->setOption( APPNET_OPT_ATASK_WORKER_NUM , 1 );
+$server->setOption( APPNET_OPT_WORKER_NUM , 2 );
+$server->setOption( APPNET_OPT_ATASK_WORKER_NUM , 2 );
 
-$server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
+$server->setOption( APPNET_OPT_REACTOR_NUM, 2 );
 $server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
 $server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
 
@@ -230,6 +233,7 @@ $server->addEventListener( APPNET_EVENT_CLOSE ,   "onClose");
 $server->addEventListener( APPNET_EVENT_START ,   "onStart");
 $server->addEventListener( APPNET_EVENT_FINAL ,   "onFinal");
 $server->addEventListener( APPNET_EVENT_TASK ,    "onTask");
+$server->addEventListener( APPNET_EVENT_TASK_CB , "onTaskCallback" );
 $server->run();
 
 $info = $server->getInfo();
