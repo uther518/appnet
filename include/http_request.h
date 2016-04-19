@@ -29,15 +29,14 @@
 
 typedef struct
 {
-  char* str_pos;
-  int   str_len;
+  char* pos;
+  int   len;
 }headerString;
 
 typedef struct
 {
-	char key[64];
-	char value[1024];
-	int  buffer_pos;//这个域的开始位置在buffer中的偏移量
+	headerString key;
+	headerString val;
 }headerFiled;
 
 //会把一些长见的option例举在这里，如果没有的，可以去fileds里去找,提高访问效率。
@@ -53,8 +52,6 @@ typedef struct
 	char method[16];
 	char version[16];
 	char uri[AE_HTTP_HEADER_MAX_SIZE];
-	//..
-	
 }headerParams;
 
 enum
@@ -87,9 +84,11 @@ typedef struct
 	int  protocol;
 	int  major;
 	int  minor;
+	list* out;
+	
 	headerFiled fileds[20]; 
 	headerParams params;   //分析的结果结构体
-//	sds buffer;
+
 }httpHeader;
 
 

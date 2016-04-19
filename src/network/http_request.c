@@ -241,6 +241,8 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
 {
     char* ret;
     int value_len = 0;
+	char value[1024] = {0};
+	
     ret = findChar( ':' , org , len );
     if( ret == NULL )
     {
@@ -250,11 +252,19 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
         }
         //放在上一个域的值里
         //header->fileds[header->filed_nums-1].value.str_len += len;
-        memcpy( header->fileds[header->filed_nums-1].value , org , len   );
+        //memcpy( header->fileds[header->filed_nums-1].value , org , len   );
+		
+		header->fileds[header->filed_nums-1].val.pos = org;
+		header->fileds[header->filed_nums-1].val.len += len;
+		
         return AE_OK;
     }
     //org~ret :key   ret+1~org+len: value
-    memcpy(header->fileds[header->filed_nums].key , org ,  ret-org );
+    //memcpy( filed.key , org ,  ret-org );
+	
+	header->fileds[header->filed_nums].key.pos = org;
+	header->fileds[header->filed_nums].key.len = ret-org;
+	
     //Content-Length
     if( memcmp( org  , "Content-Length" ,  ret-org  ) == 0 )
     {
@@ -270,16 +280,22 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
     value_len = len - ( ret - org ) - 1;//:
     int eolen=0;
     eolen = getLeftEolLength( ret + 1 );
-    memcpy( header->fileds[header->filed_nums].value , ret+eolen+1  ,  value_len-eolen  );
+	
+
+	header->fileds[header->filed_nums].val.pos = ret+eolen+1;
+	header->fileds[header->filed_nums].val.len = value_len-eolen;
+	
+	memcpy( value  , ret+eolen+1  ,  value_len-eolen  );
+	
     if(  header->content_length == -2 )
     {
-        header->content_length = atoi( header->fileds[header->filed_nums].value );
+        header->content_length = atoi( value );
     }
 
 	if( memcmp( org  , "Connection" ,  ret-org  ) == 0 )
     {
 		header->keep_alive = 0;
-		if( strstr( header->fileds[header->filed_nums].value , "keep-alive" ))
+		if( strstr( value , "keep-alive" ))
 		{
 			header->keep_alive = 1;
 		}
@@ -288,16 +304,16 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
 	if( memcmp( org  , "Transfer-Encoding" ,  ret-org  ) == 0 )
     {
 		header->trunked = 0;
-		if( strstr( header->fileds[header->filed_nums].value , "chunked" ))
+		if( strstr( value , "chunked" ))
 		{
 			header->trunked = 1;
 		}
     }
 	
     char* mfd = "multipart/form-data";
-    if( memcmp( header->fileds[header->filed_nums].value , mfd ,  strlen( mfd )  ) == 0 )
+    if( memcmp( value , mfd ,  strlen( mfd )  ) == 0 )
     {
-		int pregs = sscanf( header->fileds[header->filed_nums].value + strlen( mfd )  , "%*[^=]=%s" , header->boundary  );		
+		int pregs = sscanf( value + strlen( mfd )  , "%*[^=]=%s" , header->boundary  );		
 			if( pregs == 1 )
 		{
 		   header->multipart_data = MULTIPART_TYPE_FORM_DATA;
@@ -312,12 +328,13 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
 static char* getHeaderParams(  httpHeader* header , char* pkey )
 {
     int i;
+	char key[64];
+	char val[1024];
     for( i = 0 ; i < header->filed_nums ; i++ )
     {
-        if( 1 ||  memcmp( header->fileds[i].key  , pkey , strlen( header->fileds[i].key ) ) == 0 )
-        {
-            printf( "key==[%s],value=[%s]\n" , header->fileds[i].key , header->fileds[i].value );
-        }
+		memcpy( key ,  memcmp( header->fileds[i].key.pos  , header->fileds[i].key.len );
+		memcpy( val ,  memcmp( header->fileds[i].val.pos  , header->fileds[i].val.len );
+        printf( "key==[%s],value=[%s]\n" , key , val );
     }
     return "";
 }

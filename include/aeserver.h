@@ -78,7 +78,7 @@ struct _aeReactor
 	int max_event_num;
 	int running :1;
 	void *object;
-    	void *ptr;  //reserve
+    void *ptr;  //reserve
 	aeEventLoop *eventLoop;
 	
 };
