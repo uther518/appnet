@@ -366,7 +366,8 @@ void parsePostRequest( httpHeader* header , sds buffer , int len  )
 	}
 	else
 	{
-		createWorkerTask(  header->connfd ,  buffer+header->buffer_pos , header->content_length , PIPE_EVENT_MESSAGE , "parsePostRequest" );
+		createHttpTask(  header->connfd  , buffer , header->buffer_pos , buffer+header->buffer_pos , header->content_length,
+			PIPE_EVENT_MESSAGE , "parsePostRequest"  );
 	}
 }
 
@@ -384,7 +385,7 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
         //判断包体是否完整
         //包的总长-包头 < content_length,半包
         //包的总长-包头 > content_length,粘包
-	if( header->content_length > 0 )
+		if( header->content_length > 0 )
         {
             //半包
             if(  sdslen( buffer ) - header->buffer_pos < header->content_length )
@@ -395,43 +396,45 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
             else
             {
                 header->complete_length = header->buffer_pos + header->content_length;
-		//parsePostRequest(  header , data  , header->content_length );   
-		parsePostRequest(  header , buffer , header->complete_length );
-                return BREAK_RECV;
+				//parsePostRequest(  header , data  , header->content_length );   
+				parsePostRequest(  header , buffer , header->complete_length );
+				return BREAK_RECV;
             }
         }
         else if( header->trunked == 1 )//trunk模式
         {
             	printf( "Http trunk body,Not Support ....\n" );
-		//parse_trunked_body( header , buffer );
+				//parse_trunked_body( header , buffer );
             	return BREAK_RECV;
         }
-	else
-	{
-		printf( "Bad Header,Unkown Length body \n" );
-            	return BREAK_RECV;
-	}
+		else
+		{
+				printf( "Bad Header,Unkown Length body \n" );
+				return BREAK_RECV;
+		}
     }
     else if( strncmp( header->method , "GET" , 3 ) == 0  )
     {
         char* uri;
         uri = strstr( header->uri , "?" );
-	int ret;
-	memset( header->mime_type , 0 , sizeof( header->mime_type ) );
-	ret = get_mime_type( header->uri , header->mime_type );
-	if( ret == 1 )
-	{
-		http_response_static( header );
-		return BREAK_RECV;
-	}
+		int ret;
+		memset( header->mime_type , 0 , sizeof( header->mime_type ) );
+		ret = get_mime_type( header->uri , header->mime_type );
+		if( ret == 1 )
+		{
+			http_response_static( header );
+			return BREAK_RECV;
+		}
 		
         if( uri != NULL  )
         {
-            createWorkerTask(  header->connfd , uri+1 , strlen( uri) - 1 , PIPE_EVENT_MESSAGE, "parseGetRequest" );
+			createHttpTask(  header->connfd  , buffer ,  header->buffer_pos ,uri+1 , strlen( uri) - 1 , 
+				PIPE_EVENT_MESSAGE , "parseGetRequest"  );
         }
         else
         {
-            createWorkerTask(  header->connfd , "",  0 , PIPE_EVENT_MESSAGE , "parseGetRequest empty data" );
+			createHttpTask(  header->connfd  , buffer ,  header->buffer_pos ,  "" , 0 , 
+				PIPE_EVENT_MESSAGE , "parseGetRequest empty data"  );	
         }
     }
     return BREAK_RECV;
@@ -670,7 +673,7 @@ static char*  binstrstr (const char * haystack, size_t hsize, const char* needle
 
 void parse_multipart_form( httpHeader* header , sds buffer , int len )
 {
-	char* buff = buffer;
+	char* buff = buffer + header->buffer_pos ;
 	int vlen;
     	char *crlf = 0 , *cl = 0;
 	char key[255] = {0};
@@ -694,13 +697,13 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 		memset( filepath , 0 , sizeof( filepath ));
 		if( pos + 2 >= header->content_length )break;
 
-		sscanf( buffer+pos,
+		sscanf( buff+pos,
 		"Content-Disposition: form-data; name=\"%255[^\"]\"; filename=\"%255[^\"]\"",
 		key, filepath );
 
 		filename = get_filename( filepath , strlen( filepath ));
 
-		crlf = strstr((char *) buffer+pos , AE_HEADER_END );
+		crlf = strstr((char *) buff+pos , AE_HEADER_END );
 		if( crlf == NULL)return;
 		//cl = strstr( crlf , sep );
 		cl = binstrstr( crlf, header->content_length - pos , sep , sep_len );
@@ -710,7 +713,7 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 			return;
 		}
 		vlen = cl - crlf;
-		pos += cl - ( buffer+pos ) + sep_len +2;
+		pos += cl - ( buff+pos ) + sep_len +2;
 		vlen -= strlen( "\r\n--" );   
 
 		if( strlen( filename) )
@@ -730,8 +733,10 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 			data = sdscat( data , "&" );
 		}
 	}
-	createWorkerTask(  header->connfd , data  , sdslen( data )  , PIPE_EVENT_MESSAGE, "parse_multipart_form" );
-//	printf( "data[%d][%s] \n" , sdslen( data ), data );
+
+	createHttpTask(  header->connfd  , buffer , header->buffer_pos , data  , sdslen( data ) , 
+		PIPE_EVENT_MESSAGE , "parse_multipart_form"  );
+	
 	sdsfree( data );
 }
 
@@ -742,7 +747,7 @@ void parse_multipart_data( httpHeader* header , sds buffer , int len )
 		printf( "multipart_data[%d][%d],content-length=%d \n" , 
 		header->buffer_pos, len , header->content_length  );
 		//	char boundary[64];
-		parse_multipart_form( header , buffer + header->buffer_pos , header->content_length );	
+		parse_multipart_form( header , buffer  , header->content_length );	
 	}
 	else
 	{

@@ -204,8 +204,6 @@ typedef struct _aePipeData
 	char type;
 	int len;
 	int connfd;
-	sds  data;
-	//char data[PIPE_DATA_LENG];
 }aePipeData;
 
 void initOnLoopStart(struct aeEventLoop *el);
@@ -252,6 +250,12 @@ void childTermHandler( int sig );
 void childChildHandler( int sig );
 void runWorkerProcess( int pidx ,int pipefd );
 void createWorkerTask(  int connfd , char* buffer , int len , int eventType , char* from );
+
+//http,websocket
+void createHttpTask(  int connfd , char* header ,  int header_len , char* body,  int body_len , 
+						int eventType , char* from );
+
+
 aeEventLoop* getThreadEventLoop( int connfd );
 
 int setHeader( char* key , char* val );

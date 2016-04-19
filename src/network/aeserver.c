@@ -102,6 +102,7 @@ void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask )
     }
 }
 
+//tcp或原始数据
 void createWorkerTask(  int connfd , char* buffer , int len , int eventType , char* from )
 {
     aePipeData  data = {0};
@@ -110,7 +111,7 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
     data.type = eventType;
     data.connfd = connfd;
 
-printf( "createWorkerTask from %s, connfd=%d \n" , from , data.connfd );
+	printf( "createWorkerTask from %s, connfd=%d \n" , from , data.connfd );
 
     datalen = PIPE_DATA_HEADER_LENG + data.len;
     aeEventLoop* reactor_el = getThreadEventLoop( connfd );
@@ -125,6 +126,37 @@ printf( "createWorkerTask from %s, connfd=%d \n" , from , data.connfd );
     }
     pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
 }
+
+//tcp或原始数据
+void createHttpTask(  int connfd , char* header ,  int header_len ,
+						 char* body,     int body_len , 
+						int eventType ,  char* from )
+{
+    aePipeData  data = {0};
+    unsigned int datalen;
+    data.len = header_len + body_len;
+    data.type = eventType;
+    data.connfd = connfd;
+
+	printf( "createHttpTask from %s, connfd=%d \n" , from , data.connfd );
+
+    datalen = PIPE_DATA_HEADER_LENG + data.len;
+    aeEventLoop* reactor_el = getThreadEventLoop( connfd );
+    int worker_id  = connfd % servG->workerNum;
+    setPipeWritable( reactor_el , worker_id , worker_id  );
+    //append
+    pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
+    servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , &data, PIPE_DATA_HEADER_LENG );
+    if( len > 0 )
+    {
+		servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , header, header_len );
+        servG->workers[worker_id].send_buffer = sdscatlen( servG->workers[worker_id].send_buffer , body, 	body_len );
+    }
+    pthread_mutex_unlock( &servG->workers[worker_id].w_mutex );
+}
+
+
+
 
 int parseRequestMessage( int connfd , sds buffer , int len )
 {
