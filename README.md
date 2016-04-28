@@ -9,9 +9,6 @@
 <li>内存优化，进程间通信使用共享内存，兼容jemalloc和tcmalloc内存优化技术。</li>
 <li>缓冲区优化，采用redis的动态缓冲区，根据数据包大小自动扩充，有效避免内存浪费和缓冲区溢出,其内存预分配策略降低了内存分配次数。从而提高内存分配效率。</li>
 <li>异步任务，耗时的任务可以投递到单独的任务进程异步处理，工作进程无需等待。</li>
-
-
-
 </ul>
 <p><br />安装方法:<br />1,源码安装php_7.0.x<br />2,下载扩展到任意目录appnet_php7<br />3,执行如下指令:<br />&nbsp;&gt;cd appnet_php7<br />&nbsp;&gt;/usr/local/php7/bin/phpize<br />&nbsp;&gt;./configure --with-php-config=/usr/local/php7/bin/php-config<br />&nbsp;&gt;make<br />&nbsp;&gt;make install<br />&nbsp;&gt;php test/test.php<br />&nbsp;&gt;telnet 127.0.0.1 3011<br />&nbsp;开始测试吧。</p>
 <div class="cnblogs_code">
@@ -34,18 +31,7 @@
 <p>//on worker shutdown,you must save data in last time.<br />function onFinal( $server  )<br />{<br />	　　$pid = posix_getpid();<br />        　　echo "On Worker Final!! pid={$pid} \n";<br />};</p>
 <pre></pre>
 <p>function onTimerCallback( $server , $timer_id , $params )<br />{<br />	　　$pid = posix_getpid();<br />	　　echo "onTimerCallback  ok,worker pid={$pid},timer_id={$timer_id}...\n";<br />	　　//if do not remove it, it will be call this function forever	<br />	　　$server-&gt;timerRemove( $timer_id );		<br />}</p>
-<pre></pre>
-<p><br />dl( "appnet.so");<br />$server = new appnetServer( "0.0.0.0" , 3011 );</p>
-<pre></pre>
-<p>$server-&gt;setOption( APPNET_OPT_WORKER_NUM , 2 );<br />$server-&gt;setOption( APPNET_OPT_ATASK_WORKER_NUM , 2 );</p>
-<pre></pre>
-<p>$server-&gt;setOption( APPNET_OPT_REACTOR_NUM, 2 );<br />$server-&gt;setOption( APPNET_OPT_MAX_CONNECTION , 10000 );<br />$server-&gt;setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );</p>
-<pre></pre>
-<p>$server-&gt;setOption( APPNET_HTTP_DOCS_ROOT , $_SERVER['PWD']."/example/www/" );<br />$server-&gt;setOption( APPNET_HTTP_UPLOAD_DIR, "/home/upload/"  );<br />$server-&gt;setOption( APPNET_HTTP_404_PAGE , "404.html" );<br />$server-&gt;setOption( APPNET_HTTP_50X_PAGE , "50x.html" );<br />$server-&gt;setOption( APPNET_HTTP_KEEP_ALIVE , 1 );</p>
-<pre></pre>
-<p>$server-&gt;addEventListener( APPNET_EVENT_CONNECT , "onConnect");<br />$server-&gt;addEventListener( APPNET_EVENT_RECV ,    "onRecv");<br />$server-&gt;addEventListener( APPNET_EVENT_CLOSE ,   "onClose");<br />$server-&gt;addEventListener( APPNET_EVENT_START ,   "onStart");<br />$server-&gt;addEventListener( APPNET_EVENT_FINAL ,   "onFinal");<br />$server-&gt;addEventListener( APPNET_EVENT_TASK ,    "onTask");<br />$server-&gt;addEventListener( APPNET_EVENT_TASK_CB , "onTaskCallback" );<br />$server-&gt;run();</p>
-<pre></pre>
-<p>$info = $server-&gt;getInfo();</p>
+<p>dl( "appnet.so");<br />$server = new appnetServer( "0.0.0.0" , 3011 );<br />$server-&gt;setOption( APPNET_OPT_WORKER_NUM , 2 );<br />$server-&gt;setOption( APPNET_OPT_ATASK_WORKER_NUM , 2 );<br />$server-&gt;setOption( APPNET_OPT_REACTOR_NUM, 2 );<br />$server-&gt;setOption( APPNET_OPT_MAX_CONNECTION , 10000 );<br />$server-&gt;setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );<br />$server-&gt;setOption( APPNET_HTTP_DOCS_ROOT , $_SERVER['PWD']."/example/www/" );<br />$server-&gt;setOption( APPNET_HTTP_UPLOAD_DIR, "/home/upload/"  );<br />$server-&gt;setOption( APPNET_HTTP_404_PAGE , "404.html" );<br />$server-&gt;setOption( APPNET_HTTP_50X_PAGE , "50x.html" );<br />$server-&gt;setOption( APPNET_HTTP_KEEP_ALIVE , 1 );<br />//注册网络事件回调函数<br />$server-&gt;addEventListener( APPNET_EVENT_CONNECT , "onConnect");<br />$server-&gt;addEventListener( APPNET_EVENT_RECV ,    "onRecv");<br />$server-&gt;addEventListener( APPNET_EVENT_CLOSE ,   "onClose");<br />$server-&gt;addEventListener( APPNET_EVENT_START ,   "onStart");<br />$server-&gt;addEventListener( APPNET_EVENT_FINAL ,   "onFinal");<br />$server-&gt;addEventListener( APPNET_EVENT_TASK ,    "onTask");<br />$server-&gt;addEventListener( APPNET_EVENT_TASK_CB , "onTaskCallback" );<br />$server-&gt;run();</p>
 <p><span style="line-height: 1.5;">?&gt;</span></p>
 </div>
 <p>&nbsp;完整示例参见:<a href="https://github.com/lchb369/appnet_php7/blob/master/example/server.php" target="_blank">https://github.com/lchb369/appnet_php7/blob/master/example/server.php</a></p>
