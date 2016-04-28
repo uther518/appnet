@@ -35,8 +35,7 @@ function onConnect( $server , $fd )
 　　$pid </span>=<span style="color: #000000;"> posix_getpid();
 　　echo </span><span style="color: #800000;">"</span><span style="color: #800000;">\n\nClient Connect:{$fd} pid={$pid} \n</span><span style="color: #800000;">"</span><span style="color: #000000;">; 
 }
-
-</span><span style="color: #008000;">//</span><span style="color: #008000;">在worker进程中，表示回调，在task进程中表示请求</span>
+</span>
 function onTask( $server, $data , $taskid, $<span style="color: #0000ff;">from</span><span style="color: #000000;"> )
 {
 　　$pid </span>=<span style="color: #000000;"> posix_getpid();
