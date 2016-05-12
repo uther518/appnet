@@ -21,6 +21,7 @@
 //master event loop
 void initOnLoopStart(struct aeEventLoop *el)
 {
+
 }
 
 int getPipeIndex( int connfd )
@@ -1013,6 +1014,8 @@ int startServer( aeServer* serv )
     runMainReactor( serv );
 
     destroyServer( serv );
+
+    __SLEEP_WAIT__;
     return 0;
 }
 

@@ -17,6 +17,10 @@ PHP_ARG_ENABLE(appnet, whether to enable appnet support,
 dnl Make sure that the comment is aligned:
 [  --enable-appnet           Enable appnet support])
 
+if test -z "$PHP_DEBUG" ; then 
+	AC_ARG_ENABLE(debug, [--enable-debug compile with debugging system], [PHP_DEBUG=$enableval],[PHP_DEBUG=no] ) 
+fi 
+
 AC_MSG_CHECKING([if compiling with clang])
 AC_COMPILE_IFELSE([
     AC_LANG_PROGRAM([], [[

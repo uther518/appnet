@@ -57,12 +57,8 @@ typedef struct _aeConnection
   char disable; 
   char* client_ip;
   int client_port;
-//  handshake hs; //websocket握手数据
-//  httpHeader hh; //http/websocket header
   sds send_buffer; //send to client
   sds recv_buffer; //recv from client
-  
-//  aeEventLoop *el;
   char protoType;
 }aeConnection;
 
@@ -79,7 +75,7 @@ struct _aeReactor
 	int max_event_num;
 	int running :1;
 	void *object;
-    void *ptr;  //reserve
+    	void *ptr;
 	aeEventLoop *eventLoop;
 	
 };
@@ -118,7 +114,7 @@ typedef struct _aeWorker
 	sds send_buffer;	//send to master pipe
 	sds recv_buffer;	//recv from master pipe
 	sds response;		//response
-	sds header;			//header buffer
+	dict* resp_header;
 	httpHeader req_header;
 }aeWorker;
 
@@ -275,18 +271,16 @@ void childTermHandler( int sig );
 void childChildHandler( int sig );
 void runWorkerProcess( int pidx );
 void createWorkerTask(  int connfd , char* buffer , int len , int eventType , char* from );
-
-//http,websocket
-void createHttpTask(  int connfd , char* header ,  int header_len , char* body,  int body_len , 
-						int eventType , char* from );
+void createHttpTask(  int connfd , char* header ,  int header_len , char* body,  int body_len , int eventType , char* from );
 aeEventLoop* getThreadEventLoop( int connfd );
-
 int setHeader( char* key , char* val );
 int setOption( char* key , char* val );
 void timerAdd( int ms , void* cb , void* params  );
-//void testsds( char* str );
-aeServer*  servG;
+void resetRespHeader( dict* resp_header );
+sds getRespHeaderString( sds header );
+int setRespHeader( char* key , char* val );
 
+aeServer*  servG;
 int getPipeIndex( int connfd );
 
 #endif
