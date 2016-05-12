@@ -213,6 +213,7 @@ int sendMessageToReactor( int connfd , char* buff , int len )
 	data.type = PIPE_EVENT_MESSAGE;
 	data.len = len;
 	data.connfd = connfd;
+	//printf( "sendMessage connfd=%d \n" , connfd );
 	int writeable = 0;
 	if (sdslen( servG->worker->send_buffer ) == 0  )
 	{

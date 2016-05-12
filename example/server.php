@@ -166,9 +166,9 @@ function onRecv( $server , $fd , $buffer )
 	elseif(  $header['Protocol'] == "HTTP"  )
     	{
 		$data  = $buffer;
-		$server->addAsynTask( $data , 1 );
-		
-		$server->setHeader( "Connection" , "keep-alive" );
+		$data .= microtime();
+	//	$server->addAsynTask( $data , 1 );	
+	//	$server->setHeader( "Connection" , "keep-alive" );
 		$server->send( $fd , $data );	
 	}
 	else
@@ -214,10 +214,10 @@ function onTimerCallback( $server , $timer_id ,  $params )
 dl( "appnet.so");
 $server = new appnetServer( "0.0.0.0" , 3011 );
 
-$server->setOption( APPNET_OPT_WORKER_NUM , 1 );
+$server->setOption( APPNET_OPT_WORKER_NUM , 2 );
 $server->setOption( APPNET_OPT_ATASK_WORKER_NUM , 2 );
 
-$server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
+$server->setOption( APPNET_OPT_REACTOR_NUM, 2 );
 $server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
 $server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
 

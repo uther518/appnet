@@ -78,6 +78,7 @@ void onCloseByClient(  aeEventLoop *el, void *privdata , aeServer* serv , aeConn
 //else if send over in one write(), writable event will be remove
 void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask )
 {
+    //printf( "onClientWritable:fd=%d \n" , fd );
     ssize_t nwritten;
     if( servG->connlist[fd].disable == 1 )
     {
@@ -90,6 +91,7 @@ void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask )
         return;
     }
     nwritten = write( fd, servG->connlist[fd].send_buffer, sdslen(servG->connlist[fd].send_buffer));
+    //printf( "onClientWritable:fd=%d,nwritten=%d,data=[%s] \n" , fd , nwritten,servG->connlist[fd].send_buffer );
     if (nwritten <= 0)
     {
         printf( "I/O error writing to client: %s", strerror(errno));
@@ -511,6 +513,7 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 					if( ret == AE_ERR )
 					{
 						printf( "setPipeWritable_error %s:%d \n" , __FILE__ , __LINE__ );
+						return;
 					}
 				}
 				//printf( "readBodyFromPipe fd=%d,header.len=%d,nread=%d \n" , data.connfd , data.len , nread );
@@ -589,7 +592,7 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
    
     while(  ( readlen = read( fd, &data , PIPE_DATA_HEADER_LENG ) ) > 0 )
     {
-	//printf( "onMasterPipeReadable len=%d,fd=%d \n" , readlen , data.connfd );
+	printf( "onMasterPipeReadable len=%d,fd=%d \n" , readlen , data.connfd );
         if( readlen == 0 )
         {
             close( fd );
