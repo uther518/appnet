@@ -134,14 +134,11 @@ int addAsyncTask(  char* params ,  int task_worker_id  )
 	int min = servG->worker->pidx * servG->reactorNum;
 	index = task.id%servG->reactorNum + min;
 
-	
 	/*
 	printf( "data=%s,task.id=%d,pipe_index=%d,pipefd=%d,task.to=%d \n" ,params , task.id , index, 
 		servG->worker_pipes[index].pipefd[1],task.to
 	 );
 	*/
-
-
 	if( sdslen( servG->worker->send_buffer ) == 0 )
 	{
 		int ret;
@@ -186,159 +183,154 @@ int createResponse( int connfd , char* buff , int len , char prototype , sds res
 		char content_length[64];
 		int clen;
 		clen = sprintf( content_length , "Content-Length: %d\r\n" , len );	
-
 		response = sdscat( response , "HTTP/1.1 200 OK \r\n" );
 		response = sdscat( response , "Server: appnet/1.1.0\r\n" );
 		response = sdscatlen( response , content_length , clen );
-
 		response = getRespHeaderString( response );		
-
 		response = sdscat( response , "\r\n" );
-		//printf( "Response:[%d][%s] \n" , sdslen( response ) , response );
 		servG->worker->response = sdscatlen( response ,  buff , len );
-			
 		resetRespHeader( servG->worker->resp_header );
 		return sdslen( servG->worker->response );
-	    }
-	    else
-	    {
+	}
+	else
+	{
 		size_t outlen = BUF_LEN;
 		uint8_t res[BUF_LEN];
 		wsMakeFrame( buff ,  len , res , &outlen , WS_TEXT_FRAME );
 		sdscatlen( servG->worker->response , res , outlen );
 		return outlen;
-	    }
 	}
+}
 
-	//如果不是tcp协议，要单独处理
-	int sendMessageToReactor( int connfd , char* buff , int len )
+//如果不是tcp协议，要单独处理
+int sendMessageToReactor( int connfd , char* buff , int len )
+{
+	if( isValidConnfd( connfd ) == AE_FALSE )
 	{
-	    if( isValidConnfd( connfd ) == AE_FALSE )
-	    {
 		return -1;
-	    }
-	    aePipeData data;
-	    data.type = PIPE_EVENT_MESSAGE;
-	    data.len = len;
-	    data.connfd = connfd;
-	    int writeable = 0;
-	    if (sdslen( servG->worker->send_buffer ) == 0  )
-	    {
+	}
+	aePipeData data;
+	data.type = PIPE_EVENT_MESSAGE;
+	data.len = len;
+	data.connfd = connfd;
+	int writeable = 0;
+	if (sdslen( servG->worker->send_buffer ) == 0  )
+	{
 		writeable = 1;
-	    }
-
-	    //append data
-	    if( len >= 0 )
-	    {
-			//if proto is http or websocket, need compose response data ,else direct send origin data
-			if( servG->connlist[connfd].protoType != TCP )
-			{
-				char prototype = servG->connlist[connfd].protoType;
-				int retlen;
-				//buffer...
-				retlen = createResponse(  connfd , buff , len , prototype , servG->worker->response  );
-				if( retlen < 0 )
-				{
-				   printf( "CreateResponse Error \n");
-				   return;
-				}
-				
-				if( sdslen( servG->worker->response ) != retlen )
-				{
-				   printf( "createResponse Error sdslen=%d \n" , sdslen( servG->worker->response ) );
-				   return;
-				}
-
-				data.len = retlen;
-				appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
-				appendSendBuffer(  servG->worker->response , retlen );
-				sdsclear( servG->worker->response );
-			}
-			else
-			{
-				appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
-				appendSendBuffer(  buff , len );
-			}
-
-			
-			if( writeable > 0 ||  data.len+PIPE_DATA_HEADER_LENG  == sdslen( servG->worker->send_buffer ) )
-			{
-				int ret;
-				int index = getPipeIndex( connfd );
-				ret = aeCreateFileEvent( servG->worker->el,servG->worker_pipes[index].pipefd[1] , AE_WRITABLE ,onWorkerPipeWritable,NULL );
-				if( ret == AE_ERR )
-				{
-				   printf( "Error aeCreateFileEvent..\n");
-				}
-			}
-			
-	    }
-	    return len;
-	}
-	void callUserRecvFunc( int connfd , sds buffer , int length )
-	{
-	    if( servG->onRecv )
-	    {
-		//将真实数据返回，去除包头
-		//如果一个请求是多个包发送过来的，会有问题吗
-		servG->onRecv( servG , &servG->connlist[connfd] , buffer , length  );
-	    }
 	}
 
-	void readTaskFromPipe( int pipe_fd , aePipeData data )
+	//append data
+	if( len >= 0 )
 	{
-	    int readlen;
-	    if( data.len > 0 )
-	    {
-			char buff[TMP_BUFFER_LENGTH] = {0};
-			while( ( readlen = read( pipe_fd , buff , data.len ) ) > 0 )
+		//if proto is http or websocket, need compose response data ,else direct send origin data
+		if( servG->connlist[connfd].protoType != TCP )
+		{
+			char prototype = servG->connlist[connfd].protoType;
+			int retlen;
+			//buffer...
+			retlen = createResponse(  connfd , buff , len , prototype , servG->worker->response  );
+			if( retlen < 0 )
 			{
-				if( readlen == data.len )
-				{
-					break;
-				}
+			   printf( "CreateResponse Error \n");
+			   return;
 			}
-			asyncTask task;
-			char param[1024] = {0};
-			memcpy( &task , buff , sizeof( asyncTask ) );
-			memcpy( &param, buff+sizeof( asyncTask ) , data.len-sizeof( asyncTask ) );		
 			
-			//printf( "readTaskFromPipe in task_worker_id=%d,task.id=%d,data.len=%d  \n" , servG->worker->pidx , task.id , data.len  );
-			if( servG->worker->pidx >= servG->workerNum  )
+			if( sdslen( servG->worker->response ) != retlen )
 			{
-				//in task_worker,onTask
-				servG->onTask( param , data.len-sizeof( asyncTask ) , task.id  , task.from  );
+			   printf( "createResponse Error sdslen=%d \n" , sdslen( servG->worker->response ) );
+			   return;
 			}
-			else
-			{
-				//in worker,onTaskCallback
-				//printf( "readTaskFromPipe Callback data=%s \n" , param );
-				servG->onTaskCallback( param , data.len-sizeof( asyncTask ) , task.id  , task.from  );		
-			}
-	    }
-	}
 
-	void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
+			data.len = retlen;
+			appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
+			appendSendBuffer(  servG->worker->response , retlen );
+			sdsclear( servG->worker->response );
+		}
+		else
+		{
+			appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
+			appendSendBuffer(  buff , len );
+		}
+
+		
+		if( writeable > 0 ||  data.len+PIPE_DATA_HEADER_LENG  == sdslen( servG->worker->send_buffer ) )
+		{
+			int ret;
+			int index = getPipeIndex( connfd );
+			ret = aeCreateFileEvent( servG->worker->el,servG->worker_pipes[index].pipefd[1] , AE_WRITABLE ,onWorkerPipeWritable,NULL );
+			if( ret == AE_ERR )
+			{
+			   printf( "Error aeCreateFileEvent..\n");
+			}
+		}
+		
+	}
+	return len;
+}
+void callUserRecvFunc( int connfd , sds buffer , int length )
+{
+	if( servG->onRecv )
 	{
-	    int pos = PIPE_DATA_HEADER_LENG;
-	    int readlen = 0;
-	    int needlen = ( data.len > PIPE_DATA_LENG ) ? PIPE_DATA_LENG : data.len;
-	    int bodylen = 0;
-	    int readTotal = 0;
-	    int ret;
-	    if( data.len > 0 )
-	    {
+	//将真实数据返回，去除包头
+	//如果一个请求是多个包发送过来的，会有问题吗
+	servG->onRecv( servG , &servG->connlist[connfd] , buffer , length  );
+	}
+}
+
+void readTaskFromPipe( int pipe_fd , aePipeData data )
+{
+	int readlen;
+	if( data.len > 0 )
+	{
+		char buff[TMP_BUFFER_LENGTH] = {0};
+		while( ( readlen = read( pipe_fd , buff , data.len ) ) > 0 )
+		{
+			if( readlen == data.len )
+			{
+				break;
+			}
+		}
+		asyncTask task;
+		char param[1024] = {0};
+		memcpy( &task , buff , sizeof( asyncTask ) );
+		memcpy( &param, buff+sizeof( asyncTask ) , data.len-sizeof( asyncTask ) );		
+		
+		//printf( "readTaskFromPipe in task_worker_id=%d,task.id=%d,data.len=%d  \n" , servG->worker->pidx , task.id , data.len  );
+		if( servG->worker->pidx >= servG->workerNum  )
+		{
+			//in task_worker,onTask
+			servG->onTask( param , data.len-sizeof( asyncTask ) , task.id  , task.from  );
+		}
+		else
+		{
+			//in worker,onTaskCallback
+			//printf( "readTaskFromPipe Callback data=%s \n" , param );
+			servG->onTaskCallback( param , data.len-sizeof( asyncTask ) , task.id  , task.from  );		
+		}
+	}
+}
+
+void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
+{
+	int pos = PIPE_DATA_HEADER_LENG;
+	int readlen = 0;
+	int needlen = ( data.len > PIPE_DATA_LENG ) ? PIPE_DATA_LENG : data.len;
+	int bodylen = 0;
+	int readTotal = 0;
+	int ret;
+	if( data.len > 0 )
+	{
 		data.data = sdsempty();
 		char buff[TMP_BUFFER_LENGTH];
 		while( ( readlen = read( pipe_fd , buff , sizeof( buff ) ) ) > 0 )
 		{
-		    data.data = sdscatlen( data.data , buff , readlen  );
-		    bodylen += readlen;
+			data.data = sdscatlen( data.data , buff , readlen  );
+			bodylen += readlen;
 		}
-	    }
+	}
 
-	    if( servG->connlist[data.connfd].protoType == HTTP )
-	    {
+	if( servG->connlist[data.connfd].protoType == HTTP )
+	{
 		//printf( "header_len=%d,len=%d \n" , data.header_len , data.len );
 		httpHeader* header =  &servG->worker->req_header;
 		memset( header , 0 , sizeof( header ));
@@ -351,278 +343,274 @@ int createResponse( int connfd , char* buff , int len , char prototype , sds res
 		}	
 		//getHeaderParams( header , " " );	
 		callUserRecvFunc( data.connfd , data.data+data.header_len , data.len - data.header_len );
-	    }
-	    else
-	    {
-		callUserRecvFunc( data.connfd , data.data , bodylen );
-	    }
 	}
-
-	void onWorkerPipeWritable( aeEventLoop *el, int fd, void *privdata, int mask )
+	else
 	{
-	    ssize_t nwritten;
-	    nwritten = write( fd, servG->worker->send_buffer, sdslen(servG->worker->send_buffer));
-	    if (nwritten <= 0)
-	    {
+		callUserRecvFunc( data.connfd , data.data , bodylen );
+	}
+}
+
+void onWorkerPipeWritable( aeEventLoop *el, int fd, void *privdata, int mask )
+{
+	ssize_t nwritten;
+	nwritten = write( fd, servG->worker->send_buffer, sdslen(servG->worker->send_buffer));
+	if (nwritten <= 0)
+	{
 		printf( "Worker I/O error writing to worker: %s \n", strerror(errno));
 		//退出吗，自杀..
 		return;
-	    }
-	    //offset
-	    sdsrange(servG->worker->send_buffer,nwritten,-1);
-	    ///if send_buffer no data need send, remove writable event
-	    if (sdslen(servG->worker->send_buffer) == 0)
-	    {
-		aeDeleteFileEvent( el, fd, AE_WRITABLE);
-	    }
 	}
-
-	void onWorkerPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
+	//offset
+	sdsrange(servG->worker->send_buffer,nwritten,-1);
+	///if send_buffer no data need send, remove writable event
+	if (sdslen(servG->worker->send_buffer) == 0)
 	{
-	    aePipeData data;
-	    int readlen =0;
-	    //此处如果要把数据读取到大于包长的缓冲区中，不要用anetRead，否则就掉坑里了
-	   
-	    readlen = read(fd, &data , PIPE_DATA_HEADER_LENG );
-	    if( readlen == 0 )
-	    {
+		aeDeleteFileEvent( el, fd, AE_WRITABLE);
+	}
+}
+
+void onWorkerPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
+{
+	aePipeData data;
+	int readlen =0;
+	//此处如果要把数据读取到大于包长的缓冲区中，不要用anetRead，否则就掉坑里了
+   
+	readlen = read(fd, &data , PIPE_DATA_HEADER_LENG );
+	if( readlen == 0 )
+	{
 		close( fd );
-	    }
-	    else if( readlen == PIPE_DATA_HEADER_LENG )
-	    {
+	}
+	else if( readlen == PIPE_DATA_HEADER_LENG )
+	{
 		servG->worker->connfd = data.connfd;
-	  
 		//connect,read,close
 		if( data.type == PIPE_EVENT_CONNECT )
 		{
-		    if( servG->onConnect )
-		    {
-			servG->onConnect( servG , data.connfd );
-		    }
+			if( servG->onConnect )
+			{
+				servG->onConnect( servG , data.connfd );
+			}
 		}
 		else if( data.type == PIPE_EVENT_MESSAGE )
 		{
-		    readWorkerBodyFromPipe(  fd ,data );
+			readWorkerBodyFromPipe(  fd ,data );
 		}
-			else if( data.type == PIPE_EVENT_ATASK )
-			{
-				readTaskFromPipe( fd , data );
-			}
+		else if( data.type == PIPE_EVENT_ATASK )
+		{
+			readTaskFromPipe( fd , data );
+		}
 		else if( data.type == PIPE_EVENT_CLOSE )
 		{
-		    if( servG->onClose )
-		    {
-			servG->onClose( servG , &servG->connlist[data.connfd] );
-		    }
+			if( servG->onClose )
+			{
+				servG->onClose( servG , &servG->connlist[data.connfd] );
+			}
 		}
 		else
 		{
-		    printf( "recvFromPipe recv unkown data.type=%d" , data.type );
+			printf( "recvFromPipe recv unkown data.type=%d" , data.type );
 		}
-	    }
 	}
+}
 
-	int sendCloseEventToReactor( int connfd  )
+int sendCloseEventToReactor( int connfd  )
+{
+	aePipeData data;
+	data.type = PIPE_EVENT_CLOSE;
+	data.connfd = connfd;
+	data.len = 0;
+	int index = getPipeIndex( connfd );
+	
+	if (sdslen( servG->worker->send_buffer ) == 0  )
 	{
-	    aePipeData data;
-	    data.type = PIPE_EVENT_CLOSE;
-	    data.connfd = connfd;
-	    data.len = 0;
-	    int index = getPipeIndex( connfd );
-		
-	    if (sdslen( servG->worker->send_buffer ) == 0  )
-	    {
-		aeCreateFileEvent( servG->worker->el,
-				   servG->worker_pipes[index].pipefd[1] , AE_WRITABLE,
-				   onWorkerPipeWritable,NULL );
-	    }
-	    else
-	    {
-		printf( "send_buffer=%d,len=%d\n", sdslen( servG->worker->send_buffer ) , data.len  );
-	    }
-	    servG->worker->send_buffer = sdscatlen( servG->worker->send_buffer ,&data, PIPE_DATA_HEADER_LENG );
-	    return sdslen( servG->worker->send_buffer );
-	}
-
-	int socketWrite(int __fd, void *__data, int __len)
-	{
-	    int n = 0;
-	    int written = 0;
-	    while (written < __len)
-	    {
-		n = write(__fd, __data + written, __len - written);
-		if (n < 0)
-		{
-		    if (errno == EINTR)
-		    {
-			continue;
-		    }
-		    else if (errno == EAGAIN)
-		    {
-			continue;
-		    }
-		    else
-		    {
-			printf("write %d bytes failed.", __len);
-			return AE_ERR;
-		    }
-		}
-		written += n;
-	    }
-	    return written;
-	}
-
-	int send2ReactorThread( int connfd , aePipeData data )
-	{
-		int index = getPipeIndex( connfd );
-		
-	    if (sdslen( servG->worker->send_buffer ) == 0  )
-	    {
 		aeCreateFileEvent( servG->worker->el,
 			   servG->worker_pipes[index].pipefd[1] , AE_WRITABLE,
 			   onWorkerPipeWritable,NULL );
-	    }
-	    else
-	    {
+	}
+	else
+	{
 		printf( "send_buffer=%d,len=%d\n", sdslen( servG->worker->send_buffer ) , data.len  );
-	    }
-	    servG->worker->send_buffer = sdscatlen( servG->worker->send_buffer ,&data, PIPE_DATA_HEADER_LENG );
 	}
+	servG->worker->send_buffer = sdscatlen( servG->worker->send_buffer ,&data, PIPE_DATA_HEADER_LENG );
+	return sdslen( servG->worker->send_buffer );
+}
 
-	int timerCallback(struct aeEventLoop *l,long long id,void *data)
+int socketWrite(int __fd, void *__data, int __len)
+{
+	int n = 0;
+	int written = 0;
+	while (written < __len)
 	{
-	    printf("I'm time_cb,here [EventLoop: %p],[id : %lld],[data: %s] \n",l,id,data);
-	    return 1;
-	}
-	void finalCallback(struct aeEventLoop *l,void *data)
-	{
-	    puts("call the unknow final function \n");
-	}
-	void childTermHandler( int sig )
-	{
-	    aeStop( servG->worker->el );
-	}
-
-
-	void childChildHandler( int sig )
-	{
-	  
-	}
-
-
-	static int http_header_is_valid_value(const char *value)
-	{
-		const char *p = value;
-		while ((p = strpbrk(p, "\r\n")) != NULL)
+		n = write(__fd, __data + written, __len - written);
+		if (n < 0)
 		{
-			/* we really expect only one new line */
-			p += strspn(p, "\r\n");
-			/* we expect a space or tab for continuation */
-			if (*p != ' ' && *p != '\t')
-				return (0);
+			if (errno == EINTR)
+			{
+				continue;
+			}
+			else if (errno == EAGAIN)
+			{
+				continue;
+			}
+			else
+			{
+				printf("write %d bytes failed.", __len);
+				return AE_ERR;
+			}
 		}
-		return (1);
+		written += n;
+	}
+	return written;
+}
+
+int send2ReactorThread( int connfd , aePipeData data )
+{
+	int index = getPipeIndex( connfd );
+	if (sdslen( servG->worker->send_buffer ) == 0  )
+	{
+		aeCreateFileEvent( servG->worker->el,
+		   servG->worker_pipes[index].pipefd[1] , AE_WRITABLE,
+		   onWorkerPipeWritable,NULL );
+	}
+	else
+	{
+		printf( "send_buffer=%d,len=%d\n", sdslen( servG->worker->send_buffer ) , data.len  );
+	}
+	servG->worker->send_buffer = sdscatlen( servG->worker->send_buffer ,&data, PIPE_DATA_HEADER_LENG );
+}
+
+int timerCallback(struct aeEventLoop *l,long long id,void *data)
+{
+	printf("I'm time_cb,here [EventLoop: %p],[id : %lld],[data: %s] \n",l,id,data);
+	return 1;
+}
+void finalCallback(struct aeEventLoop *l,void *data)
+{
+	puts("call the unknow final function \n");
+}
+void childTermHandler( int sig )
+{
+	aeStop( servG->worker->el );
+}
+
+
+void childChildHandler( int sig )
+{
+  
+}
+
+
+static int http_header_is_valid_value(const char *value)
+{
+	const char *p = value;
+	while ((p = strpbrk(p, "\r\n")) != NULL)
+	{
+		/* we really expect only one new line */
+		p += strspn(p, "\r\n");
+		/* we expect a space or tab for continuation */
+		if (*p != ' ' && *p != '\t')
+			return (0);
+	}
+	return (1);
+}
+
+int setHeader( char* key , char* value )
+{
+	if (strchr(key, '\r') != NULL || strchr(key, '\n') != NULL)
+	{
+		/* drop illegal headers */
+		printf( "%s: dropping illegal header key\n", __func__ );
+		return (-1);
 	}
 
-	int setHeader( char* key , char* value )
+	if (!http_header_is_valid_value(value))
 	{
-		if (strchr(key, '\r') != NULL || strchr(key, '\n') != NULL)
-		{
-			/* drop illegal headers */
-			printf( "%s: dropping illegal header key\n", __func__ );
-			return (-1);
-		}
-
-		if (!http_header_is_valid_value(value))
-		{
-			printf("%s: dropping illegal header value\n", __func__ );
-			return (-1);
-		}
-		return setRespHeader( key , value );
+		printf("%s: dropping illegal header value\n", __func__ );
+		return (-1);
 	}
+	return setRespHeader( key , value );
+}
 
 
 
-	int setRespHeader( char* key , char* val )
+int setRespHeader( char* key , char* val )
+{
+	if( strlen( key ) < 0 || strlen( val ) < 0 )
 	{
-	    if( strlen( key ) < 0 || strlen( val ) < 0 )
-	    {
 		printf( "Header Error key=%s,val=%s \n" , key ,val );
 		return AE_FALSE;
-	    }
+	}
 
-	    if( strcasecmp( key , "Server" ) == 0 || strcasecmp( key , "Content-Length" ) == 0 )
-	    {
+	if( strcasecmp( key , "Server" ) == 0 || strcasecmp( key , "Content-Length" ) == 0 )
+	{
 		printf( "Header Key Cannot Modify By User \n");
 		return AE_FALSE;	
-	    }  
-	 
-	    sds skey = sdsnew( key );
-	    sds sval = sdsnew( val );
-	    int ret = dictReplace( servG->worker->resp_header, skey,  sval );    
-	    return AE_TRUE;
-	}
+	}  
+ 
+	sds skey = sdsnew( key );
+	sds sval = sdsnew( val );
+	int ret = dictReplace( servG->worker->resp_header, skey,  sval );    
+	return AE_TRUE;
+}
 
-	sds getRespHeaderString( sds header )
+sds getRespHeaderString( sds header )
+{
+	dictIterator *it = dictGetIterator( servG->worker->resp_header );
+	dictEntry *de;
+	while ((de = dictNext(it)) != NULL)
 	{
-	    dictIterator *it = dictGetIterator( servG->worker->resp_header );
-	    dictEntry *de;
-	    while ((de = dictNext(it)) != NULL)
-	    {
 		header = sdscatprintf( header , "%s:%s\r\n" , dictGetKey( de ) , dictGetVal( de ) );
-	    }
-	    //dictGetIterator( it );
-	    dictReleaseIterator( it );
-	    return header;
 	}
+	dictReleaseIterator( it );
+	return header;
+}
 
-	void resetRespHeader( dict* resp_header )
+void resetRespHeader( dict* resp_header )
+{
+	dictEmpty( resp_header , NULL );
+	//set default header options
+	setRespHeader( "Content-Type" , "text/html" );
+}
+
+/**
+ * process event types:
+ * 1,parent process send readable event
+ */
+void runWorkerProcess( int pidx  )
+{
+	//servG->worker have private memory space in every process
+	aeWorker* worker = zmalloc( sizeof( aeWorker ));
+	worker->pid = getpid();
+	worker->maxEvent = MAX_EVENT;
+	worker->pidx = pidx;
+	//worker->pipefd = pipefd;
+	worker->running = 1;
+	worker->start = 0;
+	worker->task_id = 0;
+	worker->send_buffer = sdsnewlen( NULL , SEND_BUFFER_LENGTH  );
+	worker->recv_buffer = sdsnewlen( NULL , RECV_BUFFER_LENGTH  );
+	worker->response = sdsnewlen( NULL , SEND_BUFFER_LENGTH );
+
+	worker->resp_header =  dictCreate(&headerDictType,NULL);
+	servG->worker = worker;
+	resetRespHeader( worker->resp_header );
+
+
+	sdsclear( servG->worker->send_buffer );
+	sdsclear( servG->worker->recv_buffer );
+	sdsclear( servG->worker->response );
+ 
+	addSignal( SIGTERM, childTermHandler, 0 );
+	signal(SIGINT , childTermHandler ); 
+
+	worker->el = aeCreateEventLoop( worker->maxEvent );
+	aeSetBeforeSleepProc( worker->el,initWorkerOnLoopStart );
+	int res,index,thid;
+
+	//listen pipe event expect reactor message come in;
+	//此处要监听reactor M个pipefd[1]
+	for( thid = 0 ; thid < servG->reactorNum ; thid++ )
 	{
-	    dictEmpty( resp_header , NULL );
-	    setRespHeader( "Content-Type" , "text/html" );
-	}
-
-
-
-	/**
-	 * process event types:
-	 * 1,parent process send readable event
-	 */
-	void runWorkerProcess( int pidx  )
-	{
-	    //servG->worker have private memory space in every process
-	    aeWorker* worker = zmalloc( sizeof( aeWorker ));
-	    worker->pid = getpid();
-	    worker->maxEvent = MAX_EVENT;
-	    worker->pidx = pidx;
-	    //worker->pipefd = pipefd;
-	    worker->running = 1;
-	    worker->start = 0;
-	    worker->task_id = 0;
-	    worker->send_buffer = sdsnewlen( NULL , SEND_BUFFER_LENGTH  );
-	    worker->recv_buffer = sdsnewlen( NULL , RECV_BUFFER_LENGTH  );
-	    worker->response = sdsnewlen( NULL , SEND_BUFFER_LENGTH );
-
-	    worker->resp_header =  dictCreate(&headerDictType,NULL);
-	    servG->worker = worker;
-	    resetRespHeader( worker->resp_header );
-
-
-	    sdsclear( servG->worker->send_buffer );
-	    sdsclear( servG->worker->recv_buffer );
-	    sdsclear( servG->worker->response );
-	 
-	    addSignal( SIGTERM, childTermHandler, 0 );
-	    signal(SIGINT , childTermHandler ); 
-
-	    worker->el = aeCreateEventLoop( worker->maxEvent );
-	    aeSetBeforeSleepProc( worker->el,initWorkerOnLoopStart );
-	    int res,index,thid;
-
-	    //listen pipe event expect reactor message come in;
-	    //此处要监听reactor M个pipefd[1]
-	    for( thid = 0 ; thid < servG->reactorNum ; thid++ )
-	    {
 		index = pidx * servG->reactorNum + thid;
 		res = aeCreateFileEvent( worker->el,
 		servG->worker_pipes[index].pipefd[1],
@@ -630,17 +618,17 @@ int createResponse( int connfd , char* buff , int len , char prototype , sds res
 			onWorkerPipeReadable,NULL
 		);
 		printf("Worker Run index=%d, pidx=%d and listen pipefd=%d is ok? [%d]\n",index, pidx ,	servG->worker_pipes[index].pipefd[1],res==0 );
-	    }
-		
-	    aeMain(worker->el);
-	    aeDeleteEventLoop(worker->el);
-	    servG->onFinal( servG );
-	   
-	    //printf( "Worker pid=%d exit...\n" , worker->pid );
-	    sdsfree( worker->send_buffer );
-	    sdsfree( worker->recv_buffer );
-	    sdsfree( worker->response );
-	    dictRelease( worker->resp_header  );
+	}
+	
+	aeMain(worker->el);
+	aeDeleteEventLoop(worker->el);
+	servG->onFinal( servG );
+   
+	//printf( "Worker pid=%d exit...\n" , worker->pid );
+	sdsfree( worker->send_buffer );
+	sdsfree( worker->recv_buffer );
+	sdsfree( worker->response );
+	dictRelease( worker->resp_header  );
     zfree( worker );
     shm_free( servG->connlist , 0 );
     //close( pipefd );

@@ -30,9 +30,6 @@
     [Cache-Control] => no-cache
     [Upgrade] => websocket
 ----------------------------------------------
-
-	
-
 **********/
 
 static char* findEolChar( const char* s , int len )
@@ -451,16 +448,16 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
 			return BREAK_RECV;
 		}
 		
-        	if( uri != NULL  )
-        	{
+		if( uri != NULL  )
+		{
 			createHttpTask(  header->connfd  , buffer ,  header->buffer_pos ,uri+1 , strlen( uri) - 1 , 
 				PIPE_EVENT_MESSAGE , "parseGetRequest"  );
-        	}
-        	else
-        	{
+		}
+		else
+		{
 			createHttpTask(  header->connfd  , buffer ,  header->buffer_pos ,  "" , 0 , 
 				PIPE_EVENT_MESSAGE , "parseGetRequest empty data"  );	
-        	}
+		}
     }
     return BREAK_RECV;
 }
@@ -707,15 +704,15 @@ void parse_multipart_form( httpHeader* header , sds buffer , int len )
 {
 	char* buff = buffer + header->buffer_pos ;
 	int vlen;
-    	char *crlf = 0 , *cl = 0;
+    char *crlf = 0 , *cl = 0;
 	char key[255] = {0};
 	char* filename;
 	char filepath[255] = {0};
 
-    	int sep_len = strlen( "\r\n--") + strlen( header->boundary );
+    int sep_len = strlen( "\r\n--") + strlen( header->boundary );
 	char sep[sep_len+1];
 	snprintf( sep , sizeof( sep ) , "\r\n--%s" , header->boundary  );
-    	int pos = sep_len;	
+    int pos = sep_len;	
 
 	//设置栈大小ulimit -s
 	sds data = sdsnewlen(  0 , TMP_BUFFER_LENGTH );
