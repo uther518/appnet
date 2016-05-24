@@ -234,7 +234,6 @@ ZEND_METHOD( appnetServer , addAsynTask )
 ZEND_METHOD( appnetServer , timerRemove )
 {
     long tid;
-
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &tid  ) == FAILURE)
     {
         RETURN_FALSE;
@@ -243,7 +242,6 @@ ZEND_METHOD( appnetServer , timerRemove )
     timerRemove(  tid );
     RETURN_TRUE;
 }
-
 
 ZEND_METHOD( appnetServer , close )
 {
@@ -288,11 +286,11 @@ ZEND_METHOD( appnetServer , on )
         APPNET_EVENT_CONNECT,
         APPNET_EVENT_RECV,
         APPNET_EVENT_CLOSE,
-	APPNET_EVENT_START,
-	APPNET_EVENT_FINAL,
+		APPNET_EVENT_START,
+		APPNET_EVENT_FINAL,
         APPNET_EVENT_TIMER,
-	APPNET_EVENT_TASK,
-	APPNET_EVENT_TASK_CB
+		APPNET_EVENT_TASK,
+		APPNET_EVENT_TASK_CB
     };
 	
     for (i = 0; i < APPNET_SERVER_CALLBACK_NUM; i++)

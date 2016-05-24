@@ -27,6 +27,7 @@ void http_response_static( httpHeader* reqHeader  )
 
 	if ( aeCreateFileEvent( el, reqHeader->connfd , AE_WRITABLE , onRespWritable, header ) == -1)
 	{
+		printf( "setPipeWritable_error %s:%d \n" , __FILE__ , __LINE__ );		
 		return;
 	}
 

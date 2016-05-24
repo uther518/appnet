@@ -423,9 +423,13 @@ int sendCloseEventToReactor( int connfd  )
 	
 	if (sdslen( servG->worker->send_buffer ) == 0  )
 	{
-		aeCreateFileEvent( servG->worker->el,
+		int ret = aeCreateFileEvent( servG->worker->el,
 			   servG->worker_pipes[index].pipefd[1] , AE_WRITABLE,
 			   onWorkerPipeWritable,NULL );
+	    if( ret == AE_ERR )
+		{
+			printf( "setPipeWritable_error %s:%d \n" , __FILE__ , __LINE__ );
+		}
 	}
 	else
 	{
@@ -468,9 +472,13 @@ int send2ReactorThread( int connfd , aePipeData data )
 	int index = getPipeIndex( connfd );
 	if (sdslen( servG->worker->send_buffer ) == 0  )
 	{
-		aeCreateFileEvent( servG->worker->el,
+		int ret = aeCreateFileEvent( servG->worker->el,
 		   servG->worker_pipes[index].pipefd[1] , AE_WRITABLE,
 		   onWorkerPipeWritable,NULL );
+	    if( ret == AE_ERR )
+		{
+			printf( "setPipeWritable_error %s:%d \n" , __FILE__ , __LINE__ );
+		}
 	}
 	else
 	{

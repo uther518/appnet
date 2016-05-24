@@ -230,7 +230,7 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
         }
         else if( nread > 0 )
         {
-	    //printf( "Recv From Client:[%d][%d][%s] \n" ,fd , nread, buffer );
+			//printf( "Recv From Client:[%d][%d][%s] \n" ,fd , nread, buffer );
             servG->connlist[fd].recv_buffer = sdscatlen( servG->connlist[fd].recv_buffer , &buffer , nread );
             int ret = parseRequestMessage( fd , servG->connlist[fd].recv_buffer  , sdslen( servG->connlist[fd].recv_buffer ) );
             if( ret == BREAK_RECV )
@@ -238,8 +238,8 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
                 int complete_length = servG->reactorThreads[thid].hh->complete_length;
                 if( complete_length > 0 )
                 {
-		 	sdsrange( servG->connlist[fd].recv_buffer ,  complete_length  , -1);
-			//printf( "clear complete_length ========= %d,after len=%d \n" , complete_length , sdslen( servG->connlist[fd].recv_buffer) );
+					sdsrange( servG->connlist[fd].recv_buffer ,  complete_length  , -1);
+					//printf( "clear complete_length ========= %d,after len=%d \n" , complete_length , sdslen( servG->connlist[fd].recv_buffer) );
                 }
                 else
                 {
@@ -272,10 +272,14 @@ void setPipeWritable( aeEventLoop *el , void *privdata ,  int connfd  )
 	
     if (sdslen( servG->workers[worker_id].send_buffer ) == 0  )
     {
-        aeCreateFileEvent( el,
+        int ret = aeCreateFileEvent( el,
 		   servG->worker_pipes[index].pipefd[0],
 		   AE_WRITABLE,
 		   onMasterPipeWritable, worker_id );
+		if( ret == AE_ERR )
+		{
+			printf( "setPipeWritable_error %s:%d \n" , __FILE__ , __LINE__ );
+		}
     }
 }
 
@@ -503,7 +507,11 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 				//strcatlen function can extend space when current space not enough
 				if ( sdslen( servG->connlist[data.connfd].send_buffer) == 0 )
 				{
-					aeCreateFileEvent( el, data.connfd , AE_WRITABLE, onClientWritable, NULL );      
+					int ret = aeCreateFileEvent( el, data.connfd , AE_WRITABLE, onClientWritable, NULL );
+					if( ret == AE_ERR )
+					{
+						printf( "setPipeWritable_error %s:%d \n" , __FILE__ , __LINE__ );
+					}
 				}
 				//printf( "readBodyFromPipe fd=%d,header.len=%d,nread=%d \n" , data.connfd , data.len , nread );
 				servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , read_buff  , nread );
@@ -531,10 +539,15 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
 				
 				if (sdslen( servG->workers[worker_id].send_buffer ) == 0  )
 				{
-					aeCreateFileEvent( el,
+					int result = aeCreateFileEvent( el,
 					servG->worker_pipes[index].pipefd[0],
 					AE_WRITABLE,
 					onMasterPipeWritable, worker_id );
+					
+					if( result == AE_ERR )
+					{
+						printf( "setPipeWritable_error %s:%d \n" , __FILE__ , __LINE__ );
+					}
 				}
 				
 				//printf( "SendTaskWorker workerid=%d,pipe_index=%d,task pipefd=%d,task.to=%d \n" , 
@@ -606,12 +619,16 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
                     wsMakeFrame( reason , strlen( reason ) , &close_buff , &outlen , WS_CLOSING_FRAME );
                     if ( sdslen( servG->connlist[data.connfd].send_buffer) == 0 )
                     {
-                        aeCreateFileEvent( el,
+                        int ret = aeCreateFileEvent( el,
 						   data.connfd,
 						   AE_WRITABLE,
 						   onClientWritable,
 						   NULL
                         );
+						if( ret == AE_ERR )
+						{
+							printf( "setPipeWritable_error %s:%d \n" , __FILE__ , __LINE__ );
+						}
                     }
                     servG->connlist[data.connfd].send_buffer = sdscatlen( servG->connlist[data.connfd].send_buffer , close_buff , outlen );
                 }

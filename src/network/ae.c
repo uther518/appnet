@@ -164,10 +164,10 @@ void aeDeleteFileEvent(aeEventLoop *eventLoop, int fd, int mask)
         /* Update the max fd */
         int j;
         for (j = eventLoop->maxfd-1; j >= 0; j--)
-            if (eventLoop->events[j].mask != AE_NONE)
-            {
-                break;
-            }
+		if (eventLoop->events[j].mask != AE_NONE)
+		{
+			break;
+		}
         eventLoop->maxfd = j;
     }
 }

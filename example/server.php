@@ -182,8 +182,8 @@ function onClose( $server , $fd )
 	echo "Client Close:$fd \n";
 	$header = $server->getHeader();
 	if( $header['Protocol'] == "WEBSOCKET" )
-        {
-                 Websocket::broadcastOffLine( $server , $fd  );
+    {
+        Websocket::broadcastOffLine( $server , $fd  );
 	}
 };
 
@@ -199,7 +199,7 @@ function onStart( $server  )
 function onFinal( $server  )
 {
 	$pid = posix_getpid();
-        echo "On Worker Final!! pid={$pid} \n";
+    echo "On Worker Final!! pid={$pid} \n";
 };
 
 function onTimerCallback( $server , $timer_id ,  $params )

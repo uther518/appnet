@@ -592,9 +592,14 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
             {
                 int reactor_id = connfd % servG->reactorNum;
                 aeEventLoop* el = servG->reactorThreads[reactor_id].reactor.eventLoop;
-                aeCreateFileEvent(
+                int ret = aeCreateFileEvent(
                     el, connfd, AE_WRITABLE, onClientWritable, NULL
                 );
+				
+				if( ret == AE_ERR )
+				{
+					printf( "setPipeWritable_error %s:%d \n" , __FILE__ , __LINE__ );
+				}
             }
             servG->connlist[connfd].send_buffer = sdscatlen(
             servG->connlist[connfd].send_buffer ,(char*)out_buffer , frameSize
