@@ -91,7 +91,7 @@ void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask )
         return;
     }
     nwritten = write( fd, servG->connlist[fd].send_buffer, sdslen(servG->connlist[fd].send_buffer));
-    //printf( "onClientWritable:fd=%d,nwritten=%d,data=[%s] \n" , fd , nwritten,servG->connlist[fd].send_buffer );
+    //printf( "Response:fd=%d,nwritten=%d,data=[%s] \n" , fd , nwritten,servG->connlist[fd].send_buffer );
     if (nwritten <= 0)
     {
         printf( "I/O error writing to client: %s", strerror(errno));
@@ -116,6 +116,7 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
     aePipeData  data = {0};
     unsigned int datalen;
     data.len = len;
+    data.proto = servG->connlist[connfd].protoType;
     data.type = eventType;
     data.connfd = connfd;
 
@@ -144,7 +145,7 @@ void createHttpTask(  int connfd , char* header ,  int header_len ,
     data.len = header_len + body_len;
     data.type = eventType;
     data.connfd = connfd;
-
+    data.proto = servG->connlist[connfd].protoType;
     //printf( "createHttpTask from %s, connfd=%d \n" , from , data.connfd );
 
     datalen = PIPE_DATA_HEADER_LENG + data.len;
@@ -232,7 +233,7 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
         }
         else if( nread > 0 )
         {
-			//printf( "Recv From Client:[%d][%d][%s] \n" ,fd , nread, buffer );
+		printf( "Recv From Client:[%d][%d][%s] \n" ,fd , nread, buffer );
             servG->connlist[fd].recv_buffer = sdscatlen( servG->connlist[fd].recv_buffer , &buffer , nread );
             int ret = parseRequestMessage( fd , servG->connlist[fd].recv_buffer  , sdslen( servG->connlist[fd].recv_buffer ) );
             if( ret == BREAK_RECV )
@@ -592,7 +593,7 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
    
     while(  ( readlen = read( fd, &data , PIPE_DATA_HEADER_LENG ) ) > 0 )
     {
-	printf( "onMasterPipeReadable len=%d,fd=%d \n" , readlen , data.connfd );
+	//printf( "onMasterPipeReadable len=%d,fd=%d \n" , readlen , data.connfd );
         if( readlen == 0 )
         {
             close( fd );

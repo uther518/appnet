@@ -168,7 +168,8 @@ function onRecv( $server , $fd , $buffer )
 		$data  = $buffer;
 		$data .= microtime();
 	//	$server->addAsynTask( $data , 1 );	
-	//	$server->setHeader( "Connection" , "keep-alive" );
+		$server->setHeader( "Connection" , "keep-alive" );
+		$server->setHeader( "Access-Control-Allow-Origin" , "*" );
 		$server->send( $fd , $data );	
 	}
 	else
@@ -192,7 +193,7 @@ function onStart( $server  )
 	$pid = posix_getpid();
         echo "On Worker Start!! pid={$pid} \n";
 	//3000ms means 3second	
-	$server->timerAdd( 3000 , "onTimerCallback" , "paramsxxx" );
+	$server->timerAdd( 1000 , "onTimerCallback" , "paramsxxx" );
 };
 
 //on worker shutdown,you must save data in last time.
@@ -205,7 +206,7 @@ function onFinal( $server  )
 function onTimerCallback( $server , $timer_id ,  $params )
 {
 	$pid = posix_getpid();
-	echo "onTimerCallback  ok,worker pid={$pid},timer_id={$timer_id}...\n";
+	 echo "onTimerCallback  ok,worker pid={$pid},timer_id={$timer_id}...\n";
 	//if do not remove it, it will be call this function forever	
 	$server->timerRemove( $timer_id );		
 }
@@ -214,10 +215,10 @@ function onTimerCallback( $server , $timer_id ,  $params )
 dl( "appnet.so");
 $server = new appnetServer( "0.0.0.0" , 3011 );
 
-$server->setOption( APPNET_OPT_WORKER_NUM , 2 );
-$server->setOption( APPNET_OPT_ATASK_WORKER_NUM , 2 );
+$server->setOption( APPNET_OPT_WORKER_NUM , 1 );
+$server->setOption( APPNET_OPT_ATASK_WORKER_NUM , 1 );
 
-$server->setOption( APPNET_OPT_REACTOR_NUM, 2 );
+$server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
 $server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
 $server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
 

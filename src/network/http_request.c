@@ -365,12 +365,13 @@ int httpHeaderParse( httpHeader* header ,  sds buffer , int len )
 
 int isHttpProtocol( char* buffer , int len )
 {
-    char* httpVersion = "HTTP";
-    strstr( buffer,httpVersion );
+    //char* httpVersion = "HTTP";
+    //strstr( buffer,httpVersion );
     if( strncmp( buffer , "GET" , 3 ) == 0 )
     {
         return AE_TRUE;
     }
+    
     if( strncmp( buffer , "POST" , 4 ) == 0 )
     {
         return AE_TRUE;

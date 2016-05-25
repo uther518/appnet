@@ -224,9 +224,9 @@ int sendMessageToReactor( int connfd , char* buff , int len )
 	if( len >= 0 )
 	{
 		//if proto is http or websocket, need compose response data ,else direct send origin data
-		if( servG->connlist[connfd].protoType != TCP )
+		if(  servG->worker->proto != TCP )
 		{
-			char prototype = servG->connlist[connfd].protoType;
+			char prototype = servG->worker->proto;
 			int retlen;
 			//buffer...
 			retlen = createResponse(  connfd , buff , len , prototype , servG->worker->response  );
@@ -330,7 +330,9 @@ void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
 		}
 	}
 
-	if( servG->connlist[data.connfd].protoType == HTTP )
+	//printf( "data.proto=%d,conn proto=%d \n" , data.proto , servG->connlist[data.connfd].protoType );
+	servG->worker->proto = data.proto;
+	if( data.proto == HTTP )
 	{
 		//printf( "header_len=%d,len=%d \n" , data.header_len , data.len );
 		httpHeader* header =  &servG->worker->req_header;
@@ -347,6 +349,7 @@ void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
 	}
 	else
 	{
+		printf( "tcp proto ------------------------- \n");
 		callUserRecvFunc( data.connfd , data.data , bodylen );
 	}
 }

@@ -107,11 +107,11 @@ ZEND_METHOD( appnetServer , getHeader )
 	int i;
 	int connfd = appserv->worker->connfd;
 	httpHeader* header = &appserv->worker->req_header;
-	if( appserv->connlist[connfd].protoType == HTTP )
+	if( appserv->worker->proto == HTTP )
 	{
 		add_assoc_string(return_value, "Protocol" , "HTTP" );
 	}
-	else if(  appserv->connlist[connfd].protoType == WEBSOCKET )
+	else if(  appserv->worker->proto == WEBSOCKET )
 	{
 		 add_assoc_string(return_value, "Protocol" , "WEBSOCKET" );
 	}
