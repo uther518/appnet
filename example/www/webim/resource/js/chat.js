@@ -4,11 +4,14 @@ var userlist = {};
 var GET = new Object();
 GET = getRequest();
 
+var ip = document.domain; 
+var port = location.port;
+
 $(document).ready(
 	function() {
 		if ( window.WebSocket || window.MozWebSocket) 
 		{
-			ws = new WebSocket( "ws://192.168.68.131:3011" );
+			ws = new WebSocket( "ws://"+ip+":"+port );
 			/**
 			 * 连接建立时触发
 			 */

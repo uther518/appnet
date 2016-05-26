@@ -186,8 +186,8 @@ function onClose( $server , $fd )
 	echo "CloseClient:$fd \n";
 	$header = $server->getHeader();
 	if( $header['Protocol'] == "WEBSOCKET" )
-    {
-        Websocket::broadcastOffLine( $server , $fd  );
+        {
+        	Websocket::broadcastOffLine( $server , $fd  );
 	}
 };
 
