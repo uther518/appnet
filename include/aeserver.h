@@ -237,7 +237,7 @@ void onCloseByClient(  aeEventLoop *el, void *privdata ,
 		aeServer* serv , aeConnection* conn  );
 void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask );
 void onClientReadable( aeEventLoop *el, int fd, void *privdata, int mask);
-void setPipeWritable( aeEventLoop *el , void *privdata ,  int worker_id  );
+int setPipeWritable( aeEventLoop *el , void *privdata ,  int worker_id  );
 void acceptCommonHandler( aeServer* serv ,int fd,
 		char* client_ip,int client_port, int flags);
 void onAcceptEvent( aeEventLoop *el, int fd, void *privdata, int mask);

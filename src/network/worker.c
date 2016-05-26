@@ -349,7 +349,6 @@ void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
 	}
 	else
 	{
-		printf( "tcp proto ------------------------- \n");
 		callUserRecvFunc( data.connfd , data.data , bodylen );
 	}
 }
@@ -369,7 +368,12 @@ void onWorkerPipeWritable( aeEventLoop *el, int fd, void *privdata, int mask )
 	///if send_buffer no data need send, remove writable event
 	if (sdslen(servG->worker->send_buffer) == 0)
 	{
+		//printf( "Writing Length=%d....\n" , nwritten );
 		aeDeleteFileEvent( el, fd, AE_WRITABLE);
+	}
+	else
+        {
+		printf( "Writing Continue....\n");
 	}
 }
 
@@ -493,8 +497,8 @@ int send2ReactorThread( int connfd , aePipeData data )
 
 int timerCallback(struct aeEventLoop *l,long long id,void *data)
 {
-	printf("I'm time_cb,here [EventLoop: %p],[id : %lld],[data: %s] \n",l,id,data);
-	return 1;
+	printf("I'm time_cb,here [EventLoop: %p],[id : %lld],[data: %s],pid=%d \n",l,id,data,getpid());
+	return 5000;
 }
 void finalCallback(struct aeEventLoop *l,void *data)
 {
@@ -631,6 +635,8 @@ void runWorkerProcess( int pidx  )
 		);
 		printf("Worker Run index=%d, pidx=%d and listen pipefd=%d is ok? [%d]\n",index, pidx ,	servG->worker_pipes[index].pipefd[1],res==0 );
 	}
+
+	//res = aeCreateTimeEvent( worker->el, 1000 , timerCallback , NULL , NULL );
 	
 	aeMain(worker->el);
 	aeDeleteEventLoop(worker->el);
