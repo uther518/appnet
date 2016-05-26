@@ -104,6 +104,7 @@ class Websocket
                                 $serv->send( $clid , json_encode( $resMsg ) );
                         }
                 }
+		unset( self::$connections[$fd] );	
 	}
 
 	public static function onMessage( $serv , $fd , $msg )

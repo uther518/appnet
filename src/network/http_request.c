@@ -567,9 +567,20 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
         {
             return CONTINUE_RECV;
         }
+
+
         header->complete_length = len;
         //make sure recv data is complete, then create task..
-        createWorkerTask(  connfd , recv_data  , recv_len  , PIPE_EVENT_MESSAGE, "parseWebsocket" );
+	if( hs->frameType == WS_CLOSING_FRAME )
+	{
+		//createWorkerTask(  connfd , ""  ,  0  , PIPE_EVENT_CLOSE, "parseWebsocket" );
+	}
+	else
+	{
+		//make sure recv data is complete, then create task..
+		createWorkerTask(  connfd , recv_data  , recv_len  , PIPE_EVENT_MESSAGE, "parseWebsocket" );
+	}
+        //createWorkerTask(  connfd , recv_data  , recv_len  , PIPE_EVENT_MESSAGE, "parseWebsocket" );
         //sdsfree( recv_data );
     }
    
