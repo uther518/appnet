@@ -1,4 +1,4 @@
-<p># appnet介绍<br /><br />appnet是一个基于linux epoll的多线程的高性能异步网络库，目标是用php7+appnet快速构建高性能的长连接服务器。使其可广泛用于聊天系统，游戏服务器，消息通知服务器等实时通信场景。</p>
+<p># appnet介绍<br /><br />appnet是一个基于linux epoll的多线程的高性能异步网络库，可以同时支持TCP,HTTP和Websocket混合协议,目标是用php7+appnet快速构建高性能的长连接服务器。使其可广泛用于聊天系统，游戏服务器，消息通知服务器等实时通信场景。</p>
 <p><img src="http://images2015.cnblogs.com/blog/234056/201604/234056-20160428172712252-741219753.jpg" alt="" width="959" height="638" /></p>
 <p><br />其特点有</p>
 <ul>
