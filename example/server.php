@@ -1,10 +1,8 @@
 <?php
 
 error_reporting(E_ERROR | E_WARNING | E_PARSE);
-
 class Websocket
 {
-
 	private static $serv;
 
 	private static $fd;
@@ -36,16 +34,16 @@ class Websocket
 
 	public static function getOnline( $serv , $fd , $msg )
 	{
-	        $resMsg = array(
+	    $resMsg = array(
 			'cmd' => 'getOnline',
 		);
 		foreach ( self::$connections as $clid => $info )
 		{
-			  $resMsg['list'][] = array(
-				   'fd' => $clid,
-				   'name' => $info['name'],
-				   'avatar' => $info['avatar'],
-			  );
+			$resMsg['list'][] = array(
+			   'fd' => $clid,
+			   'name' => $info['name'],
+			   'avatar' => $info['avatar'],
+			);
 	   }
 	   $serv->send( $fd , json_encode( $resMsg ) );
 	}
@@ -53,14 +51,14 @@ class Websocket
 	public static function onLogin( $serv , $fd , $msg )
 	{
 		self::$connections[$fd]['name'] = $msg['name'];
-        	self::$connections[$fd]['avatar'] = $msg['avatar'];
+        self::$connections[$fd]['avatar'] = $msg['avatar'];
 
 		$resMsg = array(
-				'cmd' => 'login',
-				'fd' => $fd,
-				'name' => $msg['name'],
-				'avatar' => $msg['avatar'],
-			 );
+			'cmd' => 'login',
+			'fd' => $fd,
+			'name' => $msg['name'],
+			'avatar' => $msg['avatar'],
+		);
 		$len = $serv->send(  $fd , json_encode( $resMsg )  );
 		self::broadcastNewUser( $serv , $fd , $msg , $resMsg );
 	}
@@ -88,22 +86,22 @@ class Websocket
 
 	public static function broadcastOffLine( $serv , $fd  )
 	{
-                $resMsg = array(
-                        'cmd' => 'offline',
-                        'fd' => $fd,
+		$resMsg = array(
+			'cmd' => 'offline',
+			'fd' => $fd,
 			'from' => 0,
-                        'channal' => 0 ,
-                        'data' => self::$connections[$fd]['name']."离开了。。",
-                );
+			'channal' => 0 ,
+			'data' => self::$connections[$fd]['name']."离开了。。",
+		);
 
-                //将下线消息发送给所有人
-                foreach ( self::$connections as $clid => $info )
-                {
-                        if( $fd  !=  $clid )
-                        {
-                                $serv->send( $clid , json_encode( $resMsg ) );
-                        }
-                }
+		//将下线消息发送给所有人
+		foreach ( self::$connections as $clid => $info )
+		{
+			if( $fd  !=  $clid )
+			{
+					$serv->send( $clid , json_encode( $resMsg ) );
+			}
+		}
 		unset( self::$connections[$fd] );	
 	}
 
@@ -125,7 +123,6 @@ class Websocket
 			$serv->send( $msg['to'] , json_encode( $resMsg ) );
 			$serv->send( $msg['from'] , json_encode( $resMsg ) );
 		}
-
 		//$serv->close( $fd );
     }
 }
@@ -140,7 +137,7 @@ function onTaskCallback( $server , $data , $taskid , $from )
 function onConnect( $server , $fd )
 {
 	$pid = posix_getpid();
-        echo "\n\nNew Connect:{$fd} pid={$pid} \n"; 
+    echo "\n\nNew Connect:{$fd} pid={$pid} \n"; 
 }
 
 //在worker进程中，表示回调，在task进程中表示请求
@@ -167,18 +164,19 @@ function onRecv( $server , $fd , $buffer )
 	  	 Websocket::onReceive( $server , $fd,  $buffer );
 	}
 	elseif(  $header['Protocol'] == "HTTP"  )
-    	{
+    {
 		$data  = $buffer;
 		$data .= microtime();
 		echo "Response:[".$data."]\n";
-	//	$server->addAsynTask( $data , 1 );	
+		//$server->addAsynTask( $data , 1 );	
 		$server->setHeader( "Connection" , "keep-alive" );
+		//ajax访问时，会有跨域问题
 		$server->setHeader( "Access-Control-Allow-Origin" , "*" );
 		$server->send( $fd , $data );	
 	}
 	else
 	{
-        	$server->send( $fd , $buffer );
+		$server->send( $fd , $buffer );
 	}
 };
 
@@ -187,15 +185,15 @@ function onClose( $server , $fd )
 	echo "CloseClient:$fd \n";
 	$header = $server->getHeader();
 	if( $header['Protocol'] == "WEBSOCKET" )
-        {
-        	Websocket::broadcastOffLine( $server , $fd  );
+    {
+		Websocket::broadcastOffLine( $server , $fd  );
 	}
 };
 
 function onStart( $server  )
 {
 	$pid = posix_getpid();
-        echo "On Worker Start!! pid={$pid} \n";
+	echo "On Worker Start!! pid={$pid} \n";
 	//3000ms means 3second	
 	$server->timerAdd( 3000 , "flag or json data" );
 };
