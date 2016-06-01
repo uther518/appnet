@@ -618,6 +618,7 @@ void runWorkerProcess( int pidx  )
  
 	addSignal( SIGTERM, childTermHandler, 0 );
 	signal(SIGINT , childTermHandler ); 
+	signal(SIGPIPE, SIG_IGN);
 
 	worker->el = aeCreateEventLoop( worker->maxEvent );
 	aeSetBeforeSleepProc( worker->el,initWorkerOnLoopStart );

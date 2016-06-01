@@ -456,7 +456,6 @@ void installMasterSignal( aeServer* serv )
     addSignal (SIGINT, masterKillHandler , 1  );
     signal(SIGTERM, masterTermHandler );
     signal(SIGCHLD, waitChild ); 
-
 //  signal (SIGKILL, masterSignalHandler );
 //  signal (SIGQUIT, masterSignalHandler );
     
@@ -697,7 +696,7 @@ void onMasterPipeWritable(  aeEventLoop *el, int pipe_fd, void *privdata, int ma
     //pipe fd error...
     if (nwritten <  0)
     {
-     	printf( "Master Pipe Write Error written=%d \n" , nwritten );
+     	printf( "Master Pipe Write Error written=%d,errno=%d,errstr=%s \n" , nwritten ,  errno , strerror( errno ) );
         close( pipe_fd );
         return;
     }

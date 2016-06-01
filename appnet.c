@@ -108,10 +108,9 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_server_close, 0, 0, 1 )
     ZEND_ARG_INFO(0, fd )
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_server_timer_add, 0, 0, 3 )
+ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_server_timer_add, 0, 0, 2 )
     ZEND_ARG_INFO(0, ms )
-    ZEND_ARG_INFO(0, callback )
-    ZEND_ARG_INFO(0, args )
+    ZEND_ARG_INFO(0, flag )
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_server_timer_remove, 0, 0, 1 )

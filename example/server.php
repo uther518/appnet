@@ -197,22 +197,22 @@ function onStart( $server  )
 	$pid = posix_getpid();
         echo "On Worker Start!! pid={$pid} \n";
 	//3000ms means 3second	
-	//$server->timerAdd( 1000 , "onTimerCallback" , "paramsxxx" );
+	$server->timerAdd( 3000 , "flag or json data" );
 };
 
 //on worker shutdown,you must save data in last time.
 function onFinal( $server  )
 {
 	$pid = posix_getpid();
-    echo "On Worker Final!! pid={$pid} \n";
+    	echo "On Worker Final!! pid={$pid} \n";
 };
 
-function onTimerCallback( $server , $timer_id ,  $params )
+function onTimer( $server , $timer_id ,  $flag )
 {
 	$pid = posix_getpid();
-	 echo "onTimerCallback  ok,worker param={$params},pid={$pid},timer_id={$timer_id}...\n";
+	echo "onTimer:flag={$flag},pid={$pid},timer_id={$timer_id}...\n";
 	//if do not remove it, it will be call this function forever	
-	// $server->timerRemove( $timer_id );		
+	//$server->timerRemove( $timer_id );		
 }
 
 
@@ -237,6 +237,7 @@ $server->addEventListener( APPNET_EVENT_RECV ,    "onRecv");
 $server->addEventListener( APPNET_EVENT_CLOSE ,   "onClose");
 $server->addEventListener( APPNET_EVENT_START ,   "onStart");
 $server->addEventListener( APPNET_EVENT_FINAL ,   "onFinal");
+$server->addEventListener( APPNET_EVENT_TIMER ,   "onTimer");
 $server->addEventListener( APPNET_EVENT_TASK ,    "onTask");
 $server->addEventListener( APPNET_EVENT_TASK_CB , "onTaskCallback" );
 $server->run();

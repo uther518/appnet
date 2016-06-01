@@ -17,8 +17,7 @@ aeServer* serv;
 typedef struct _timerArgs
 {
 	int    ts;
-	void*  func;
-	zval*  params;
+	char*  params;
 }timerArgs;
 
 //=====================================================
@@ -157,31 +156,23 @@ int onTimer( aeEventLoop *l, int id,void *data  )
 {
 	timerArgs* timerArg = (timerArgs*)data;
 
-	zval* callback = (zval*)timerArg->func;
-	zval* params = (zval*)timerArg->params;
-
-	if( callback == NULL )
-        {
-	    php_error_docref(NULL TSRMLS_CC, E_WARNING, "onTimer callback ptr NULL");
-	}
-
 	aeServer* appserv = APPNET_G( appserv );
 	zval retval;
 
 	zval *args;
 	zval *zserv = (zval*)appserv->ptr2;
 	zval zid;
+	zval zparam;
 	args = safe_emalloc(sizeof(zval),3, 0 );
 
-
+	ZVAL_STRINGL( &zparam , timerArg->params , strlen( timerArg->params ) );
 	ZVAL_LONG( &zid , (long)id );
+
 	ZVAL_COPY(&args[0], zserv  );
 	ZVAL_COPY(&args[1] , &zid    );
-	ZVAL_COPY(&args[2],  params );
+	ZVAL_COPY(&args[2],  &zparam );
 
-	printf( "server=%p,cb_ptr=%p,cb=%p,cb=%s,arg=%s \n" ,  appserv, callback , params ,  callback , params );
-
-	if (call_user_function_ex(EG(function_table), NULL, callback  ,&retval, 3 , args , 0, NULL) == FAILURE )
+	if (call_user_function_ex(EG(function_table), NULL, appnet_serv_callback[APPNET_SERVER_CB_onTimer] ,&retval, 3 , args , 0, NULL) == FAILURE )
 	{
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "call_user_function_ex timer callback error");
 	}
@@ -205,16 +196,15 @@ int onTimer( aeEventLoop *l, int id,void *data  )
 ZEND_METHOD( appnetServer , timerAdd )
 {
     long ms;
-    zval* callback;
-    zval* args;
+    size_t len = 0;
+    char* args;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lz|z", &ms, &callback, &args ) == FAILURE)
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l|s", &ms, &args , &len ) == FAILURE)
     {
         RETURN_FALSE;
     }
 
     timerArgs* timerArg = malloc( sizeof( timerArgs ));    
-    timerArg->func = callback;
     timerArg->ts = ms;
     timerArg->params = args; 
 
