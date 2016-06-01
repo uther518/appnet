@@ -107,11 +107,11 @@ ZEND_METHOD( appnetServer , getHeader )
 	int i;
 	int connfd = appserv->worker->connfd;
 	httpHeader* header = &appserv->worker->req_header;
-	if( appserv->connlist[connfd].protoType == HTTP )
+	if( appserv->worker->proto == HTTP )
 	{
 		add_assoc_string(return_value, "Protocol" , "HTTP" );
 	}
-	else if(  appserv->connlist[connfd].protoType == WEBSOCKET )
+	else if(  appserv->worker->proto == WEBSOCKET )
 	{
 		 add_assoc_string(return_value, "Protocol" , "WEBSOCKET" );
 	}
@@ -160,6 +160,11 @@ int onTimer( aeEventLoop *l, int id,void *data  )
 	zval* callback = (zval*)timerArg->func;
 	zval* params = (zval*)timerArg->params;
 
+	if( callback == NULL )
+        {
+	    php_error_docref(NULL TSRMLS_CC, E_WARNING, "onTimer callback ptr NULL");
+	}
+
 	aeServer* appserv = APPNET_G( appserv );
 	zval retval;
 
@@ -168,10 +173,13 @@ int onTimer( aeEventLoop *l, int id,void *data  )
 	zval zid;
 	args = safe_emalloc(sizeof(zval),3, 0 );
 
+
 	ZVAL_LONG( &zid , (long)id );
 	ZVAL_COPY(&args[0], zserv  );
 	ZVAL_COPY(&args[1] , &zid    );
-	ZVAL_COPY(&args[2], params );
+	ZVAL_COPY(&args[2],  params );
+
+	printf( "server=%p,cb_ptr=%p,cb=%p,cb=%s,arg=%s \n" ,  appserv, callback , params ,  callback , params );
 
 	if (call_user_function_ex(EG(function_table), NULL, callback  ,&retval, 3 , args , 0, NULL) == FAILURE )
 	{
@@ -182,7 +190,6 @@ int onTimer( aeEventLoop *l, int id,void *data  )
 	{
 		php_error_docref(NULL, E_WARNING, "timer callback failed");
 	}
-
 	zval_ptr_dtor(&zid);
 
 	efree( args );
@@ -206,7 +213,7 @@ ZEND_METHOD( appnetServer , timerAdd )
         RETURN_FALSE;
     }
 
-    timerArgs* timerArg = zmalloc( sizeof( timerArgs ));
+    timerArgs* timerArg = malloc( sizeof( timerArgs ));    
     timerArg->func = callback;
     timerArg->ts = ms;
     timerArg->params = args; 
@@ -283,12 +290,12 @@ ZEND_METHOD( appnetServer , on )
     }
     
     char *callback[APPNET_SERVER_CALLBACK_NUM] = {
-        APPNET_EVENT_CONNECT,
-        APPNET_EVENT_RECV,
-        APPNET_EVENT_CLOSE,
+        	APPNET_EVENT_CONNECT,
+        	APPNET_EVENT_RECV,
+        	APPNET_EVENT_CLOSE,
 		APPNET_EVENT_START,
 		APPNET_EVENT_FINAL,
-        APPNET_EVENT_TIMER,
+        	APPNET_EVENT_TIMER,
 		APPNET_EVENT_TASK,
 		APPNET_EVENT_TASK_CB
     };

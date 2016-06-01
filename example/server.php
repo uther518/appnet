@@ -1,5 +1,7 @@
 <?php
 
+error_reporting(E_ERROR | E_WARNING | E_PARSE);
+
 class Websocket
 {
 
@@ -137,7 +139,7 @@ function onTaskCallback( $server , $data , $taskid , $from )
 function onConnect( $server , $fd )
 {
 	$pid = posix_getpid();
-        echo "\n\nClient Connect:{$fd} pid={$pid} \n"; 
+        echo "\n\nNew Connect:{$fd} pid={$pid} \n"; 
 }
 
 //在worker进程中，表示回调，在task进程中表示请求
@@ -157,7 +159,7 @@ function onRecv( $server , $fd , $buffer )
 {
 	$header = $server->getHeader();
 	$pid = posix_getpid();
-	echo "Client Recv:[{$header['Protocol']}][{$header['Uri']}][{$buffer}][{$fd}],pid={$pid} \n";	
+	echo "RecvClient:[{$header['Protocol']}][{$header['Uri']}][{$buffer}][{$fd}],pid={$pid} \n";	
 
 	if( $header['Protocol'] == "WEBSOCKET" )
 	{
@@ -166,9 +168,11 @@ function onRecv( $server , $fd , $buffer )
 	elseif(  $header['Protocol'] == "HTTP"  )
     	{
 		$data  = $buffer;
-		$server->addAsynTask( $data , 1 );
-		
+		$data .= microtime();
+		echo "Response:[".$data."]\n";
+	//	$server->addAsynTask( $data , 1 );	
 		$server->setHeader( "Connection" , "keep-alive" );
+		$server->setHeader( "Access-Control-Allow-Origin" , "*" );
 		$server->send( $fd , $data );	
 	}
 	else
@@ -179,7 +183,7 @@ function onRecv( $server , $fd , $buffer )
 
 function onClose( $server , $fd )
 { 
-	echo "Client Close:$fd \n";
+	echo "CloseClient:$fd \n";
 	$header = $server->getHeader();
 	if( $header['Protocol'] == "WEBSOCKET" )
     {
@@ -192,7 +196,7 @@ function onStart( $server  )
 	$pid = posix_getpid();
         echo "On Worker Start!! pid={$pid} \n";
 	//3000ms means 3second	
-	$server->timerAdd( 3000 , "onTimerCallback" , "paramsxxx" );
+	//$server->timerAdd( 1000 , "onTimerCallback" , "paramsxxx" );
 };
 
 //on worker shutdown,you must save data in last time.
@@ -205,9 +209,9 @@ function onFinal( $server  )
 function onTimerCallback( $server , $timer_id ,  $params )
 {
 	$pid = posix_getpid();
-	echo "onTimerCallback  ok,worker pid={$pid},timer_id={$timer_id}...\n";
+	 echo "onTimerCallback  ok,worker param={$params},pid={$pid},timer_id={$timer_id}...\n";
 	//if do not remove it, it will be call this function forever	
-	$server->timerRemove( $timer_id );		
+	// $server->timerRemove( $timer_id );		
 }
 
 
@@ -215,7 +219,7 @@ dl( "appnet.so");
 $server = new appnetServer( "0.0.0.0" , 3011 );
 
 $server->setOption( APPNET_OPT_WORKER_NUM , 1 );
-$server->setOption( APPNET_OPT_ATASK_WORKER_NUM , 2 );
+$server->setOption( APPNET_OPT_ATASK_WORKER_NUM , 0 );
 
 $server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
 $server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );

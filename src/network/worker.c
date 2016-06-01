@@ -213,6 +213,7 @@ int sendMessageToReactor( int connfd , char* buff , int len )
 	data.type = PIPE_EVENT_MESSAGE;
 	data.len = len;
 	data.connfd = connfd;
+	//printf( "sendMessage connfd=%d \n" , connfd );
 	int writeable = 0;
 	if (sdslen( servG->worker->send_buffer ) == 0  )
 	{
@@ -223,9 +224,9 @@ int sendMessageToReactor( int connfd , char* buff , int len )
 	if( len >= 0 )
 	{
 		//if proto is http or websocket, need compose response data ,else direct send origin data
-		if( servG->connlist[connfd].protoType != TCP )
+		if(  servG->worker->proto != TCP )
 		{
-			char prototype = servG->connlist[connfd].protoType;
+			char prototype = servG->worker->proto;
 			int retlen;
 			//buffer...
 			retlen = createResponse(  connfd , buff , len , prototype , servG->worker->response  );
@@ -329,7 +330,9 @@ void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
 		}
 	}
 
-	if( servG->connlist[data.connfd].protoType == HTTP )
+	//printf( "data.proto=%d,conn proto=%d \n" , data.proto , servG->connlist[data.connfd].protoType );
+	servG->worker->proto = data.proto;
+	if( data.proto == HTTP )
 	{
 		//printf( "header_len=%d,len=%d \n" , data.header_len , data.len );
 		httpHeader* header =  &servG->worker->req_header;
@@ -365,7 +368,12 @@ void onWorkerPipeWritable( aeEventLoop *el, int fd, void *privdata, int mask )
 	///if send_buffer no data need send, remove writable event
 	if (sdslen(servG->worker->send_buffer) == 0)
 	{
+		//printf( "Writing Length=%d....\n" , nwritten );
 		aeDeleteFileEvent( el, fd, AE_WRITABLE);
+	}
+	else
+        {
+		printf( "Writing Continue....\n");
 	}
 }
 
@@ -489,8 +497,8 @@ int send2ReactorThread( int connfd , aePipeData data )
 
 int timerCallback(struct aeEventLoop *l,long long id,void *data)
 {
-	printf("I'm time_cb,here [EventLoop: %p],[id : %lld],[data: %s] \n",l,id,data);
-	return 1;
+	printf("I'm time_cb,here [EventLoop: %p],[id : %lld],[data: %s],pid=%d \n",l,id,data,getpid());
+	return 5000;
 }
 void finalCallback(struct aeEventLoop *l,void *data)
 {
@@ -627,6 +635,8 @@ void runWorkerProcess( int pidx  )
 		);
 		printf("Worker Run index=%d, pidx=%d and listen pipefd=%d is ok? [%d]\n",index, pidx ,	servG->worker_pipes[index].pipefd[1],res==0 );
 	}
+
+	//res = aeCreateTimeEvent( worker->el, 1000 , timerCallback , NULL , NULL );
 	
 	aeMain(worker->el);
 	aeDeleteEventLoop(worker->el);

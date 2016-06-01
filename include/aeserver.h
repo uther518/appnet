@@ -102,6 +102,7 @@ typedef struct _aeWorkerPipes
 
 typedef struct _aeWorker
 {
+        char proto; //current request protocol type
 	int pidx; //主进程中分的编号0-x
 	pid_t pid;
 	int pipefd;
@@ -212,6 +213,7 @@ struct _reactorThreadParam
 typedef struct _aePipeData
 {
 	char type;
+	char proto;
 	int header_len;
 	int len;
 	int connfd;
@@ -235,7 +237,7 @@ void onCloseByClient(  aeEventLoop *el, void *privdata ,
 		aeServer* serv , aeConnection* conn  );
 void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask );
 void onClientReadable( aeEventLoop *el, int fd, void *privdata, int mask);
-void setPipeWritable( aeEventLoop *el , void *privdata ,  int worker_id  );
+int setPipeWritable( aeEventLoop *el , void *privdata ,  int worker_id  );
 void acceptCommonHandler( aeServer* serv ,int fd,
 		char* client_ip,int client_port, int flags);
 void onAcceptEvent( aeEventLoop *el, int fd, void *privdata, int mask);
