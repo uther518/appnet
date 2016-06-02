@@ -33,7 +33,7 @@ static char* getUptoLinefeed(const char *startFrom)
     char *writeTo = NULL;
     uint8_t newLength = strstr_P(startFrom, rn) - startFrom;
     assert(newLength);
-    writeTo = (char *)malloc(newLength+1); //+1 for '\x00'
+    writeTo = (char *)malloc(newLength + 1); //+1 for '\x00'
     assert(writeTo);
     memcpy(writeTo, startFrom, newLength);
     writeTo[ newLength ] = 0;
@@ -50,7 +50,7 @@ void wsGetHandshakeAnswer(const handshake *hs, uint8_t *outFrame,
     assert(hs->frameType == WS_OPENING_FRAME);
     assert(hs && hs->key);
     char responseKey[128] = {0};
-    uint8_t length = strlen(hs->key)+strlen_P(secret);
+    uint8_t length = strlen(hs->key) + strlen_P(secret);
     memcpy(responseKey, hs->key, strlen(hs->key));
     memcpy_P(&(responseKey[strlen(hs->key)]), secret, strlen_P(secret));
     unsigned char shaHash[SHA1_DIGEST_LENGTH];
@@ -107,7 +107,7 @@ void wsMakeFrame(const uint8_t *data, size_t dataLength,
         */
     }
     memcpy(&outFrame[*outLength], data, dataLength);
-    *outLength+= dataLength;
+    *outLength += dataLength;
 }
 static size_t getPayloadLength(const uint8_t *inputFrame, size_t inputLength,
                                uint8_t *payloadFieldExtraBytes, enum wsFrameType *frameType)
@@ -193,7 +193,7 @@ enum wsFrameType wsParseInputFrame(uint8_t *inputFrame, size_t inputLength,
             size_t i;
             for (i = 0; i < *dataLength; i++)
             {
-                (*dataPtr)[i] = (*dataPtr)[i] ^ maskingKey[i%4];
+                (*dataPtr)[i] = (*dataPtr)[i] ^ maskingKey[i % 4];
             }
         }
         return frameType;
