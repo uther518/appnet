@@ -452,7 +452,7 @@ void appnetServer_onRecv( aeServer* s, aeConnection *c, sds buff , int len )
 
 	if (EG(exception))
 	{
-		php_error_docref(NULL, E_WARNING, "bind recv callback failed");
+		php_error_docref(NULL, E_WARNING, "bind recv callback failed,fd=%d,data=%s \n" ,c->fd, buff );
 	}
 
 	zval_ptr_dtor(&zfd);

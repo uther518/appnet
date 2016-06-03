@@ -115,7 +115,6 @@ static inline int get_ext_mime_type( char* ext , char* ctype )
 //uri /web/test.html?xx=yyy&cc=ff
 static inline int get_mime_type( char* uri , char* ctype )
 {
-
 	char* pos;
 	pos  = strstr( uri , "?" );
 

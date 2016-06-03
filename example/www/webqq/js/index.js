@@ -1,6 +1,7 @@
 
 var ws = {};
 var client_id = 0;
+var session_id="";
 var private_chat = 1;
 var current_friend_fd = 0;
 var userlist = {};
@@ -48,9 +49,9 @@ function showOnlineList( data )
 		}
 
 		li = li + "<li id='friend_"+dataObj.list[i].fd+"'>";
-        li = li + "<div class='qq-hui-img'><img src='images/head/01.jpg'><i></i></div>";
-        li = li + "<div class='qq-hui-name'><span>"+dataObj.list[i].name+"</span><i>16:30</i></div>";
-        li = li + "<div class='qq-hui-txt' title=''>下次我们去公园拍摄吧~[图片]</div>";
+        	li = li + "<div class='qq-hui-img'><img src='images/head/01.jpg'><i></i></div>";
+        	li = li + "<div class='qq-hui-name'><span>"+dataObj.list[i].name+"</span><i>16:30</i></div>";
+        	li = li + "<div class='qq-hui-txt' title=''>下次我们去公园拍摄吧~[图片]</div>";
 		li = li + "</li>";
 		userlist[dataObj.list[i].fd] = dataObj.list[i].name; 
 		
@@ -93,7 +94,7 @@ function showNewMsg( data )
 	//表示系统消息
 	if (fromId == 0)
 	{
-		alert( "系统消息暂未处理"+data );
+		alert( "系统消息暂未处理"+dataObj.data );
 	}
 	else
 	{
@@ -118,9 +119,13 @@ function showNewMsg( data )
 		{
 			
 			$("#friend_"+fromId+" .qq-hui-txt" ).html( content );
-			$('.qq-chat-txt ul').append('<li class="my"><div class="qq-chat-my"><span>'+name+'说</span><i>'+t_div+'</i></div><div class="qq-chat-ner">'+content+'</div></li>')
-			$(".qq-chat-txt").scrollTop($(".qq-chat-txt")[0].scrollHeight);
-			$('#qq-chat-text').val('').trigger("focus")
+			//大窗口只显示当前好友发来的消息
+			if( current_friend_fd == fromId )
+			{
+				$('.qq-chat-txt ul').append('<li class="my"><div class="qq-chat-my"><span>'+name+'说</span><i>'+t_div+'</i></div><div class="qq-chat-ner">'+content+'</div></li>')
+				$(".qq-chat-txt").scrollTop($(".qq-chat-txt")[0].scrollHeight);
+				$('#qq-chat-text').val('').trigger("focus")
+			}
 			
 		}
 		
@@ -138,14 +143,13 @@ function websocket_open( qq )
 {
 	if ( window.WebSocket || window.MozWebSocket) 
 	{
-		var login_status = $.cookie('login_status' );
-		if( client_id == 0 )
+		if( client_id == 0  )
 		{
 			ws = new WebSocket( "ws://"+ip+":"+port );
 		}
 		else
 		{
-			alert( "不可重复登录" + login_status );
+			alert( "您已经登录了" );
 		}
 		/**
 		 * 连接建立时触发
@@ -156,6 +160,15 @@ function websocket_open( qq )
 			msg.cmd = 'login';
 			msg.name = qq;
 			msg.avatar = "";
+			if( $.cookie('webqq_session_id' ))
+			{
+				msg.session_id = $.cookie('webqq_session_id' );
+			}
+			else
+			{
+				msg.session_id = new Date().getTime();
+			}
+			$.cookie('webqq_session_id', msg.session_id  );
 			$("#qq-top-name").val( qq );
 			ws.send( $.toJSON( msg ));	
 		};
@@ -167,10 +180,7 @@ function websocket_open( qq )
 			var cmd = $.evalJSON( e.data ).cmd;
 			if( cmd == 'login' )
 			{
-				client_id = $.evalJSON( e.data ).fd;
-				
-				$.cookie('login_status', '1');
-				
+				client_id = $.evalJSON( e.data ).fd;			
 				//获取在线列表
 				msg = new Object();
 				msg.cmd = 'getOnline';
@@ -182,7 +192,6 @@ function websocket_open( qq )
 			}
 			else if( cmd == 'newUser' )
 			{
-				
 				showNewUser( e.data );
 			}
 			else if( cmd == 'fromMsg' )
@@ -214,7 +223,7 @@ function websocket_open( qq )
 		 */
 		ws.onerror = function(e)
 		{
-			alert( "异常:"+e.data );
+			//alert( "异常:"+e.data );
 			console.log("onerror");
 		};
 			
@@ -250,7 +259,7 @@ $(document).ready(function(){
 
 	current_friend_fd = fri[1];
 	
-    $('.qq-chat').css('display','block').removeClass('mins')
+        $('.qq-chat').css('display','block').removeClass('mins')
 	$('.qq-chat-t-name').html($(this).find('span').html())
 	$('.qq-chat-t-head img').attr('src',$(this).find('img').attr('src'))
 	$('.qq-chat-you span').html($(this).find('span').html())
@@ -347,7 +356,7 @@ function disConnect()
 	msg.cmd = "disconnect";
 	msg.from = client_id;
 	msg.channal = 1;
-	msg.data = "";
+
 	//ws.close();
 	ws.send( $.toJSON( msg ) );
 }

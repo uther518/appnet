@@ -42,6 +42,11 @@ class WebChat
 		elseif( $msg['cmd'] == 'message')
 		{
 		   self::onMessage( $serv ,$fd , $msg );
+		}
+		elseif( $msg['cmd'] == 'disconnect' )
+		{
+		    self::broadcastOffLine( $serv , $fd  );
+		    $serv->close( $fd );
 		}	
 
 	}
@@ -79,6 +84,21 @@ class WebChat
 	}
 
 
+	private static function delConnlist( $fd )
+        {
+                if( WORKER_NUM > 1 )
+                {
+                        $list = apcu_fetch( "webchat_conn_list"  );
+                        unset( $list[$fd] );
+                        apcu_store( "webchat_conn_list" ,  $list );
+                }
+                else
+                {
+                       unset( self::$connections[$fd] );
+                }
+        }
+
+
 	private static function getConnlist()
 	{
 		if(  WORKER_NUM > 1 )
@@ -91,7 +111,18 @@ class WebChat
 
 	public static function onLogin( $serv , $fd , $msg )
 	{
-		self::setConnlist( $fd , array( 'name' => $msg['name'] , 'avatar' => $msg['avatar'] ));
+		$list = self::getConnlist();
+		foreach( $list as $connfd => $info )
+		{
+			if( $info['session_id'] == $msg['session_id'] && $fd != $connfd )
+			{
+				echo "login repeat by same brower";
+				self::broadcastOffLine( $serv , $connfd  );
+			}
+		}
+
+
+		self::setConnlist( $fd , array( 'name' => $msg['name'] , 'avatar' => $msg['avatar'] , 'session_id' => $msg['session_id'] ));
 
 		$resMsg = array(
 			'cmd' => 'login',
@@ -135,9 +166,9 @@ class WebChat
 			'fd' => $fd,
 			'from' => 0,
 			'channal' => 0 ,
-			'data' => self::$connections[$fd]['name']."离开了。。",
+			'data' => $list[$fd]['name'],
 		);
-
+		
 		//将下线消息发送给所有人
 		foreach ( $list as $clid => $info )
 		{
@@ -146,7 +177,8 @@ class WebChat
 				$serv->send( $clid , json_encode( $resMsg ) );
 			}
 		}
-		unset( self::$connections[$fd] );	
+		unset( $list[$fd] );	
+		self::delConnlist( $fd  );
 	}
 
 	public static function onMessage( $serv , $fd , $msg )
@@ -210,7 +242,7 @@ function onRecv( $server , $fd , $buffer )
 	  	 WebChat::onReceive( $server , $fd,  $buffer );
 	}
 	elseif(  $header['Protocol'] == "HTTP"  )
-    {
+        {
 		$data  = $buffer;
 		$data .= microtime();
 		echo "Response:[".$data."]\n";
@@ -231,7 +263,7 @@ function onClose( $server , $fd )
 	echo "CloseClient:$fd \n";
 	$header = $server->getHeader();
 	if( $header['Protocol'] == "WEBSOCKET" )
-    {
+    	{
 		WebChat::broadcastOffLine( $server , $fd  );
 	}
 };

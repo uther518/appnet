@@ -9,6 +9,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <ctype.h>
+
 
 /********
     [Protocol] => HTTP
@@ -281,9 +283,13 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
     header->fileds[header->filed_nums].val.len = value_len - eolen;
 
     memcpy( value  , ret + eolen + 1  ,  value_len - eolen  );
-    if ( upgrade == 1 &&  memcmp( value , "websocket" , value_len - eolen  ) == 0  )
+
+    if ( upgrade == 1 )
     {
-        header->protocol = WEBSOCKET;
+	if( memcmp( value , "websocket" , value_len - eolen  ) == 0 || memcmp( value , "Websocket" , value_len - eolen  ) == 0  )
+	{
+        	header->protocol = WEBSOCKET;
+	}
     }
 
 
@@ -295,7 +301,7 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
     if ( memcmp( org  , "Connection" ,  ret - org  ) == 0 )
     {
         header->keep_alive = 0;
-        if ( strstr( value , "keep-alive" ))
+        if ( strstr( value , "keep-alive" ) || strstr( value , "Keep-Alive" ) )
         {
             header->keep_alive = 1;
         }
@@ -536,7 +542,7 @@ enum wsFrameType parseHandshake( httpHeader* header  ,  handshake* hs  )
         }
     }
     //说明包头不全
-    if ( count != 3  )
+    if ( count < 2  )
     {
         hs->frameType = WS_ERROR_FRAME;
     }
