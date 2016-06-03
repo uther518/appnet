@@ -1,6 +1,8 @@
 <?php
 
 error_reporting(E_ERROR | E_WARNING | E_PARSE);
+define( "WORKER_NUM" , 1 );
+
 class Websocket
 {
 	private static $serv;
@@ -37,7 +39,8 @@ class Websocket
 	    $resMsg = array(
 			'cmd' => 'getOnline',
 		);
-		foreach ( self::$connections as $clid => $info )
+		$list = self::getConnlist();
+		foreach ( $list as $clid => $info )
 		{
 			$resMsg['list'][] = array(
 			   'fd' => $clid,
@@ -48,10 +51,35 @@ class Websocket
 	   $serv->send( $fd , json_encode( $resMsg ) );
 	}
 
+
+	private static function setConnlist( $fd , $conn )
+	{
+		if( WORKER_NUM > 1 )
+		{
+			$list = apcu_fetch( "webchat_conn_list"  );
+			$list[$fd] = $conn;
+			apcu_store( "webchat_conn_list" ,  $list );
+		}
+		else
+		{
+			self::$connections[$fd] = $conn;
+		}
+	}
+
+
+	private static function getConnlist()
+	{
+		if(  WORKER_NUM > 1 )
+		{
+			$list = apcu_fetch( "webchat_conn_list"  );
+			return $list;
+		}
+		return self::$connections;
+	}
+
 	public static function onLogin( $serv , $fd , $msg )
 	{
-		self::$connections[$fd]['name'] = $msg['name'];
-        self::$connections[$fd]['avatar'] = $msg['avatar'];
+		self::setConnlist( $fd , array( 'name' => $msg['name'] , 'avatar' => $msg['avatar'] ));
 
 		$resMsg = array(
 			'cmd' => 'login',
@@ -73,8 +101,9 @@ class Websocket
 			'data' => $msg['name']."上线鸟。。",
 		);
 
+		$list = self::getConnlist();
 		//将上线消息发送给所有人
-		foreach ( self::$connections as $clid => $info )
+		foreach ( $list as $clid => $info )
 		{
 			if( $fd  !=  $clid )
 			{
@@ -95,11 +124,12 @@ class Websocket
 		);
 
 		//将下线消息发送给所有人
-		foreach ( self::$connections as $clid => $info )
+		$list = self::getConnlist();
+		foreach ( $list as $clid => $info )
 		{
 			if( $fd  !=  $clid )
 			{
-					$serv->send( $clid , json_encode( $resMsg ) );
+				$serv->send( $clid , json_encode( $resMsg ) );
 			}
 		}
 		unset( self::$connections[$fd] );	
@@ -112,7 +142,9 @@ class Websocket
 		//表示群发
 		if( $msg['channal'] == 0 )
 		{
-			foreach ( self::$connections as $clid => $info )
+
+			$list = self::getConnlist();
+			foreach ( $list as $clid => $info )
 			{
 				$serv->send( $clid , json_encode( $resMsg ) );
 			}
@@ -124,7 +156,7 @@ class Websocket
 			$serv->send( $msg['from'] , json_encode( $resMsg ) );
 		}
 		//$serv->close( $fd );
-    }
+         }
 }
 
 
@@ -210,14 +242,14 @@ function onTimer( $server , $timer_id ,  $flag )
 	$pid = posix_getpid();
 	echo "onTimer:flag={$flag},pid={$pid},timer_id={$timer_id}...\n";
 	//if do not remove it, it will be call this function forever	
-	//$server->timerRemove( $timer_id );		
+	$server->timerRemove( $timer_id );		
 }
 
 
 dl( "appnet.so");
 $server = new appnetServer( "0.0.0.0" , 3011 );
 
-$server->setOption( APPNET_OPT_WORKER_NUM , 1 );
+$server->setOption( APPNET_OPT_WORKER_NUM , WORKER_NUM );
 $server->setOption( APPNET_OPT_ATASK_WORKER_NUM , 0 );
 
 $server->setOption( APPNET_OPT_REACTOR_NUM, 1 );

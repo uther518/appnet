@@ -20,6 +20,11 @@ void initWorkerOnLoopStart( aeEventLoop *l)
     }
 }
 
+int  get_worker_pipe_index( int tofd )
+{
+	return servG->worker->pidx * servG->reactorNum + tofd%servG->reactorNum;
+}
+
 unsigned int dictSdsCaseHash(const void *key)
 {
     return dictGenCaseHashFunction((unsigned char*)key, sdslen((char*)key));
@@ -257,7 +262,7 @@ int sendMessageToReactor( int connfd , char* buff , int len )
 		if( writeable > 0 ||  data.len+PIPE_DATA_HEADER_LENG  == sdslen( servG->worker->send_buffer ) )
 		{
 			int ret;
-			int index = getPipeIndex( connfd );
+			int index = get_worker_pipe_index( connfd );
 			ret = aeCreateFileEvent( servG->worker->el,servG->worker_pipes[index].pipefd[1] , AE_WRITABLE ,onWorkerPipeWritable,NULL );
 			if( ret == AE_ERR )
 			{
@@ -427,7 +432,7 @@ int sendCloseEventToReactor( int connfd  )
 	data.type = PIPE_EVENT_CLOSE;
 	data.connfd = connfd;
 	data.len = 0;
-	int index = getPipeIndex( connfd );
+	int index = get_worker_pipe_index( connfd );
 	
 	if (sdslen( servG->worker->send_buffer ) == 0  )
 	{
@@ -477,7 +482,7 @@ int socketWrite(int __fd, void *__data, int __len)
 
 int send2ReactorThread( int connfd , aePipeData data )
 {
-	int index = getPipeIndex( connfd );
+	int index = get_worker_pipe_index( connfd );
 	if (sdslen( servG->worker->send_buffer ) == 0  )
 	{
 		int ret = aeCreateFileEvent( servG->worker->el,
@@ -634,7 +639,8 @@ void runWorkerProcess( int pidx  )
 			AE_READABLE,
 			onWorkerPipeReadable,NULL
 		);
-		printf("Worker Run index=%d, pidx=%d and listen pipefd=%d is ok? [%d]\n",index, pidx ,	servG->worker_pipes[index].pipefd[1],res==0 );
+		printf("Worker Run pid=%d, index=%d, pidx=%d and listen pipefd=%d is ok? [%d]\n", 
+				getpid() , index, pidx ,servG->worker_pipes[index].pipefd[1],res==0 );
 	}
 
 	//res = aeCreateTimeEvent( worker->el, 1000 , timerCallback , NULL , NULL );
