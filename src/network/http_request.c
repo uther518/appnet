@@ -282,7 +282,11 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
     header->fileds[header->filed_nums].val.pos = ret + eolen + 1;
     header->fileds[header->filed_nums].val.len = value_len - eolen;
 
-    memcpy( value  , ret + eolen + 1  ,  value_len - eolen  );
+    memcpy( value  , ret + eolen + 1  ,  sizeof(value) );
+    if( value_len - eolen > sizeof(value) )
+    {
+	printf( "Error Header Line Is Too Long len=%d!! \n" , value_len - eolen );
+    }
 
     if ( upgrade == 1 )
     {
