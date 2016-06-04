@@ -578,7 +578,7 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
             return CONTINUE_RECV;
         }
 
-
+	
         header->complete_length = len;
         //make sure recv data is complete, then create task..
         if ( hs->frameType == WS_CLOSING_FRAME )
@@ -590,7 +590,6 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
             //make sure recv data is complete, then create task..
             createWorkerTask(  connfd , recv_data  , recv_len  , PIPE_EVENT_MESSAGE, "parseWebsocket" );
         }
-        //createWorkerTask(  connfd , recv_data  , recv_len  , PIPE_EVENT_MESSAGE, "parseWebsocket" );
         //sdsfree( recv_data );
     }
 
@@ -598,7 +597,7 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
 	{
 		printf( "Error:wsParseInputFrame WS_ERROR_FRAME..\n");
 		createWorkerTask(  connfd , ""  ,  0  , PIPE_EVENT_CLOSE, "parseWebsocket" );
-        return CLOSE_CONNECT;
+        	return CLOSE_CONNECT;
 	}		
 	
     if (  hs->frameType == WS_INCOMPLETE_FRAME )

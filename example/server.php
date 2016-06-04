@@ -112,12 +112,15 @@ class WebChat
 	public static function onLogin( $serv , $fd , $msg )
 	{
 		$list = self::getConnlist();
-		foreach( $list as $connfd => $info )
+		if(  $list  )
 		{
-			if( $info['session_id'] == $msg['session_id'] && $fd != $connfd )
+			foreach( $list as $connfd => $info )
 			{
-				echo "login repeat by same brower";
-				self::broadcastOffLine( $serv , $connfd  );
+				if( $info['session_id'] == $msg['session_id'] && $fd != $connfd )
+				{
+					echo "login repeat by same brower";
+					self::broadcastOffLine( $serv , $connfd  );
+				}
 			}
 		}
 
@@ -235,7 +238,7 @@ function onRecv( $server , $fd , $buffer )
 {
 	$header = $server->getHeader();
 	$pid = posix_getpid();
-	echo "RecvClient:[{$header['Protocol']}][{$header['Uri']}][{$buffer}][{$fd}],pid={$pid} \n";	
+	echo "RecvClient:[{$header['Protocol']}][{$buffer}][{$fd}],pid={$pid} \n";	
 
 	if( $header['Protocol'] == "WEBSOCKET" )
 	{

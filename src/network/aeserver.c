@@ -261,11 +261,11 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
             {
                 continue;
             }
-			else if( ret == CLOSE_CONNECT )
-			{
-				freeClient( &servG->connlist[fd]  );
-				return;
-			}
+	    else if( ret == CLOSE_CONNECT )
+	    {
+		freeClient( &servG->connlist[fd]  );
+		return;
+	    }
             else
             {
                 return;

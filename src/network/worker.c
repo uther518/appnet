@@ -328,10 +328,11 @@ void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
 	{
 		data.data = sdsempty();
 		char buff[TMP_BUFFER_LENGTH];
-		while ( ( readlen = read( pipe_fd , buff , sizeof( buff ) ) ) > 0 )
+		while ( ( readlen = read( pipe_fd , buff , data.len-bodylen ) ) > 0  )
 		{
 			data.data = sdscatlen( data.data , buff , readlen  );
 			bodylen += readlen;
+			if( bodylen == data.len )break;
 		}
 	}
 
@@ -387,7 +388,6 @@ void onWorkerPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
 	aePipeData data;
 	int readlen = 0;
 	//此处如果要把数据读取到大于包长的缓冲区中，不要用anetRead，否则就掉坑里了
-
 	readlen = read(fd, &data , PIPE_DATA_HEADER_LENG );
 	if ( readlen == 0 )
 	{
