@@ -290,10 +290,10 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
 
     if ( upgrade == 1 )
     {
-	if( memcmp( value , "websocket" , value_len - eolen  ) == 0 || memcmp( value , "Websocket" , value_len - eolen  ) == 0  )
-	{
-        	header->protocol = WEBSOCKET;
-	}
+		if( memcmp( value , "websocket" , value_len - eolen  ) == 0 || memcmp( value , "Websocket" , value_len - eolen  ) == 0  )
+		{
+				header->protocol = WEBSOCKET;
+		}
     }
 
 
@@ -594,10 +594,16 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
         //sdsfree( recv_data );
     }
 
-
-    if ( hs->frameType == WS_ERROR_FRAME ||  hs->frameType == WS_INCOMPLETE_FRAME )
+	if( hs->frameType == WS_ERROR_FRAME )
+	{
+		printf( "Error:wsParseInputFrame WS_ERROR_FRAME..\n");
+		createWorkerTask(  connfd , ""  ,  0  , PIPE_EVENT_CLOSE, "parseWebsocket" );
+        return CLOSE_CONNECT;
+	}		
+	
+    if (  hs->frameType == WS_INCOMPLETE_FRAME )
     {
-        printf( "InitHandshake Error Frame..\n");
+        printf( "wsParseInputFrame WS_INCOMPLETE_FRAME..\n");
         return CONTINUE_RECV;
     }
 
@@ -624,7 +630,7 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
                 }
             }
             servG->connlist[connfd].send_buffer = sdscatlen(
-                    servG->connlist[connfd].send_buffer , (char*)out_buffer , frameSize
+            servG->connlist[connfd].send_buffer , (char*)out_buffer , frameSize
                                                   );
             //createWorkerTask( connfd , "" , 0 , PIPE_EVENT_CONNECT , "Websocket New Connection" );
         }
