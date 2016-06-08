@@ -675,7 +675,7 @@ void put_upload_file( int connfd, char* filename , char* data , int len, char* d
     snprintf( destfile , 255 , "%s/%d_%d_%d_%s" , servG->http_upload_dir , tv.tv_sec , tv.tv_usec , connfd , filename );
 
     int fd, size;
-    fd = open( destfile  , O_WRONLY | O_CREAT  );
+    fd = open( destfile  , O_WRONLY | O_CREAT , 0777  );
     if ( fd < 0 )
     {
         printf( "Upload File Error,Cannot Open the file %s \n" , filename );

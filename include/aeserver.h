@@ -203,7 +203,7 @@ struct _reactorThreadParam
 };
 
 #define PIPE_DATA_LENG 90
-#define PIPE_DATA_HEADER_LENG 1+3*sizeof(int)
+#define PIPE_DATA_HEADER_LENG 2+3*sizeof(int)
 
 #define  CONTINUE_RECV 1
 #define  BREAK_RECV  2
