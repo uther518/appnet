@@ -1,9 +1,21 @@
 <?php
 
+/**
+  一个同时支持tcp,http,websocket的Appnet Server
+  需求安装的扩展:
+  1,appnet.so  
+  2,多worker进程共享数据可以使用apcu,如下WebChat中的用法
+    apcu下载地址:http://pecl.php.net/package/APCu
+    php.ini配置:
+    apc.enabled=1
+	apc.shm_size=32M
+	apc.enable_cli=1
+**/
+
 error_reporting(E_ERROR | E_WARNING | E_PARSE);
 define( "WORKER_NUM" , 1 );
 
-class Websocket
+class WebChat
 {
 	private static $serv;
 
@@ -115,6 +127,9 @@ class Websocket
 
 	public static function broadcastOffLine( $serv , $fd  )
 	{
+		$list = self::getConnlist();
+		if(empty($list[$fd]))return;
+
 		$resMsg = array(
 			'cmd' => 'offline',
 			'fd' => $fd,
@@ -124,7 +139,6 @@ class Websocket
 		);
 
 		//将下线消息发送给所有人
-		$list = self::getConnlist();
 		foreach ( $list as $clid => $info )
 		{
 			if( $fd  !=  $clid )
@@ -193,7 +207,7 @@ function onRecv( $server , $fd , $buffer )
 
 	if( $header['Protocol'] == "WEBSOCKET" )
 	{
-	  	 Websocket::onReceive( $server , $fd,  $buffer );
+	  	 WebChat::onReceive( $server , $fd,  $buffer );
 	}
 	elseif(  $header['Protocol'] == "HTTP"  )
     {
@@ -218,7 +232,7 @@ function onClose( $server , $fd )
 	$header = $server->getHeader();
 	if( $header['Protocol'] == "WEBSOCKET" )
     {
-		Websocket::broadcastOffLine( $server , $fd  );
+		WebChat::broadcastOffLine( $server , $fd  );
 	}
 };
 
