@@ -1,0 +1,450 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head> 
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" /> 
+  <meta http-equiv="X-UA-Compatible" content="IE=9" /> 
+  <meta name="robots" content="all" /> 
+  <meta name="keywords" content="腾讯注册，帐号注册，QQ注册，注册QQ，腾讯帐号，放号页面" /> 
+  <meta name="description" content="QQ注册" /> 
+  <meta name="author" content="Tencent" /> 
+  <meta name="copyright" content="Tencent" /> 
+  <meta http-equiv="pragma" content="no-cache" /> 
+  <meta http-equiv="Cache-Control" content="no-cache, must-revalidate" /> 
+  <meta http-equiv="expires" content="-1" /> 
+  <title>QQ注册</title> 
+  <script type="text/javascript"> var isd_t = []; isd_t.push(new Date - 0); </script> 
+  <link rel="stylesheet" href="http://5.url.cn/zc/chs/css/10079/index.css" type="text/css" /> 
+  <link rel="stylesheet" href="http://5.url.cn/zc/chs/css/10079/g.css" type="text/css" /> 
+  <style> .box_ { position: fixed } .cover { height: 981px } #enterBanner { display: block; width: 610px; height: 165px; background: url(http://3gimg.qq.com/qq_product_operations/temp/enterBannerC.jpg) no-repeat center; margin-left: 60px; margin-top: 0; margin-bottom: -5px } .haomaTitle { position: relative; width: 604px; height: 80px; margin-left: 63px; border-bottom: 1px solid #ddd } .haomaTitle .haoma-inner { position: absolute; width: 100%; height: 25px; line-height: 25px; font-family: "微软雅黑"; font-size: 18px; text-indent: 6px; border-left: 3px solid #59AfE4; margin-top: 50px; color: #616161 } #haomaBox { width: 610px; height: 260px; position: fixed; background: #fff; left: 50%; top: 50%; margin-top: -130px; margin-left: -305px; z-index: 9999; background: url(http://3gimg.qq.com/qq_product_operations/temp/enterC.jpg) no-repeat center; z-index: 1028; display: none; _position: absolute } #haomaBtn { display: block; width: 160px; height: 40px; background: url(http://3gimg.qq.com/qq_product_operations/temp/enterBtn.jpg) no-repeat center; position: absolute; top: 180px; left: 365px } #haomaBox:hover { cursor: pointer } #haomaClose { display: block; width: 15px; height: 15px; background: url(http://3gimg.qq.com/qq_product_operations/temp/closeBtn.png) no-repeat center; position: absolute; left: 590px; top: 5px; background-size: 100% } #to_good_num { display: block; width: 385px; height: 96px; background: url(http://3gimg.qq.com/qq_product_operations/temp/ole_num_enter.png); margin-top: 150px; margin-left: 170px } #old_reg { display: block; width: 385px; height: 96px; background: url(http://3gimg.qq.com/qq_product_operations/temp/good_num_enter.png); margin-top: 50px; margin-left: 170px } .phone_box_land { z-index: 5 } .enterB { display: none } .cover { animation: fadeShow 1s ease-in-out; -webkit-animation: fadeShow 1s } @-webkit-keyframes fadeShow { 0% { opacity: .05 } 50% { opacity: .05 } 100% { opacity: .3 } } @keyframes fadeShow { 0% { opacity: .5 } 50% { opacity: 0 } 100% { opacity: .3 } } </style> 
+  <script type="text/javascript"></script> 
+  <script src="https://ssl.captcha.qq.com/template/TCapIframeApi.js?aid=1600000592&amp;clientype=2&amp;lang=1028"></script>
+ </head>
+ <body> 
+  <div class="web_notice" id="web_notice"> 
+   <div class="web_notice_text" id="web_notice_text"></div> 
+  </div> 
+  <div class="cover" id="cover"></div> 
+  <div class="box_"> 
+   <div class="chk_email_code" id="chk_email_code_box"> 
+    <a class="close" onclick="window.index&amp;&amp;index.hideEmailCode()"></a> 
+    <h2>操作提示</h2> 
+    <div class="div_1">
+     <span class="chkError"></span>您短时间内尝试次数过多，请填写验证码或稍后再试
+    </div> 
+    <div class="div_2">
+     <span>验证码:</span> 
+     <input type="text" name="email_code" id="email_code_ipt" maxlength="8" autocomplete="off" />
+     <span id="email_code_ipt_err">验证码错误</span>
+    </div> 
+    <div class="div_3">
+     按下图字符填写，不区分大小写。 
+     <br />
+     <img src="" onclick="window.index&amp;&amp;index.changeEmailCode()" id="email_code_img" alt="验证码" title="请输入验证码" /> 
+     <br />
+     <a onclick="window.index&amp;&amp;index.changeEmailCode()">看不清楚？换一个</a> 
+     <br /> 
+     <input type="button" onclick="window.index&amp;&amp;index.ajaxChkEmail()" /> 
+    </div> 
+   </div> 
+  </div> 
+  <div class="haomaBox" id="haomaBox"> 
+   <a class="haomaClose" id="haomaClose" title="关闭"></a> 
+   <a id="haomaBtn" href="http://zc.qq.com/chs/new.html" title="精品靓号免费拿" onclick="$.report.monitor('l_enter_a_click')"></a> 
+  </div> 
+  <div class="bg"> 
+   <div class="container"> 
+    <div class="header"> 
+     <a href="index.html" class="logo" target="_self" title="QQ注册"></a> 
+     <a onclick="feedBack(716)" class="feedback" target="_blank" title="">意见反馈</a> 
+     <div id="lang_box">
+      <span>简体中文</span>|
+      <a href="javascript:langSwitch('cht');">繁體中文</a>|
+      <a href="javascript:langSwitch('en');">English</a>
+     </div> 
+    </div> 
+    <div class="content"> 
+     <div class="left">
+      <a id="nav_1" class="nav_box" href="javascript:void(0);" onmouseout="this.removeAttribute('_hover')" onmouseover="this.setAttribute('_hover','over')"><span class="dt nav_1">QQ帐号</span> <span class="dd">由数字组成，经典通行帐号</span></a> 
+      <a id="nav_3" class="nav_box" href="javascript:void(0);" onmouseout="this.removeAttribute('_hover')" onmouseover="this.setAttribute('_hover','over')"><span class="dt nav_3">手机帐号</span> <span class="dd">便于登录、保护QQ帐号</span></a> 
+      <a id="nav_2" class="nav_box" href="javascript:void(0);" onmouseout="this.removeAttribute('_hover')" onmouseover="this.setAttribute('_hover','over')"><span class="dt nav_2">邮箱帐号</span> <span class="dd">用邮箱地址注册，便于记忆</span></a> 
+      <div class="search"> 
+       <div class="ipt_box"> 
+        <form class="search_form" method="get" action="http://haoma.qq.com/search_gno.php?service=1&amp;from=freeqqm&amp;url=http%3A%2F%2Fhaoma.qq.com%2Fgno.php" target="_blank" onsubmit="return g.formSubmit()"> 
+         <input type="hidden" name="service" value="1" /> 
+         <input type="hidden" name="from" value="freeqqm" /> 
+         <input type="hidden" name="url" value="http%3A%2F%2Fhaoma.qq.com%2Fgno.php" /> 
+         <input name="number" class="txt" autocomplete="off" type="text" style="z-index:0" value="输入要查找的QQ号码" onblur="g.searchBlur(this)" onfocus="g.searchFocus(this)" id="serch_ipt" /> 
+         <input class="btn" type="submit" value="" /> 
+        </form> 
+        <div class="clear"></div> 
+       </div> 
+       <ul> 
+        <li><a class="item_1" href="javascript:g.openHaoma(1);">生日</a></li> 
+        <li><a class="item_2" href="javascript:g.openHaoma(2)">爱情</a></li> 
+        <li><a class="item_3" href="javascript:g.openHaoma(5)">手机</a></li> 
+        <li><a class="item_4" href="javascript:g.openHaoma(4)">年度</a></li> 
+       </ul> 
+      </div> 
+     </div> 
+     <div class="right"> 
+      <div class="phone" id="phone_quick"></div> 
+      <div class="enterA" id="enterA"> 
+       <a href="http://zc.qq.com/chs/new.html" id="enterBanner" onclick="window.index&amp;&amp;index.reportBanner()"></a> 
+       <div class="haomaTitle"> 
+        <div class="haoma-inner" id="haoma-inner">
+         注册帐号
+        </div> 
+       </div> 
+       <form action="" method="post" onsubmit="return window.index&amp;&amp;index.submit()"> 
+        <div id="email_box" class="hide"> 
+         <div id="email_tips" class="box box_1" style="display:none"> 
+          <div class="item">
+           注册方式
+          </div> 
+          <div class="ipt_box method_box nobg">
+           <a id="email_2" name="new_other_mail" onclick="index.needShowError[2]=0,index.changeMethod(2)" onmouseout="this.removeAttribute('_hover')" onmouseover="this.setAttribute('_hover','over')" tabindex="1">使用非<span class="tahoma">QQ/Foxmail</span> 邮箱</a>
+           <a name="new_self_mail" id="email_1" class="checked" onclick="index.needShowError[1]=0,index.changeMethod(1)" onmouseout="this.removeAttribute('_hover')" onmouseover="this.setAttribute('_hover','over')" tabindex="2">注册<span class="tahoma">QQ/Foxmail</span> 邮箱</a>
+          </div> 
+          <div class="info"> 
+           <table> 
+            <tbody>
+             <tr> 
+              <td class="hidden"></td> 
+             </tr> 
+            </tbody>
+           </table> 
+          </div> 
+          <div class="clear"></div> 
+         </div> 
+         <div class="box box_2"> 
+          <label class="item" for="other_email">邮箱帐号</label> 
+          <div id="mail_box" class="ipt_box nobg self" style="z-index:99"> 
+           <div class="ipt_other"> 
+            <div id="other_email_bg" class="bg_txt"> 
+             <input id="other_email" type="text" class="new_txt" name="other_email" tabindex="3" autocomplete="off" maxlength="38" /> 
+            </div> 
+            <ul id="other_email_ul" class="other_email_ul hide"></ul> 
+           </div> 
+           <div class="ipt_self"> 
+            <input type="text" name="self_email" id="self_email" tabindex="4" autocomplete="off" maxlength="18" /> 
+            <div class="outer"> 
+             <div id="selfType" tabindex="5">
+              @qq.com
+             </div> 
+             <ul id="selfTypeBox" class="hide"> 
+              <li id="selfType0">@qq.com</li> 
+              <li id="selfType1">@foxmail.com</li> 
+             </ul> 
+            </div> 
+           </div> 
+          </div> 
+          <div class="info"> 
+           <table> 
+            <tbody>
+             <tr> 
+              <td id="email_info" class="hidden"></td> 
+             </tr> 
+            </tbody>
+           </table> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="box box_3" style="z-index:0"> 
+         <label class="item" for="nick">昵称</label> 
+         <div class="ipt_box nick_ipt_box"> 
+          <div id="nick_bg" class="bg_txt"> 
+           <input type="text" class="new_txt" id="nick" name="nick" tabindex="6" style="z-index:0" maxlength="24" autocomplete="off" /> 
+          </div> 
+         </div> 
+         <div class="info"> 
+          <table> 
+           <tbody>
+            <tr> 
+             <td id="nick_info" class="hidden"></td> 
+            </tr> 
+           </tbody>
+          </table> 
+         </div> 
+        </div> 
+        <div class="box box_4"> 
+         <label class="item" for="password">密码</label> 
+         <div class="ipt_box"> 
+          <div id="password_bg" class="bg_txt"> 
+           <input type="password" class="new_txt" id="password" name="password" tabindex="7" maxlength="16" /> 
+          </div> 
+         </div> 
+         <div class="info pwd_info"> 
+          <div class="pwd_tips hide" id="pwd_tips"> 
+           <div class="default" id="pwd_tip1">
+            长度为6-16个字符
+           </div> 
+           <div class="default" id="pwd_tip2">
+            不能是9位以下纯数字
+           </div> 
+           <div class="default" id="pwd_tip3">
+            不能包含空格
+           </div> 
+          </div> 
+          <table id="pwd_result" class="hide"> 
+           <tbody>
+            <tr> 
+             <td id="password_pic">弱</td> 
+            </tr> 
+            <tr> 
+             <td id="password_info" class="password_info"></td> 
+            </tr> 
+           </tbody>
+          </table> 
+         </div> 
+        </div> 
+        <div class="box box_5"> 
+         <label class="item" for="password_again">确认密码</label> 
+         <div class="ipt_box"> 
+          <div id="password_again_bg" class="bg_txt"> 
+           <input type="password" class="new_txt" name="pass_again" id="password_again" tabindex="8" maxlength="16" /> 
+          </div> 
+         </div> 
+         <div class="info"> 
+          <table> 
+           <tbody>
+            <tr> 
+             <td id="password_again_info" class="hidden"></td> 
+            </tr> 
+           </tbody>
+          </table> 
+         </div> 
+        </div> 
+        <div class="box box_6"> 
+         <div class="item">
+          性别
+         </div> 
+         <div class="ipt_box nobg sex_box">
+          <a name="male" id="sex_1" class="checked" tabindex="9">男</a>
+          <a id="sex_2" class="unchecked" name="femail" tabindex="10">女</a>
+         </div> 
+         <div class="info"> 
+          <table> 
+           <tbody>
+            <tr> 
+             <td id="sex_info" class="hidden"></td> 
+            </tr> 
+           </tbody>
+          </table> 
+         </div> 
+        </div> 
+        <div class="box box_7"> 
+         <div class="item">
+          生日
+         </div> 
+         <div id="bday_dt" class="ipt_box nopadding nobg"> 
+          <div id="inptu_search_tips" class="paopao" style="display:none">
+           <span id="inptu_search_tips_wording" class="p_l"></span> 
+           <span class="p_r"></span>
+          </div> 
+          <div id="birthday_type_box">
+           <a href="javascript:void(0)" id="birthday_type_value" class="value_box" tabindex="11">公历</a> 
+           <ul id="birthday_type_ul" class="hide"> 
+            <li id="birthday_0" value="0" class="hover">公历</li> 
+            <li id="birthday_1" value="1">农历</li> 
+           </ul> 
+          </div> 
+          <div id="year_box"> 
+           <div id="year_bg" class="year_bg_txt"> 
+            <input id="year_value" class="year_value" tabindex="12" value="年" maxlength="10" autocomplete="off" /> 
+           </div> 
+           <ul id="year_ul" class="hide"></ul> 
+          </div> 
+          <div id="month_box"> 
+           <input id="month_value" class="month_value" tabindex="13" value="月" maxlength="4" autocomplete="off" /> 
+           <ul id="month_ul" class="hide"></ul> 
+          </div> 
+          <div id="day_box"> 
+           <input id="day_value" class="day_value" tabindex="14" value="日" maxlength="4" autocomplete="off" /> 
+           <ul id="day_ul" class="hide"></ul> 
+          </div> 
+         </div> 
+         <div class="info"> 
+          <table> 
+           <tbody>
+            <tr> 
+             <td id="birthday_info" class="hidden"></td> 
+            </tr> 
+           </tbody>
+          </table> 
+         </div> 
+        </div> 
+        <div class="box box_8"> 
+         <div class="item">
+          所在地
+         </div> 
+         <div id="area_dt" class="ipt_box nopadding nobg"> 
+          <div id="country_box"> 
+           <div id="country_value_bg" class="area_value_bg"> 
+            <input type="text" id="country_value" class="country_value" tabindex="15" maxlength="20" autocomplete="off" /> 
+           </div> 
+           <ul id="country_ul" class="hide"></ul> 
+          </div> 
+          <div id="province_box"> 
+           <div id="province_value_bg" class="area_value_bg"> 
+            <input type="text" id="province_value" class="province_value" tabindex="16" maxlength="20" autocomplete="off" /> 
+           </div> 
+           <ul id="province_ul" class="hide"></ul> 
+          </div> 
+          <div id="city_box"> 
+           <div id="city_value_bg" class="area_value_bg"> 
+            <input type="text" id="city_value" class="city_value" tabindex="17" maxlength="20" autocomplete="off" /> 
+           </div> 
+           <ul id="city_ul" class="hide"></ul> 
+          </div> 
+         </div> 
+         <div class="info"> 
+          <table> 
+           <tbody>
+            <tr> 
+             <td id="area_info" class="hidden"></td> 
+            </tr> 
+           </tbody>
+          </table> 
+         </div> 
+        </div> 
+        <div class="box box_9 hide" id="code_box"> 
+         <label class="item" for="code">验证码</label> 
+         <div id="code_area_new" class="hide"> 
+          <div id="capt" class="ipt_box nopadding nobg"></div> 
+         </div> 
+         <div id="code_area_img" class="hide"> 
+          <input id="code" class="code_ipt" type="text" name="code" tabindex="18" autocomplete="off" maxlength="8" /> 
+          <img id="code_img" style="float:left; cursor:pointer;margin-left:5px;" width="130" height="53" src="" title="&lt;%=__('security_code_click_switch','点击换一张')%&gt;" onclick="window.index&amp;&amp;index.changeCode(true);" /> 
+         </div> 
+         <div class="info"> 
+          <table id="code_tips_tbl" class="hide"> 
+           <tbody>
+            <tr> 
+             <td id="code_info"><span id="code_info_err" class="tips">请输入图中的字母，不区分大小写</span></td> 
+            </tr> 
+            <tr> 
+             <td style="height:18px"><span class="change" onclick="window.index&amp;&amp;index.changeCode(!0)" title="点击换一张">点击换一张</span></td> 
+            </tr> 
+           </tbody>
+          </table> 
+         </div> 
+        </div> 
+        <div id="phone_box" class="phone_box_land"> 
+         <div id="sea_phone" class="box box_2 sea_phone"> 
+          <label class="item" for="sea_country_input">地区</label> 
+          <div class="sea_country_box" id="sea_country_box"> 
+           <div class="sea_area_value_bg"> 
+            <input id="sea_country_input" autocomplete="off" class="sea_country_input" tabindex="19" /> 
+           </div> 
+          </div> 
+         </div> 
+         <div id="land_phone" class="box box_2 land_phone"> 
+          <label class="item" for="phone_num"><span style="display:inline-block;text-align:center">手机号码</span></label> 
+          <div id="" class="ipt_box"> 
+           <div class="ipt_other"> 
+            <div id="phone_num_bg" class="bg_txt"> 
+             <input id="phone_num" type="text" class="new_txt" name="phone_num" tabindex="20" autocomplete="off" maxlength="11" /> 
+             <a class="phone_del hide" id="phone_del" href="javascript:void(0);"></a> 
+            </div> 
+           </div> 
+          </div> 
+          <div class="info"> 
+           <table> 
+            <tbody>
+             <tr> 
+              <td id="phone_info" class="tip"></td> 
+             </tr> 
+            </tbody>
+           </table> 
+          </div> 
+         </div> 
+         <div class="box box_phone_tip"> 
+          <div class="tip" style="margin-left:189px"> 
+           <div style="font-size:14px;margin-bottom:5px">
+            忘记密码时，可通过该手机号码快速找回密码
+           </div>
+           <span id="sea_entry" class="tip">请输入中国大陆手机号码（不含小灵通）<br />其他地区号码<a onclick="index.seaPhone()" href="javascript:void(0);">点击这里</a></span>
+          </div> 
+         </div> 
+         <div id="sms_box" class="box" style="z-index:0"> 
+          <div class="item"></div> 
+          <div class="ipt_box verima_ipt_box" id="verima_ipt_box"> 
+           <div id="verima_bg" class="bg_txt"> 
+            <input type="text" class="new_txt" id="verima" name="verima" style="z-index:0" autocomplete="off" maxlength="6" tabindex="21" /> 
+           </div> 
+           <label id="verima_label" class="noplinfo hide">系统已将验证码发送到您的手机，请填入验证码</label> 
+          </div> 
+          <div class="getverima"> 
+           <div id="getverima" title="获取短信验证码">
+            <span id="timeLeft"></span>
+            <span id="verimaTip">获取短信验证码</span>
+           </div> 
+          </div> 
+          <div class="info"> 
+           <table> 
+            <tbody>
+             <tr> 
+              <td id="verima_info" class="hidden"></td> 
+             </tr> 
+            </tbody>
+           </table> 
+          </div> 
+         </div> 
+         <div id="up_box" class="box hide"> 
+          <div class="item"></div> 
+          <div class=""> 
+           <p>请用此手机号发送 <span class="green">1</span> 到 <span class="green">1069 0700 511</span> 完成验证</p> 
+           <div class="tip">
+            注： 1、您仅需支付运营商收取的标准短信资费，无需任何额外费用。 
+            <br />2、腾讯公司承诺不会对外泄漏您的手机号码及用于其他任何商业用途。
+           </div> 
+          </div> 
+         </div> 
+        </div> 
+        <div class="box box_10" id="qzone_box"> 
+         <div class="item"></div> 
+         <div class="ipt_box qzone_box nopadding">
+          <a class="checked" name="qzone" id="qzone" tabindex="22">同时开通QQ空间</a>
+         </div> 
+        </div> 
+        <div class="box box_11"> 
+         <div class="item"></div> 
+         <div class="ipt_box"> 
+          <div class="agree_box">
+           <a name="agree" class="a_1 checked" id="agree" tabindex="22">我已阅读并同意相关服务条款和隐私政策</a> 
+           <div id="x_box" class="x_box"> 
+            <div id="x_switcher" title="点击查看用户协议"></div> 
+            <p><a id="item_1" href="agreement1_chs.html" target="_blank" title="点击查看《QQ号码规则》">《QQ号码规则》</a> <br /><a id="item_2" href="http://qzone.qq.com/web/tk.html" target="_blank" title="点击查看《QQ空间服务协议》">《QQ空间服务协议》</a> <br /><a id="item_3" href="http://www.qq.com/privacy.htm" target="_blank" title="点击查看《隐私政策》">《隐私政策》</a> <br /> </p> 
+           </div> 
+          </div> 
+          <div class="submit"> 
+           <input type="submit" value="提交注册" title="提交注册" tabindex="23" id="submit" /> 
+          </div> 
+         </div> 
+         <div class="info"></div> 
+        </div> 
+       </form> 
+      </div> 
+      <div class="enterB" id="enterB"> 
+       <a id="to_good_num" title="参加免费注册靓号活动" href="http://zc.qq.com/chs/new.html" onclick="$.report.monitor('l_enter_b_l_click')"></a> 
+       <a id="old_reg" title="注册普通帐号" href="javascript:void(0);"></a> 
+      </div> 
+     </div> 
+     <div class="clear"></div> 
+    </div> 
+   </div> 
+  </div> 
+  <div class="footer">
+   Copyright 
+   <span>&copy;</span> 1998-2016 Tencent All Rights Reserved 腾讯公司 版权所有
+  </div> 
+  <script type="text/javascript" src="http://4.url.cn/zc/chs/js/10079/json2.js"></script> 
+  <script src="http://4.url.cn/zc/chs/js/10079/chs.js"></script> 
+  <script src="http://4.url.cn/zc/chs/js/10079/simple.js?zc_identifier=000DBDC95ED47EFA9332F7F237F7775D532A5E5C64D8736C5654CBA1" type="text/javascript"></script> 
+  <script src="http://4.url.cn/zc/chs/js/10079/rsa.js?zc_identifier=000DB38AB5302B7E2C2E95BFA6EDD4C076F821AE1C5CFC2ADB8F86CC" type="text/javascript"></script> 
+  <script src="http://4.url.cn/zc/chs/js/10079/autocomplete.js?zc_identifier=000DCB8DB13B5EBFA029FAE2217BBE012A0A064E5AA65499D3034ECB43" type="text/javascript"></script> 
+  <script src="http://4.url.cn/zc/chs/js/10079/area_chs.js" type="text/javascript"></script> 
+  <script src="http://4.url.cn/zc/chs/js/10079/index.js?zc_identifier=000D6FE651CD23AE9C0CC21D5850119BF15F69B71CEFAFC7F3B9BD72" type="text/javascript"></script> 
+  <script type="text/javascript"> document.body.onmouseover = function() { try { window.index && (index.init(), document.body.onmouseover = null) } catch (e) {} }, $.bom = { query: function(e) { var t = window.location.search.match(new RegExp("(?|&)" + e + "=([^&]*)(&|$)")); return t ? decodeURIComponent(t[2]) : "" } }, $.loadScript = function(e, t, n) { var o = document.createElement("script"); t && (o.onload = o.onreadystatechange = function() { this.readyState && "loaded" !== this.readyState && "complete" !== this.readyState || (t(), o.onload = o.onreadystatechange = null, o.parentNode && o.parentNode.removeChild(o)) }), o.src = e, document.getElementsByTagName("head")[0].appendChild(o) }, $.TCSS = function() { var e = Array.prototype.shift, t = function() { var t = e.call(arguments); if (t) { var n, o = arguments; return window.TCISD && (n = TCISD[t]) ? n.apply(null, o) : $.loadScript("http://1.url.cn/act/home/js/1/tcss.js", function() { window.TCISD && (n = TCISD[t]) && n.apply(null, o) }), n } }; return { report: t } }(), $.TCSS.report("pv"); </script>
+ </body>
+</html>
