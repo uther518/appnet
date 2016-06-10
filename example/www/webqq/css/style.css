@@ -1,0 +1,158 @@
+@charset "utf-8";/* margin and padding */
+body,h1,h2,h3,h4,h5,h6,hr,p,blockquote,dl,dt,dd,ul,ol,li,pre,img,form,applet,fieldset,legend,button,input,textarea,th,table,tr,td{margin:0;padding:0;border:none;}
+
+/* bady */
+body{font-family:"微软雅黑";font-size:12px;color:#333;width:100%;height:100%;position:relative;background:#2b3d51;}
+body,div,fieldset,form,h1,h2,h3,h4,h5,h6,html,p{-webkit-text-size-adjust:none}
+input::-ms-clear{display:none;}/*清楚文本框X*/
+html{height:100%;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;}
+input,select,textarea{outline:none;cursor:pointer;}
+
+/* img */
+img{padding:0;margin:0;vertical-align:top;border:none}
+i{font-style:normal;}
+
+/* float */
+.fl{float:left!important;}
+.fr{float:right!important;}
+.auto{margin:0 auto;}
+.block{display:block!important;}
+.none{display:none;}
+.red{color:#ea4848!important;}
+.blue{color:#0034fa!important;}
+.mins{height:0px!important;}
+
+/* div */
+li,ul{list-style:none;outside:none;}
+.clear{clear:both;height:0;width:100%;}
+a,b,i,span,input,select{-webkit-transition:all 0.5s;-ms-transition:all 0.5s;font-family:"微软雅黑";}
+
+/* font */
+a{color:#333;text-decoration:none;-webkit-transition:all 0.5s;}
+a:hover,a:active,a:focus{text-decoration:none;}
+
+.win-bg{width:600px;height:218px;position:fixed;top:50%;left:50%;margin:-109px 0 0 -300px;}
+.qq-exe{width:60px;height:90px;float:left;margin:20px;}
+.qq-exe img{width:60px;height:60px;float:left;cursor:pointer;}
+.qq-exe input{float:left;text-align:center;height:20px;color:#fff;width:60px;margin:5px 0;background:none;}
+
+.qq-login{width:430px;height:330px;margin:0 0 -165px -215px;bottom:50%;left:50%;position:fixed;z-index:9999;border-radius:3px;overflow:hidden;box-shadow:0 0 5px #333;background:#ebf2f9 url(../images/login/qq-login-bg.jpg) center top no-repeat;display:none;}
+.login-menu{width:90px;height:30px;top:0;right:0;position:absolute;}
+.login-menu span{float:left;width:30px;height:30px;background-image:url(../images/chat/wins.png);}
+.login-menu span:hover{background-color:#3a95de;}
+.login-menu span:nth-child(1){background-position:left center;}
+.login-menu span:nth-child(2){background-position:-30px center;}
+.login-menu span:nth-child(3){background-position:-90px center;}
+.login-menu span:nth-child(3):hover{background-color:#ea4848;}
+.login-ner{margin-top:182px;float:left;width:100%;height:148px;}
+.login-left{float:left;width:133px;height:148px;}
+.login-head{float:left;width:80px;height:80px;border-radius:4px;border:1px solid #ccc;overflow:hidden;margin:12px 11px 0 40px;}
+.login-head img{width:80px;height:80px;}
+.login-on{width:194px;height:148px;float:left;}
+.login-txt{float:left;margin-top:12px;height:60px;width:100%;}
+.login-txt input{border:1px solid #d1d1d1;float:left;height:30px;padding:0 7px;font-size:12px;width:100%;}
+.login-txt input:nth-child(1){border-radius:4px 4px 0 0;}
+.login-txt input:nth-child(2){border-radius:0 0 4px 4px;margin-top:-1px;}
+.login-xuan{width:100%;float:left;height:14px;line-height:14px;margin-top:8px;}
+.login-xuan input{width:14px;height:14px;float:left;}
+.login-xuan i{float:left;padding-left:4px;}
+.login-right{width:103px;height:60px;float:left;margin-top:12px;}
+.login-right a{float:left;width:100%;color:#2786e4;line-height:30px;text-indent:10px;}
+.login-but{width:100%;height:30px;margin:13px 0;float:left;background:#09a3dc;color:#fff;text-align:center;line-height:30px;border-radius:4px;font-size:14px; cursor:context-menu;}
+
+.qq{width:280px;height:700px;box-shadow:0 0 3px #fff;background:#fff;border-radius:4px;position:fixed;top:50%;right:30px;margin-top:-350px;overflow:hidden;-webkit-transition:all 0.5s;display:none;}
+.qq-top{width:100%;height:165px;float:left;background:url(../images/qq-bg.jpg) left top no-repeat;border-radius:4px 4px 0 0;overflow:hidden;}
+.qq-top-icon{float:left;width:100%;height:28px;}
+.qq-top-icon i{width:50px;height:18px;margin:6px 6px;float:left;}
+.qq-top-icon span{width:28px;height:28px;float:right;cursor:pointer;}
+.qq-serch{width:260px;float:left;height:30px;padding:0 10px;background:url(../images/serch.png) no-repeat 258px center rgba(0,0,0,.1);color:#555;line-height:30px;}
+.qq-top-01:hover{background:rgba(0,0,0,.1);}
+.qq-top-02:hover{background:rgba(234,72,72,.8);}
+.qq-top-name{margin-top:26px;float:left;width:100%;height:36px;}
+.qq-top-name span{font-size:20px;text-indent:10px;max-width:140px;line-height:36px;float:left;cursor:pointer;}
+.qq-top-name dl{float:left;height:36px;}
+.qq-top-name dd{float:left;width:12px;height:12px;padding:4px;margin:8px 0px 8px 8px;}
+.qq-top-name dd:hover,.qq-top-name dt:hover{box-shadow:0 0 2px #000;}
+.qq-top-name dt{float:left;height:10px;margin:11px 0;padding:2px 2px;}
+.qq-top-shuo{width:260px;margin:0 10px;float:left;height:17px;}
+.qq-top-shuo input{width:100%;float:left;height:17px;background:none;line-height:12px;color:#333;font-size:10px;text-shadow:0 0 2px #fff;}
+.qq-top-menu{width:264px;margin:4px 8px;float:left;height:20px;}
+.qq-top-menu li{float:left;width:20px;height:20px;background-image:url(../images/top-menu.png);cursor:pointer;margin-right:5px;}
+.qq-top-menu span{float:right;width:20px;height:20px;background-image:url(../images/top-menu.png);cursor:pointer;margin-left:5px;}
+.qq-top-menu li:nth-child(1){background-position:left center;}
+.qq-top-menu li:nth-child(2){background-position:-20px center;}
+.qq-top-menu li:nth-child(3){background-position:-40px center;}
+.qq-top-menu li:nth-child(4){background-position:-60px center;}
+.qq-top-001{background-position:-100px center;}
+.qq-top-002{background-position:-80px center;}
+.qq-top-menu li:hover,.qq-top-menu span:hover{box-shadow:0 0 2px #000;}
+.qq-xuan{width:100%;float:left;height:36px;border-bottom:1px solid #ccc;}
+.qq-xuan li{width:25%;float:left;height:36px;position:relative;cursor:pointer;}
+.qq-xuan span{float:left;width:20px;height:20px;margin:8px 25px;}
+.qq-xuan li i{width:12px;height:6px;position:absolute;bottom:-1px;left:50%;margin-left:-6px;}
+.qq-xuan li:nth-child(1) span{background-image:url(../images/icon-02-01.png);background-position:center top;}
+.qq-xuan li:nth-child(2) span{background-image:url(../images/icon-02-02.png);background-position:center top;}
+.qq-xuan li:nth-child(3) span{background-image:url(../images/icon-02-03.png);background-position:center top;}
+.qq-xuan li:nth-child(4) span{background-image:url(../images/icon-02-04.png);background-position:center top;}
+.qq-xuan li:hover span{background-position:center center;}
+.qq-xuan-li span{background-position:center bottom!important;}
+.qq-xuan-li i{background:url(../images/qq-xuan-jiao.png)}
+.qq-hui{width:100%;float:left;height:439px;border-bottom:1px solid #ccc;overflow-y:scroll;}
+.qq-hui ul{margin-top:-1px;float:left;}
+.qq-hui li{width:100%;height:54px;border-top:1px solid #ccc;-webkit-transition:all 0.5s;cursor:context-menu;}
+.qq-hui-img{width:40px;height:40px;margin:6px;border:1px solid #fff;float:left;border-radius:4px;overflow:hidden;-webkit-transition:all 0.5s;}
+.qq-hui-img img{width:100%;height:auto;border-radius:2px;}
+.qq-hui li:hover{background:#fdecaa;border-top:1px solid #e8d691;}
+.qq-hui li:hover .qq-hui-img{border:1px solid #aacec4;}
+.qq-hui-name{width:226px;float:left;height:40px;margin-top:7px;height:20px;line-height:20px;}
+.qq-hui-name span{font-size:14px;float:left;}
+.qq-hui-name i{float:right;font-size:10px;color:#999;margin-right:8px;}
+.qq-hui-txt{float:left;width:216px;height:27px;line-height:27px;color:#999;overflow:hidden;}
+.qq-bot{width:100%;height:58px;border-radius:0 0 4px 4px;float:left;background:#f0f3f5;}
+.qq-menu{width:100%;float:left;height:20px;margin:7px 0 6px 0;}
+.qq-menu li{width:20px;height:20px;float:left;margin:0 4px;                                                        cursor:pointer;}
+.qq-menu li img{width:100%;height:auto;}
+.qq-menu li:hover{box-shadow:0 0 2px #000;}
+.qq-bou-she{float:left;width:100%;height:20px;}
+.qq-bou-she li{height:20px;float:left;margin:0 5px;}
+.qq-bou-she li img{width:20px;height:20px;float:left;}
+.qq-bou-she li span{line-height:20px;float:left;padding-left:5px;}
+
+.qq-chat{width:440px;height:510px;position:fixed;bottom:50%;left:50%;margin:0 0 -255px -220px;background:#fbeede url(../images/box-bg.jpg) right top no-repeat;box-shadow:0 0 5px #666;border-radius:4px;overflow:hidden;display:none;-webkit-transition:all 0.5s;}
+.qq-chat-win{position:absolute;width:120px;height:27px;right:0px;top:0px;}
+.qq-chat-win li{width:30px;height:27px;float:left;cursor:pointer;background-image:url(../images/chat/win.png);-webkit-transition:all 0.5s;}
+.qq-chat-win li:hover{background-image:url(../images/chat/wins.png);background-color:#3a95de;}
+.qq-chat-win li:nth-child(1){background-position:left center;}
+.qq-chat-win li:nth-child(2){background-position:-30px center;}
+.qq-chat-win li:nth-child(3){background-position:-60px center;}
+.qq-chat-win li:nth-child(4){background-position:-90px center;}
+.qq-chat-win li:nth-child(4):hover{background-color:#ea4848!important;}
+.qq-chat-top{height:83px;width:100%;float:left;border-bottom:1px solid rgba(180,180,180,.5);}
+.qq-chat-tops{width:100%;float:left;height:42px;margin:4px 0;}
+.qq-chat-t-head{width:40px;height:40px;border:1px solid #fff;border-radius:3px;margin:0 10px;float:left;overflow:hidden;box-shadow:0 0 3px #999;}
+.qq-chat-t-head img{width:100%;height:auto;}
+.qq-chat-t-name{width:260px;height:24px;line-height:24px;font-size:18px;float:left;}
+.qq-chat-t-shuo{width:260px;height:18px;line-height:18px;font-size:10px;text-shadow:0 0 2px #fff;float:left;}
+.qq-chat-menu{width:100%;float:left;height:32px;}
+.qq-chat-menu li{float:left;height:26px;margin:2px 5px;}
+.qq-chat-menu li:hover{box-shadow:0 0 3px #666;}
+.qq-chat-menu span{width:26px;height:26px;float:left;}
+.qq-chat-menu img{width:26px;height:26px;}
+.qq-chat-menu i{width:8px;height:26px;margin:0px 3px 0px 1px;float:left;background:url(../images/chat/icon-00.png) left center no-repeat;}
+.qq-chat-bot{height:426px;width:100%;float:left;background:rgba(255,255,255,.2);}
+.qq-chat-txt{float:left;width:100%;color:#008040;height:290px;overflow-y:scroll;line-height:20px;scrollbar-base-color:#fbeede;scrollbar-track-color:#fbeede;}
+.qq-chat-txt ul{padding:10px 0;float:left;width:100%;}
+.qq-chat-txt li{margin:3px 0;float:left;width:100%;}
+.qq-chat-my span,.qq-chat-you span{float:left;margin:0 10px;}
+.qq-chat-ner{color:#666;width:400px;margin:0 20px;}
+.qq-chat-ner img{max-width:100%;max-heiht:260px;width:auto;height:auto;}
+.qq-chat-text{float:left;width:100%;height:135px;border-top:1px solid rgba(180,180,180,.5);}
+.qq-chat-text ul{height:28px;float:left;width:100%;}
+.qq-chat-text li{float:left;margin:3px 0 3px 5px;height:20px;border:1px solid rgba(0,0,0,0);-webkit-transition:all 0.5s;border-radius:2px;}
+.qq-chat-text li:hover{border:1px solid #ccc;}
+.qq-chat-text li span{width:20px;height:20px;float:left;}
+.qq-chat-text li p{float:left;padding:0 3px;line-height:20px;cursor:context-menu;}
+.qq-chat-text li i{background:url(../images/chat/icon-00.png) no-repeat center center;width:8px;height:20px;float:left;margin:0 2px;}
+.qq-chat-text textarea{width:420px;height:69px;max-width:420px;max-height:69px;float:left;margin:0 10px;background:none;line-height:20px;color:#999;}
+.qq-chat-but span{padding:0 14px;line-height:24px;height:24px;float:right;margin:7px 4px 7px 0;background:#ea4848;border-radius:4px;color:#fff;cursor:pointer;}
+.qq-chat-but span:nth-child(1){padding-right:34px;background:#ea4848 url(../images/chat/fa.png) 60px center no-repeat;}
