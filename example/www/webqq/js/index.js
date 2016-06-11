@@ -94,7 +94,7 @@ function showNewMsg( data )
 	//表示系统消息
 	if (fromId == 0)
 	{
-		alert( "系统消息暂未处理"+dataObj.data );
+		//alert( "系统消息暂未处理"+dataObj.data );
 	}
 	else
 	{
