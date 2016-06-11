@@ -11,7 +11,7 @@ GET = getRequest();
 var ip = document.domain; 
 var port = location.port;
 
-ip = "192.168.68.131";
+//ip = "192.168.68.131";
 port = "3011";
 
 function getRequest()
@@ -74,7 +74,7 @@ function showNewUser( data )
 			li=  "<li id='friend_"+dataObj.fd+"'>";
 			li = li + "<div class='qq-hui-img'><img src='images/head/01.jpg'><i></i></div>";
 			li = li + "<div class='qq-hui-name'><span>"+dataObj.name+"</span><i>16:30</i></div>";
-			li = li + "<div class='qq-hui-txt' title=''>下次我们去公园拍摄吧~[图片]</div>";
+			li = li + "<div class='qq-hui-txt' title=''>php扩展appnet演示专用</div>";
 			li = li + "</li>";
 			$("#qq_list").append( li );
 		}
@@ -226,8 +226,6 @@ function websocket_open( qq )
 			//alert( "异常:"+e.data );
 			console.log("onerror");
 		};
-			
-		
 	}
 	else
 	{
@@ -270,8 +268,14 @@ $(document).ready(function(){
   });
   
   //QQ icon打开事件
-  $('.qq-exe img').dblclick(function(){
+  $('#qq_icon').dblclick(function(){
     $('.qq-login').css('display','block').removeClass('mins')
+  })
+ 
+ 
+  $('#github_icon').dblclick(function(){
+	
+	window.open(  "https://github.com/lchb369/appnet_php7" );
   })
  
   
