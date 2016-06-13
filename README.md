@@ -17,8 +17,8 @@
 <p><strong>TCP测试:</strong></p>
 <p>&nbsp;&gt;telnet 127.0.0.1 3011</p>
 <p><strong>Http/Websocket测试:</strong></p>
-<p>访问:http://192.168.68.131:3011/index.html</p>
-<p>将其中的IP换为你自己的服务器IP</p>
+<p>webqq:http://www.appnet.site/webqq/index.html</p>
+<p>双击QQ图标打开登录框，随便输入帐号进入</p>
 <p>&nbsp;</p>
 <p>完整示例参见:<a href="https://github.com/lchb369/appnet_php7/blob/master/example/server.php" target="_blank">https://github.com/lchb369/appnet_php7/blob/master/example/server.php</a></p>
 <p>&nbsp;更多介绍参见:<a href="https://github.com/lchb369/appnet_php7/wiki/appnet%E4%BB%8B%E7%BB%8D" target="_blank">https://github.com/lchb369/appnet_php7/wiki/appnet%E4%BB%8B%E7%BB%8D</a></p>
