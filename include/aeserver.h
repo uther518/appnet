@@ -204,7 +204,6 @@ struct _reactorThreadParam
 	aeServer* serv;
 };
 
-#define PIPE_DATA_LENG 90
 #define PIPE_DATA_HEADER_LENG 2+3*sizeof(int)
 
 #define  CONTINUE_RECV 1

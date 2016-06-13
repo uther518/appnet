@@ -320,19 +320,24 @@ void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
 {
 	int pos = PIPE_DATA_HEADER_LENG;
 	int readlen = 0;
-	int needlen = ( data.len > PIPE_DATA_LENG ) ? PIPE_DATA_LENG : data.len;
 	int bodylen = 0;
-	int readTotal = 0;
 	int ret;
 	if ( data.len > 0 )
 	{
 		data.data = sdsempty();
 		char buff[TMP_BUFFER_LENGTH];
+		int i=0;
 		while ( ( readlen = read( pipe_fd , buff , data.len-bodylen ) ) > 0  )
 		{
 			data.data = sdscatlen( data.data , buff , readlen  );
 			bodylen += readlen;
 			if( bodylen == data.len )break;
+			i++;
+			if( i > 2 && i < 100  )
+			{
+				printf( "Error readWorkerBodyFromPipe Loop ........%d,data.len=%d,recvLen=%d \n" ,
+					 i , data.len , bodylen  );
+			}
 		}
 	}
 

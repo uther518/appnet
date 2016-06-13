@@ -224,6 +224,7 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
     int worker_id = fd % serv->workerNum;
     int thid = fd % serv->reactorNum;
     char buffer[TMP_BUFFER_LENGTH];
+    int times =0;
     while (1)
     {
         nread = 0;
@@ -259,7 +260,12 @@ void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask)
             }
             else if ( ret == CONTINUE_RECV )
             {
-                continue;
+		if( times > 2 && times < 100 )
+		{
+			printf( "onClientReadable continue recv times=%d \n" , times );
+               	}
+		 times++;
+		 continue;
             }
 	    else if( ret == CLOSE_CONNECT )
 	    {
@@ -523,9 +529,19 @@ void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )
         return;
     }
     char read_buff[TMP_BUFFER_LENGTH];
+    int times = 0;
+
     while ( 1 )
     {
         nread  = read( fd , read_buff  , data.len );
+	times++;
+
+	if( times > 2 && times < 100 )
+	{
+		printf( "readBodyFromPipe Error times=%d,nread=%d \n" , times , nread );
+	}
+
+
         if ( nread > 0 )
         {
             bodylen += nread;
@@ -614,9 +630,17 @@ void onMasterPipeReadable( aeEventLoop *el, int fd, void *privdata, int mask )
 {
     int readlen = 0;
     aePipeData data;
-
+    int times = 0;
     while (  ( readlen = read( fd, &data , PIPE_DATA_HEADER_LENG ) ) > 0 )
     {
+
+	times++;
+
+	if( times >2 && times < 100 )
+	{
+		printf( "onMasterPipeReadable len=%d,times=%d \n" , readlen , times );
+	}
+
         //printf( "onMasterPipeReadable len=%d,fd=%d \n" , readlen , data.connfd );
         if ( readlen == 0 )
         {
