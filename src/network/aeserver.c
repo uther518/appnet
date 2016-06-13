@@ -1017,6 +1017,15 @@ int setOption( char* key , char* val )
         }
         servG->http_keep_alive = keep;
     }
+    else if( strcmp( key , OPT_DAEMON ) == 0 )
+    {
+	int daemon =  atoi( val );
+        if ( daemon < 0 || daemon > 2 )
+        {
+            return AE_FALSE;
+        }
+        servG->daemon = daemon;
+    }
     else
     {
         printf( "Unkown Option %s \n" , key  );
@@ -1044,11 +1053,34 @@ void initServer(  aeServer* serv )
     installMasterSignal( serv  );
 }
 
+void set_daemon( aeServer* serv  )
+{
+    if( serv->daemon == 0 )return;
+
+    int ret;
+    if( serv->daemon == 1 )
+    {
+    	ret = daemon(1, 0);
+    }    
+    else if( serv->daemon == 2 )
+    {
+	 ret = daemon(1, 1);
+    }
+
+    if( ret < 0 )
+    {  
+        perror("error daemon...\n");  
+        exit(1);  
+    }  
+}
+
+
 int startServer( aeServer* serv )
 {
     int sockfd[2];
     int sock_count = 0;
 
+    set_daemon( serv ); 
     //memory alloc
     initServer( serv );
 
@@ -1081,6 +1113,7 @@ aeServer* aeServerCreate( char* ip, int port )
     serv->ataskWorkerNum = 1;
     serv->maxConnect = 1024;
     serv->exit_code = 0;
+    serv->daemon = 0;
     serv->http_keep_alive = 1;
     serv->protocolType = PROTOCOL_TYPE_WEBSOCKET_MIX;
     serv->runForever = startServer;

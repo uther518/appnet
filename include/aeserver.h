@@ -24,6 +24,7 @@
 #define OPT_REACTOR_NUM "opt_reactor_num"
 #define OPT_MAX_CONNECTION "opt_max_connection"
 #define OPT_PROTOCOL_TYPE  "opt_protocol_type"
+#define OPT_DAEMON "opt_daemon"
 
 #define APPNET_HTTP_DOCS_ROOT  "http_docs_root"
 #define APPNET_HTTP_404_PAGE   "http_404_page"
@@ -153,6 +154,7 @@ struct _aeServer
    int   listenfd;
    int   port;
    int   running;
+   int  daemon;
    void *ptr2;
    int reactorNum;
    int workerNum;
