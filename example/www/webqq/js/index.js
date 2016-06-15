@@ -311,6 +311,19 @@ $(document).ready(function(){
 	}
   })
   
+  //回车发送消息
+  $('#qq-chat-text').keydown(function(e){
+    if(e.keyCode == 13)
+	{
+		if($('#qq-chat-text').val()==''){
+			alert("发送内容不能为空,请输入内容")
+		}else if($('#qq-chat-text').val()!=''){
+			sendMsg();
+		}
+    }
+  })
+  
+  
  
   $('.close-chat').click(function(){
     $('.qq-chat').css('display','none')

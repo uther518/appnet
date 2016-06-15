@@ -43,7 +43,7 @@
 		
 		.row small
 		{
-			font-size: 15px;
+			font-size: 16px;
 			color:#ccc;
 		}
 		
@@ -87,9 +87,9 @@
   <body>
     <header class="masthead">
     <div class="container">
-		<div  style="text-align:center;padding:73px 0 110px"  >
+		<div  style="text-align:center;padding:30px 0 50px"  >
 			<h1 class="main_title">Appnet</h1>
-			<small class="main_title_small">一个支持TCP/HTTP/Websocket协议混合请求的高性能网络库</small>
+			<small class="main_title_small">一个支持TCP/HTTP/Websocket协议混合请求的高性能PHP扩展</small>
 		</div>
 		
 		
@@ -97,7 +97,7 @@
 		<div class="row">
 			<div class="col-md-6">
 				<h2>高性能</h2>
-				<small>基于redis核心网络组件封装,增强其网络IO能力,linux平台采用epoll异步非阻塞事件通知机制,单线程可支撑10万并发连接。</small>
+				<small>C语言开发,基于redis核心网络组件封装,增强其网络IO能力,linux平台采用epoll异步非阻塞事件通知机制,单线程可支撑10万并发连接。</small>
 			</div>
 			
 			<div class="col-md-6">
@@ -135,36 +135,48 @@
 	</header>
 	
 	<!--代码示例-->
-	 <div class="container code_part">
-
-		
-		<code>
-		<p>$server = new appnetServer( "0.0.0.0" , 3011 );</p>
-		<p>$server->setOption( APPNET_OPT_WORKER_NUM , WORKER_NUM );</p>
-		<p>$server->setOption( APPNET_OPT_ATASK_WORKER_NUM , 0 );</p>
-		<p>$server->setOption( APPNET_OPT_REACTOR_NUM, 1 );</p>
-		<p>$server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );</p>
-		<p>$server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );</p>
-		<p>$server->setOption( APPNET_HTTP_DOCS_ROOT , $_SERVER['PWD']."/example/www/" );</p>
-		<p>$server->setOption( APPNET_HTTP_UPLOAD_DIR, "/home/upload/"  );</p>
-		<p>$server->setOption( APPNET_HTTP_404_PAGE , "404.html" );</p>
-		<p>$server->setOption( APPNET_HTTP_50X_PAGE , "50x.html" );</p>
-		<p>$server->setOption( APPNET_HTTP_KEEP_ALIVE , 1 );</p>
-		<p>$server->addEventListener( APPNET_EVENT_CONNECT , "onConnect");</p>
-		<p>$server->addEventListener( APPNET_EVENT_RECV ,    "onRecv");</p>
-		<p>$server->addEventListener( APPNET_EVENT_CLOSE ,   "onClose");</p>
-		<p>$server->addEventListener( APPNET_EVENT_START ,   "onStart");</p>
-		<p>$server->addEventListener( APPNET_EVENT_FINAL ,   "onFinal");</p>
-		<p>$server->addEventListener( APPNET_EVENT_TIMER ,   "onTimer");</p>
-		<p>$server->addEventListener( APPNET_EVENT_TASK ,    "onTask");</p>
-		<p>$server->addEventListener( APPNET_EVENT_TASK_CB , "onTaskCallback" );</p>
-		<p>$server->run();</p>
-
-		</code>
+	 <div class="container" style="margin-top:20px" >
+		<h2>使用案例</h2>
+		<div class="row">
+			<div class="col-md-6">
+				<img src="img/qq.png"  height="300px" width="500px"/>
+			</div>
+			<div class="col-md-6">
+				<h3>WebQQ</h3>
+				<p>使用appnet http+websocket混合协议实现的仿版QQ,支持QQ好友私聊，群聊。</p>
+				<p>演示地址:<a href="http://www.appnet.site/webqq/index.html">http://www.appnet.site/webqq/index.html</a></p>
+			</div>
+		</div>
+	
+		<div class="row" style="margin-top:20px">
+			<div class="col-md-6">
+				<img src="img/qq.png"  height="300px" width="500px"/>
+			</div>
+			<div class="col-md-6">
+				<h3>WebQQ</h3>
+				<small>使用appnet http+websocket混合协议实现的仿版QQ,支持QQ好友私聊，群聊。</small>
+			</div>
+		</div>
+	
 	
 	</div>
 	
 
+	<!--代码示例-->
+	<footer class="footer masthead"  style="margin-top:20px">
+	 <div class="container "  >
+		<div class="row" >
+			<div class="col-md-6">
+				<p>This Website Powered By Appnet Server</p>
+				<p>QQ交流群:379084776</p>
+				<p>Author Email:lchb@qq.com</p>
+			</div>
+		</div>
+	
+
+	</div>
+	</footer>
+	
 	
 	<!--container end-->
 	   
