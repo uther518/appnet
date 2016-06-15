@@ -316,8 +316,14 @@ void http_response_static_proc( httpHeader* reqHeader )
 		int sendn = sendfile( reqHeader->connfd , fd , &offset , stat_file.st_size - offset );
 		if ( sendn < 0 )
 		{
-			if (errno == EAGAIN)continue;
-			if (errno == EINTR)break;
+			if (errno == EAGAIN)
+			{
+				continue;
+			}
+			else
+			{
+				break;
+			}
 		}
 		//printf( "Response uri=%s, connfd=%d,len=%d,send=%d \n", reqHeader->uri , reqHeader->connfd ,stat_file.st_size  , sendn );
 	}
