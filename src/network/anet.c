@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+#include <sys/poll.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -14,7 +15,9 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include "ae.h"
 #include "anet.h"
+
 static void anetSetError(char *err, const char *fmt, ...)
 {
     va_list ap;
@@ -801,4 +804,39 @@ int listenToPort( char *bindaddr, int port, int* fds , int *count )
     anetNonBlock(NULL,fds[*count]);
     (*count)++;
     return 1;
+}
+
+
+int anetHandup( int fd, int timeout_ms, int events )
+{
+    struct pollfd event;
+    event.fd = fd;
+    event.events = 0;
+
+    if (events == AE_READABLE )
+    {
+        event.events |= POLLIN;
+    }
+    if (events == AE_WRITABLE )
+    {
+        event.events |= POLLOUT;
+    }
+    while (1)
+    {
+        int ret = poll(&event, 1, timeout_ms);
+        if (ret == 0)
+        {
+            return ANET_ERR;
+        }
+        else if (ret < 0 && errno != EINTR)
+        {
+            printf( "aenetHandup failed. Error: %s[%d] \n", strerror(errno), errno );
+            return ANET_ERR;
+        }
+        else
+        {
+            return ANET_OK;
+        }
+    }
+    return ANET_OK;
 }

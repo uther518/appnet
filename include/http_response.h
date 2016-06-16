@@ -360,7 +360,7 @@ typedef struct
 	char data[4096];
 }header_out_t;
 
-void http_close( httpHeader* reqHeader );
+void http_close( httpHeader* reqHeader , int force );
 int is_file(char *path);
 int is_dir(char *path);
 void http_response_static( httpHeader* reqHeader  );

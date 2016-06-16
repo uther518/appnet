@@ -21,7 +21,6 @@ void http_response_static( httpHeader* reqHeader  )
 	int thid = reqHeader->connfd % servG->reactorNum;
 	aeEventLoop *el = servG->reactorThreads[thid].reactor.eventLoop;
 
-
 	httpHeader* header = malloc( sizeof(httpHeader) );
 	memcpy( header , reqHeader , sizeof( httpHeader ) );
 
@@ -177,7 +176,7 @@ void http_redirect( httpHeader* reqHeader ,  char* uri )
 	resp_append_header( &header_out , HEADER_END_LINE );
 
 	http_response_write( reqHeader->connfd , header_out.data , header_out.length );
-	http_close( reqHeader );
+	http_close( reqHeader , 0 );
 }
 
 int page_is_defined( char* page )
@@ -258,19 +257,20 @@ void resp_error_page( header_out_t*  header_out, int status_code )
 	//send
 	http_response_write( header_out->req->connfd, header_out->data , header_out->length );
 	http_response_write( header_out->req->connfd, error_page.data , datalen );
-	http_close( header_out->req );
+	http_close( header_out->req , 0 );
 }
 
 
-void http_close( httpHeader* reqHeader )
+void http_close( httpHeader* reqHeader , int force  )
 {
-	if ( reqHeader->keep_alive == 0 || servG->http_keep_alive == 0  )
+	if ( reqHeader->keep_alive == 0 || servG->http_keep_alive == 0 || force == 1 )
 	{
 		aeConnection c  = servG->connlist[reqHeader->connfd];
 		freeClient( &c );
 	}
 	free( reqHeader );
 }
+
 
 //response static resource
 void http_response_static_proc( httpHeader* reqHeader )
@@ -309,16 +309,30 @@ void http_response_static_proc( httpHeader* reqHeader )
 		printf( "Open file Error:%s,errno=%d \n" , strerror(errno) , errno );
 		return;
 	}
-
+    //优化
+	//setsockopt (fd, SOL_TCP, TCP_CORK, &on, sizeof (on));
 	off_t offset = 0;
+	int force_close = 0;
 	while ( offset < stat_file.st_size  )
 	{
 		int sendn = sendfile( reqHeader->connfd , fd , &offset , stat_file.st_size - offset );
 		if ( sendn < 0 )
 		{
-			if (errno == EAGAIN)
+			//如果socket缓冲区不可用，则挂起等待可用
+			if (errno == EAGAIN || errno == EINTR  )
 			{
-				continue;
+				if( anetHandup(  reqHeader->connfd , 1000 , AE_WRITABLE ) < 0 )
+				{
+					//如果超时，退出
+					printf( "Sendfile anetHandup timeout.......\n" );
+					force_close = 1;
+					break;
+				}
+				else
+				{
+					//否则继续发送
+					continue;
+				}
 			}
 			else
 			{
@@ -328,7 +342,7 @@ void http_response_static_proc( httpHeader* reqHeader )
 		//printf( "Response uri=%s, connfd=%d,len=%d,send=%d \n", reqHeader->uri , reqHeader->connfd ,stat_file.st_size  , sendn );
 	}
 	close( fd );
-	http_close( reqHeader );
+	http_close( reqHeader , force_close );
 }
 
 
