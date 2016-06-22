@@ -99,24 +99,16 @@ typedef enum
 	HRET_UNCOMPLETE
 }HttpRequestErrorType;	
 
-int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header ,  handshake* hs );
 #define CHUNK_SZ 128
+
+int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header ,  handshake* hs );
 static char* findEolChar( const char* s , int len );
-
 static int getLeftEolLength( const char* s );
-
-int bufferLineSearchEOL( httpHeader* header , 
-	const char* buffer , int len , char* eol_style );
-
-int bufferReadln( httpHeader* header , const char* buffer , 
-	int len , char* eol_style );
-	
+int bufferLineSearchEOL( httpHeader* header , const char* buffer , int len , char* eol_style );
+int bufferReadln( httpHeader* header , const char* buffer , int len , char* eol_style );
 char* findChar(  char sp_char , const char* dest , int len );
-
 char* findSpace(  const char* s , int len );
 
-
-char* findChar(  char sp_char , const char* dest , int len );
 /*
 by RFC2616
 http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1

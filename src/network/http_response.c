@@ -140,7 +140,6 @@ int resp_append_header( header_out_t*  header_out , int line_type , ...  )
 			len = snprintf( line , sizeof( line ) , header_formats[HEADER_KEEP_ALIVE] , "keep-alive" );
 		}
 		break;
-
 	case HEADER_END_LINE:
 		len = snprintf( line , sizeof( line ) , header_formats[HEADER_END_LINE] );
 		break;

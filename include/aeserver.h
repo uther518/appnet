@@ -103,7 +103,7 @@ typedef struct _aeWorkerPipes
 
 typedef struct _aeWorker
 {
-        char proto; //current request protocol type
+    char proto; //current request protocol type
 	int pidx; //主进程中分的编号0-x
 	pid_t pid;
 	int pipefd;

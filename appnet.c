@@ -133,6 +133,16 @@ ZEND_ARG_INFO(0, taskid )
 ZEND_ARG_INFO(0, to )
 ZEND_END_ARG_INFO()
 
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_http_redirect, 0, 0, 2 )
+ZEND_ARG_INFO(0, url)
+ZEND_ARG_INFO(0, status)
+ZEND_END_ARG_INFO()
+
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_http_code, 0, 0, 1 )
+ZEND_ARG_INFO(0, status )
+ZEND_END_ARG_INFO()
 /* {{{ appnet_functions[]
  *
  * Every user visible function must have an entry in appnet_functions[].
@@ -154,6 +164,8 @@ const zend_function_entry appnet_functions[] = {
 	PHP_ME(appnetServer,    getInfo,     NULL ,                 ZEND_ACC_PUBLIC )
 	PHP_ME(appnetServer,    addAsynTask,      arginfo_appnet_server_add_task , ZEND_ACC_PUBLIC )
 	PHP_ME(appnetServer,    taskCallback,     arginfo_appnet_server_task_cb , ZEND_ACC_PUBLIC )
+	PHP_ME(appnetServer,    httpRedirect,     arginfo_appnet_http_redirect , ZEND_ACC_PUBLIC )
+	PHP_ME(appnetServer,    httpRespCode,     arginfo_appnet_http_code , 		ZEND_ACC_PUBLIC )
 	{NULL, NULL, NULL}
 };
 /* }}} */

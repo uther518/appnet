@@ -180,6 +180,50 @@ int appendSendBuffer( const char *buff , size_t len)
 	return AE_OK;
 }
 
+
+int httpRedirect(  char* uri , int code )
+{
+	if( code != 301 )code=302;
+	return httpRespCode( code , uri  );
+}
+
+int httpRespCode(  int status , char* val )
+{
+	header_out_t  header_out;
+	memset( &header_out , 0 , sizeof( header_out ));
+	header_out.req = &servG->worker->req_header;
+	memcpy( header_out.req->mime_type  , "text/plain" , sizeof( header_out.req->mime_type ));
+	create_common_header(  &header_out , status );
+	if( status == 301 || status == 302 )
+	{
+		resp_append_header( &header_out , HEADER_LOCATION , val );
+	}
+	resp_append_header( &header_out , HEADER_CONTENT_LENGTH , 0  );
+	resp_append_header( &header_out , HEADER_END_LINE );
+	
+	
+	int connfd = servG->worker->req_header.connfd;
+	aePipeData data;
+	data.type = PIPE_EVENT_MESSAGE;
+	data.len = header_out.length;
+	data.connfd = connfd;
+
+	if( sdslen( servG->worker->send_buffer ) == 0  )
+	{
+		int ret;
+		int index = get_worker_pipe_index( connfd );
+		ret = aeCreateFileEvent( servG->worker->el,servG->worker_pipes[index].pipefd[1] , AE_WRITABLE ,onWorkerPipeWritable,NULL );
+		if( ret == AE_ERR )
+		{
+			printf( "Error aeCreateFileEvent..\n");
+		}
+	}
+	appendSendBuffer( &data , PIPE_DATA_HEADER_LENG );
+	appendSendBuffer(  header_out.data , header_out.length );
+	return AE_TRUE;
+}
+
+
 #define BUF_LEN 0xFFFF
 int createResponse( int connfd , char* buff , int len , char prototype , sds response )
 {
@@ -187,10 +231,10 @@ int createResponse( int connfd , char* buff , int len , char prototype , sds res
 	{
 		char content_length[64];
 		int clen;
-		clen = sprintf( content_length , "Content-Length: %d\r\n" , len );
-		response = sdscat( response , "HTTP/1.1 200 OK \r\n" );
-		response = sdscat( response , "Server: appnet/1.1.0\r\n" );
-		response = sdscatlen( response , content_length , clen );
+		clen = sprintf( content_length , 	"Content-Length: %d\r\n" , len );
+		response = sdscat( response , 		"HTTP/1.1 200 OK \r\n" );
+		response = sdscat( response , 		"Server: appnet/1.1.0\r\n" );
+		response = sdscatlen( response , 	content_length , clen );
 		response = getRespHeaderString( response );
 		response = sdscat( response , "\r\n" );
 		servG->worker->response = sdscatlen( response ,  buff , len );
@@ -326,18 +370,11 @@ void readWorkerBodyFromPipe( int pipe_fd , aePipeData data )
 	{
 		data.data = sdsempty();
 		char buff[TMP_BUFFER_LENGTH];
-		int i=0;
 		while ( ( readlen = read( pipe_fd , buff , data.len-bodylen ) ) > 0  )
 		{
 			data.data = sdscatlen( data.data , buff , readlen  );
 			bodylen += readlen;
 			if( bodylen == data.len )break;
-			i++;
-			if( i > 2 && i < 100  )
-			{
-				printf( "Error readWorkerBodyFromPipe Loop ........%d,data.len=%d,recvLen=%d \n" ,
-					 i , data.len , bodylen  );
-			}
 		}
 	}
 

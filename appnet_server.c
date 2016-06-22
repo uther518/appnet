@@ -79,6 +79,49 @@ ZEND_METHOD( appnetServer , setHeader )
 	RETURN_FALSE;
 }
 
+
+ZEND_METHOD( appnetServer , httpRedirect ) 
+{
+	size_t len;
+	char*  url;
+	long status;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &url, &len, &status  ) == FAILURE)
+	{
+		return;
+	}
+
+	//aeServer* appserv = APPNET_G( appserv );
+	int ret = httpRedirect( url , status );
+	
+	if ( ret == AE_TRUE )
+	{
+		RETURN_TRUE;
+	}
+	RETURN_FALSE;
+}
+
+
+
+ZEND_METHOD( appnetServer , httpRespCode ) 
+{
+	long status;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l",  &status  ) == FAILURE)
+	{
+		return;
+	}
+	
+	//aeServer* appserv = APPNET_G( appserv );
+	int ret = httpRespCode( status , "" );
+	if ( ret == AE_TRUE )
+	{
+		RETURN_TRUE;
+	}
+	RETURN_FALSE;
+}
+
+
+
 ZEND_METHOD( appnetServer , getInfo )
 {
 	array_init(return_value);

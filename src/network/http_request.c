@@ -265,6 +265,7 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
     //Content-Length
     if ( memcmp( org  , "Content-Length" ,  ret - org  ) == 0 )
     {
+		//标记这个域存在
         header->content_length = -2;
     }
     //"Upgrade"
@@ -285,7 +286,7 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
     memcpy( value  , ret + eolen + 1  ,  sizeof(value) );
     if( value_len - eolen > sizeof(value) )
     {
-	printf( "Error Header Line Is Too Long len=%d!! \n" , value_len - eolen );
+		printf( "Error Header Line Is Too Long len=%d!! \n" , value_len - eolen );
     }
 
     if ( upgrade == 1 )
@@ -295,7 +296,6 @@ int readingSingleLine(  httpHeader* header , const char* org , int len )
 				header->protocol = WEBSOCKET;
 		}
     }
-
 
     if (  header->content_length == -2 )
     {

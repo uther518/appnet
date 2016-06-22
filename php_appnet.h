@@ -101,6 +101,8 @@ ZEND_METHOD( appnetServer , send );
 ZEND_METHOD( appnetServer , close );
 ZEND_METHOD( appnetServer , getHeader );
 ZEND_METHOD( appnetServer , setHeader );
+ZEND_METHOD( appnetServer , httpRedirect );
+ZEND_METHOD( appnetServer , httpRespCode );
 ZEND_METHOD( appnetServer , timerAdd  );
 ZEND_METHOD( appnetServer , timerRemove  );
 ZEND_METHOD( appnetServer , setOption  );
