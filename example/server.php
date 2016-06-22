@@ -245,10 +245,22 @@ function onRecv( $server , $fd , $buffer )
 	  	 WebChat::onReceive( $server , $fd,  $buffer );
 	}
 	elseif(  $header['Protocol'] == "HTTP"  )
-        {
+    {
+		if( $header['Uri'] == '/' )
+		{
+			/*redirct url,httpRedirect( $url , $status ),$status can be 301 or 302*/
+			$server->httpRedirect( "/website/index.html" );
+			
+			/*response a error header code if you need*/
+			//$server->httpRespCode( 403 );
+			return;
+		}
+		
 		$data  = $buffer;
 		$data .= microtime();
 		echo "Response:[".$data."]\n";
+		
+		/*add async task to task worker process*/
 		//$server->addAsynTask( $data , 1 );	
 		$server->setHeader( "Connection" , "keep-alive" );
 		//ajax访问时，会有跨域问题
