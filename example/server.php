@@ -245,7 +245,7 @@ function onRecv( $server , $fd , $buffer )
 	  	 WebChat::onReceive( $server , $fd,  $buffer );
 	}
 	elseif(  $header['Protocol'] == "HTTP"  )
-    {
+	{
 		if( $header['Uri'] == '/' )
 		{
 			/*redirct url,httpRedirect( $url , $status ),$status can be 301 or 302*/
