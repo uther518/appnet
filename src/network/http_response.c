@@ -235,7 +235,7 @@ void resp_error_page( header_out_t*  header_out, int status_code )
 	if ( status_code >= 400 && status_code <= 507 )
 	{
 		int ret = resp_defined_error_page(  header_out , status_code );
-		if ( ret == 1 )
+		if ( ret == AE_TRUE )
 		{
 			return;
 		}
@@ -246,23 +246,24 @@ void resp_error_page( header_out_t*  header_out, int status_code )
 	int datalen = strlen( error_page.data );
 
 	//header append
-	//resp_append_header( header_out , HEADER_STATUS , error_page.status  );
-	//resp_append_header( header_out , HEADER_SERVER );
-
 	create_common_header( header_out , status_code );
 	header_append_length( header_out , datalen );
 	resp_append_header( header_out , HEADER_END_LINE );
 
 	//send
 	http_response_write( header_out->req->connfd, header_out->data , header_out->length );
-	http_response_write( header_out->req->connfd, error_page.data , datalen );
-	http_close( header_out->req , 0 );
+	if(  header_out->req->nobody != AE_TRUE )
+	{
+		http_response_write( header_out->req->connfd, error_page.data , datalen );
+	}
+	//nobody强制关闭
+	http_close( header_out->req , header_out->req->nobody );
 }
 
 
 void http_close( httpHeader* reqHeader , int force  )
 {
-	if ( reqHeader->keep_alive == 0 || servG->http_keep_alive == 0 || force == 1 )
+	if ( reqHeader->keep_alive == AE_FALSE || servG->http_keep_alive == AE_FALSE || force == AE_TRUE )
 	{
 		aeConnection c  = servG->connlist[reqHeader->connfd];
 		freeClient( &c );
@@ -302,6 +303,12 @@ void http_response_static_proc( httpHeader* reqHeader )
 		return;
 	}
 
+	if( reqHeader->nobody == AE_TRUE )
+	{
+		http_close( reqHeader , 1 );
+		return;
+	}
+	
 	int fd = open( path , O_RDONLY );
 	if ( fd < 0 )
 	{

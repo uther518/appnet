@@ -187,12 +187,12 @@ enum wsFrameType wsParseInputFrame(uint8_t *inputFrame, size_t inputLength,
                 return WS_INCOMPLETE_FRAME;
             }
             uint8_t *maskingKey = &inputFrame[2 + payloadFieldExtraBytes];
-	    if( payloadLength != inputLength - 6 - payloadFieldExtraBytes )
-	    {
-		printf( "Error wsParseInputFrame payloadLength error,payloadLength=%d,inputLength=%d \n" , 
-			payloadLength , inputLength - 6 - payloadFieldExtraBytes  );
-		return WS_ERROR_FRAME;
-	    }
+			if( payloadLength != inputLength - 6 - payloadFieldExtraBytes )
+			{
+				printf( "Error wsParseInputFrame payloadLength error,payloadLength=%d,inputLength=%d \n" , 
+				payloadLength , inputLength - 6 - payloadFieldExtraBytes  );
+				return WS_ERROR_FRAME;
+			}
             //assert(payloadLength == inputLength - 6 - payloadFieldExtraBytes);
             *dataPtr = &inputFrame[2 + payloadFieldExtraBytes + 4];
             *dataLength = payloadLength;

@@ -239,8 +239,7 @@ void onCloseByClient(  aeEventLoop *el, void *privdata ,
 void onClientWritable( aeEventLoop *el, int fd, void *privdata, int mask );
 void onClientReadable( aeEventLoop *el, int fd, void *privdata, int mask);
 int setPipeWritable( aeEventLoop *el , void *privdata ,  int worker_id  );
-void acceptCommonHandler( aeServer* serv ,int fd,
-		char* client_ip,int client_port, int flags);
+void acceptCommonHandler( aeServer* serv ,int fd, char* client_ip,int client_port, int flags);
 void onAcceptEvent( aeEventLoop *el, int fd, void *privdata, int mask);
 void runMainReactor( aeServer* serv );
 void masterSignalHandler( int sig );
@@ -282,6 +281,7 @@ void timerAdd( int ms , void* cb , void* params  );
 void resetRespHeader( dict* resp_header );
 sds getRespHeaderString( sds header );
 int setRespHeader( char* key , char* val );
+void appendToClientSendBuffer( int connfd , char* buffer , int len );
 
 aeServer*  servG;
 int getPipeIndex( int connfd );

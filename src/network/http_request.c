@@ -377,7 +377,8 @@ int isHttpProtocol( char* buffer , int len )
 {
     //char* httpVersion = "HTTP";
     //strstr( buffer,httpVersion );
-    if ( strncmp( buffer , "GET" , 3 ) == 0 )
+    if ( strncmp( buffer , "GET" , 3 ) == 0 
+	  || strncmp( buffer , "HEAD" , 4 ) == 0 )
     {
         return AE_TRUE;
     }
@@ -411,6 +412,7 @@ int parse_trunked_body( httpHeader* header , sds buffer  )
 
 static int httpBodyParse( httpHeader* header , sds buffer , int len )
 {
+	header->nobody = AE_FALSE;
     if ( strncmp( header->method , "POST" , 4 ) == 0 )
     {
         //判断包体是否完整
@@ -432,7 +434,7 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
                 return BREAK_RECV;
             }
         }
-        else if ( header->trunked == 1 ) //trunk模式
+        else if ( header->trunked == AE_TRUE ) //trunk模式
         {
             printf( "Http trunk body,Not Support ....\n" );
             //parse_trunked_body( header , buffer );
@@ -444,16 +446,22 @@ static int httpBodyParse( httpHeader* header , sds buffer , int len )
             return BREAK_RECV;
         }
     }
-    else if ( strncmp( header->method , "GET" , 3 ) == 0  )
+    else if ( strncmp( header->method , "GET" , 3 ) == 0
+		   || strncmp( header->method , "HEAD" , 4 ) == 0 
+	)
     {
         char* uri;
         uri = strstr( header->uri , "?" );
         int ret;
         header->complete_length = header->buffer_pos;
         memset( header->mime_type , 0 , sizeof( header->mime_type ) );
-
+		if(  strncmp( header->method , "HEAD" , 4 ) == 0  )
+		{
+			header->nobody = AE_TRUE;
+		}
+		
         ret = get_mime_type( header->uri , header->mime_type );
-        if ( ret == 1 )
+        if ( ret == AE_TRUE || header->nobody == AE_TRUE  )
         {
             http_response_static( header );
             return BREAK_RECV;
@@ -597,7 +605,7 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
 	{
 		printf( "Error:wsParseInputFrame WS_ERROR_FRAME..\n");
 		createWorkerTask(  connfd , ""  ,  0  , PIPE_EVENT_CLOSE, "parseWebsocket" );
-        	return CLOSE_CONNECT;
+        return CLOSE_CONNECT;
 	}		
 	
     if (  hs->frameType == WS_INCOMPLETE_FRAME )
@@ -606,6 +614,17 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
         return CONTINUE_RECV;
     }
 
+	if(  hs->state == WS_PING_FRAME )
+	{
+		size_t outlen = BUF_LEN;
+		uint8_t res[BUF_LEN];
+		wsMakeFrame(NULL, 0, res, &outlen, WS_PONG_FRAME );
+		//send to client
+		appendToClientSendBuffer( connfd , res , outlen );
+		return BREAK_RECV;
+	}
+	
+    //recv websocket normal data
     if ( hs->state == WS_STATE_OPENING)
     {
         assert( hs->frameType == WS_OPENING_FRAME);
@@ -636,7 +655,6 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader* header
         hs->state = WS_STATE_NORMAL;
         return BREAK_RECV;
     }
-    //recv websocket normal data
     else
     {
         return BREAK_RECV;

@@ -510,6 +510,21 @@ int randTaskWorkerId()
     return wid;
 }
 
+void appendToClientSendBuffer( int connfd , char* buffer , int len )
+{	
+	if ( sdslen( servG->connlist[connfd].send_buffer) == 0 )
+	{
+		int reactor_id = connfd % servG->reactorNum;
+        aeEventLoop* el = servG->reactorThreads[reactor_id].reactor.eventLoop;
+		int ret = aeCreateFileEvent( el, connfd , AE_WRITABLE, onClientWritable, NULL );
+		if ( ret == AE_ERR )
+		{
+			printf( "appendToClientSendBuffer Error %s:%d \n" , __FILE__ , __LINE__ );
+			return;
+		}
+	}
+	servG->connlist[connfd].send_buffer = sdscatlen( servG->connlist[connfd].send_buffer , buffer  , len );
+}
 
 //read data body from pipe,
 void readBodyFromPipe(  aeEventLoop *el, int fd , aePipeData data )

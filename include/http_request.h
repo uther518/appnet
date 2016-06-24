@@ -72,6 +72,7 @@ typedef struct
 	int content_length;//body长
 	int complete_length; //整包长
 	int multipart_data;
+	int nobody;	//是否需要返回包体,比如HEAD不需要
 	int keep_alive;
 	int trunked;
 	int filed_nums; //headerFiled numbers
