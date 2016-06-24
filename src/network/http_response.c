@@ -320,7 +320,7 @@ void http_response_static_proc( httpHeader* reqHeader )
 			//如果socket缓冲区不可用，则挂起等待可用
 			if (errno == EAGAIN || errno == EINTR  )
 			{
-				if( anetHandup(  reqHeader->connfd , 1000 , AE_WRITABLE ) < 0 )
+				if( anetHandup(  reqHeader->connfd , 5000 , AE_WRITABLE ) < 0 )
 				{
 					//如果超时，退出
 					printf( "Sendfile anetHandup timeout.......\n" );
