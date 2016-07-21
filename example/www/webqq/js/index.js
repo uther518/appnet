@@ -48,8 +48,10 @@ function showOnlineList( data )
 			dataObj.list[i].name = "自己";
 		}
 
+		var head_id=dataObj.list[i].fd%20+1;
+		
 		li = li + "<li id='friend_"+dataObj.list[i].fd+"'>";
-        	li = li + "<div class='qq-hui-img'><img src='images/head/01.jpg'><i></i></div>";
+        	li = li + "<div class='qq-hui-img'><img src='images/head/"+head_id+".jpg'><i></i></div>";
         	li = li + "<div class='qq-hui-name'><span>"+dataObj.list[i].name+"</span><i>16:30</i></div>";
         	li = li + "<div class='qq-hui-txt' title=''>下次我们去公园拍摄吧~[图片]</div>";
 		li = li + "</li>";
@@ -71,8 +73,9 @@ function showNewUser( data )
 		userlist[dataObj.fd] = dataObj.name;
 		if ( dataObj.fd != client_id )
 		{
+			var head_id=dataObj.fd%20+1;
 			li=  "<li id='friend_"+dataObj.fd+"'>";
-			li = li + "<div class='qq-hui-img'><img src='images/head/01.jpg'><i></i></div>";
+			li = li + "<div class='qq-hui-img'><img src='images/head/"+head_id+".jpg'><i></i></div>";
 			li = li + "<div class='qq-hui-name'><span>"+dataObj.name+"</span><i>16:30</i></div>";
 			li = li + "<div class='qq-hui-txt' title=''>php扩展appnet演示专用</div>";
 			li = li + "</li>";
