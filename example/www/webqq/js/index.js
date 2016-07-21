@@ -113,7 +113,7 @@ function showNewMsg( data )
 			
 			$('.qq-chat-txt ul').append('<li class="my"><div class="qq-chat-my"><span>'+name+'说</span><i>'+t_div+'</i></div><div class="qq-chat-ner">'+content+'</div></li>')
 			$(".qq-chat-txt").scrollTop($(".qq-chat-txt")[0].scrollHeight);
-			$('#qq-chat-text').val('').trigger("focus")
+			//$('#qq-chat-text').val('').trigger("focus")
 		} 
 		else
 		{
@@ -124,7 +124,7 @@ function showNewMsg( data )
 			{
 				$('.qq-chat-txt ul').append('<li class="my"><div class="qq-chat-my"><span>'+name+'说</span><i>'+t_div+'</i></div><div class="qq-chat-ner">'+content+'</div></li>')
 				$(".qq-chat-txt").scrollTop($(".qq-chat-txt")[0].scrollHeight);
-				$('#qq-chat-text').val('').trigger("focus")
+				//$('#qq-chat-text').val('').trigger("focus")
 			}
 			
 		}
@@ -408,6 +408,8 @@ function sendMsg()
 		msg.data = content;
 		ws.send( $.toJSON( msg ) );
 	}
+	
+	$('#qq-chat-text').val('').trigger("focus");
 	//$('#msg_content').val( "" );
 	return false;
 
@@ -443,6 +445,39 @@ function GetDateT() {
 }
 
 
+
+var clicked = "Nope.";
+var mausx = "0";
+var mausy = "0";
+var winx = "0";
+var winy = "0";
+var difx = mausx - winx;
+var dify = mausy - winy;
+
+$(".qq-chat").mousemove(function (event) {
+        mausx = event.pageX;
+        mausy = event.pageY;
+        winx = $(".qq-chat").offset().left;
+        winy = $(".qq-chat").offset().top;
+        if (clicked == "Nope.") {
+                difx = mausx - winx;
+                dify = mausy - winy;
+        }
+
+        var newx = event.pageX - difx - $(".qq-chat").css("marginLeft").replace('px', '');
+        var newy = event.pageY - dify - $(".qq-chat").css("marginTop").replace('px', '');
+        $(".qq-chat").css({ top: newy, left: newx });
+
+});
+
+$(".qq-chat-top").mousedown(function (event) {
+        clicked = "Yeah.";
+});
+
+$("html").mouseup(function (event) {
+
+        clicked = "Nope.";
+});
 
 
 (function($){
