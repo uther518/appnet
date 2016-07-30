@@ -1,4 +1,4 @@
-# appnet介绍<br /><br />
+# appnet介绍<br />
 appnet是一个由C语言开发基于linux epoll的多线程+多进程的高性能异步网络库，可以同时支持TCP,HTTP和Websocket混合协议,目标是用php7+appnet快速构建高性能的长连接服务器。使其可广泛用于聊天系统，游戏服务器，消息通知服务器等实时通信场景。</p>
 <p><img src="http://images2015.cnblogs.com/blog/234056/201604/234056-20160428172712252-741219753.jpg" alt="" width="959" height="638" /></p>
 ##其特点有<br>
@@ -12,7 +12,8 @@ appnet是一个由C语言开发基于linux epoll的多线程+多进程的高性�
 <li>异步任务，耗时的任务可以投递到单独的任务进程异步处理，工作进程无需等待。</li>
 
 </ul>
-<p><br />安装方法:<br />1,源码安装php_7.0.x<br />2,下载扩展到任意目录appnet_php7<br />3,执行如下指令:<br />&nbsp;&gt;cd appnet_php7<br />&nbsp;&gt;/usr/local/php7/bin/phpize<br />&nbsp;&gt;./configure --with-php-config=/usr/local/php7/bin/php-config<br />&nbsp;&gt;make<br />&nbsp;&gt;make install</p>
+##安装方法:<br />
+1,源码安装php_7.0.x<br />2,下载扩展到任意目录appnet_php7<br />3,执行如下指令:<br />&nbsp;&gt;cd appnet_php7<br />&nbsp;&gt;/usr/local/php7/bin/phpize<br />&nbsp;&gt;./configure --with-php-config=/usr/local/php7/bin/php-config<br />&nbsp;&gt;make<br />&nbsp;&gt;make install</p>
 <p><strong>启动服务器</strong></p>
 <p>&nbsp;&gt;php example/server.php&nbsp;</p>
 <p><strong>TCP测试:</strong></p>
