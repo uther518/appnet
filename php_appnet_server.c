@@ -3,15 +3,16 @@
 #include "config.h"
 #endif
 
-#include "ext/standard/info.h"
 #include "php.h"
-#include "php_appnet.h"
 #include "php_ini.h"
+#include "ext/standard/info.h"
+#include "php_appnet.h"
 #include <stdio.h>
+
 
 zval *appnet_serv_callback[APPNET_SERVER_CALLBACK_NUM];
 static int appnet_set_callback(int key, zval *cb TSRMLS_DC);
-aeServer *serv;
+appnetServer *serv;
 
 typedef struct _timerArgs {
   int ts;
@@ -19,7 +20,7 @@ typedef struct _timerArgs {
 } timerArgs;
 
 //=====================================================
-ZEND_METHOD(appnetServer, __construct) {
+ZEND_METHOD(AppnetServer, __construct) {
   size_t host_len = 0;
   char *serv_host;
   long serv_port;
@@ -28,13 +29,13 @@ ZEND_METHOD(appnetServer, __construct) {
                             &host_len, &serv_port) == FAILURE) {
     return;
   }
-  aeServer *appserv = appnetServInit(serv_host, serv_port);
+  appnetServer *appserv = appnetServInit(serv_host, serv_port);
   // save to global var
   appserv->ptr2 = getThis();
   APPNET_G(appserv) = appserv;
 }
 
-ZEND_METHOD(appnetServer, setOption) {
+ZEND_METHOD(AppnetServer, setOption) {
   size_t key_len;
   size_t val_len;
   char *key;
@@ -44,7 +45,7 @@ ZEND_METHOD(appnetServer, setOption) {
                             &val, &val_len) == FAILURE) {
     return;
   }
-  aeServer *appserv = APPNET_G(appserv);
+  appnetServer *appserv = APPNET_G(appserv);
   int ret = appserv->setOption(key, val);
   if (ret == AE_TRUE) {
     RETURN_TRUE;
@@ -52,7 +53,7 @@ ZEND_METHOD(appnetServer, setOption) {
   RETURN_FALSE;
 }
 
-ZEND_METHOD(appnetServer, setHeader) {
+ZEND_METHOD(AppnetServer, setHeader) {
   size_t key_len;
   size_t val_len;
   char *key;
@@ -63,7 +64,7 @@ ZEND_METHOD(appnetServer, setHeader) {
     return;
   }
 
-  aeServer *appserv = APPNET_G(appserv);
+  appnetServer *appserv = APPNET_G(appserv);
   int ret = appserv->setHeader(key, val);
   if (ret == AE_TRUE) {
     RETURN_TRUE;
@@ -71,7 +72,7 @@ ZEND_METHOD(appnetServer, setHeader) {
   RETURN_FALSE;
 }
 
-ZEND_METHOD(appnetServer, httpRedirect) {
+ZEND_METHOD(AppnetServer, httpRedirect) {
   size_t len;
   char *url;
   long status;
@@ -81,8 +82,8 @@ ZEND_METHOD(appnetServer, httpRedirect) {
     return;
   }
 
-  // aeServer* appserv = APPNET_G( appserv );
-  int ret = httpRedirect(url, status);
+  // appnetServer* appserv = APPNET_G( appserv );
+  int ret = httpRedirectUrl(url, status);
 
   if (ret == AE_TRUE) {
     RETURN_TRUE;
@@ -90,14 +91,14 @@ ZEND_METHOD(appnetServer, httpRedirect) {
   RETURN_FALSE;
 }
 
-ZEND_METHOD(appnetServer, httpRespCode) {
+ZEND_METHOD(AppnetServer, httpRespCode) {
   long status;
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &status) ==
       FAILURE) {
     return;
   }
 
-  // aeServer* appserv = APPNET_G( appserv );
+  // appnetServer* appserv = APPNET_G( appserv );
   int ret = httpRespCode(status, "");
   if (ret == AE_TRUE) {
     RETURN_TRUE;
@@ -105,23 +106,23 @@ ZEND_METHOD(appnetServer, httpRespCode) {
   RETURN_FALSE;
 }
 
-ZEND_METHOD(appnetServer, getInfo) {
+ZEND_METHOD(AppnetServer, getInfo) {
   array_init(return_value);
-  aeServer *appserv = APPNET_G(appserv);
+  appnetServer *appserv = APPNET_G(appserv);
   if (appserv == NULL) {
     return;
   }
-  add_assoc_long(return_value, "worker_num", appserv->workerNum);
-  add_assoc_long(return_value, "reactor_num", appserv->reactorNum);
-  add_assoc_long(return_value, "max_connection", appserv->maxConnect);
-  add_assoc_long(return_value, "protocol", appserv->protocolType);
+  add_assoc_long(return_value, "worker_num", appserv->worker_num);
+  add_assoc_long(return_value, "reactor_num", appserv->reactor_num);
+  add_assoc_long(return_value, "max_connection", appserv->connect_max);
+  add_assoc_long(return_value, "protocol", appserv->proto_type);
 }
 
-ZEND_METHOD(appnetServer, run) { appnetServRun(); }
+ZEND_METHOD(AppnetServer, run) { appnetServRun(); }
 
-ZEND_METHOD(appnetServer, getHeader) {
+ZEND_METHOD(AppnetServer, getHeader) {
   array_init(return_value);
-  aeServer *appserv = APPNET_G(appserv);
+  appnetServer *appserv = APPNET_G(appserv);
   int i;
   int connfd = appserv->worker->connfd;
   httpHeader *header = &appserv->worker->req_header;
@@ -149,7 +150,7 @@ ZEND_METHOD(appnetServer, getHeader) {
   }
 }
 
-ZEND_METHOD(appnetServer, send) {
+ZEND_METHOD(AppnetServer, send) {
   size_t len = 0;
   long fd;
   char *buffer;
@@ -157,7 +158,7 @@ ZEND_METHOD(appnetServer, send) {
                             &len) == FAILURE) {
     return;
   }
-  aeServer *appserv = APPNET_G(appserv);
+  appnetServer *appserv = APPNET_G(appserv);
   int sendlen;
   sendlen = appserv->send(fd, buffer, len);
   RETURN_LONG(sendlen);
@@ -166,7 +167,7 @@ ZEND_METHOD(appnetServer, send) {
 int onTimer(aeEventLoop *l, int id, void *data) {
   timerArgs *timerArg = (timerArgs *)data;
 
-  aeServer *appserv = APPNET_G(appserv);
+  appnetServer *appserv = APPNET_G(appserv);
   zval retval;
 
   zval *args;
@@ -202,7 +203,7 @@ int onTimer(aeEventLoop *l, int id, void *data) {
   return timerArg->ts;
 }
 
-ZEND_METHOD(appnetServer, timerAdd) {
+ZEND_METHOD(AppnetServer, timerAdd) {
   long ms;
   size_t len = 0;
   char *args;
@@ -220,7 +221,7 @@ ZEND_METHOD(appnetServer, timerAdd) {
   RETURN_TRUE;
 }
 
-ZEND_METHOD(appnetServer, addAsynTask) {
+ZEND_METHOD(AppnetServer, addAsynTask) {
   long task_worker_id;
   size_t len;
   char *arg;
@@ -234,7 +235,7 @@ ZEND_METHOD(appnetServer, addAsynTask) {
   RETURN_TRUE;
 }
 
-ZEND_METHOD(appnetServer, timerRemove) {
+ZEND_METHOD(AppnetServer, timerRemove) {
   long tid;
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &tid) == FAILURE) {
     RETURN_FALSE;
@@ -244,11 +245,11 @@ ZEND_METHOD(appnetServer, timerRemove) {
   RETURN_TRUE;
 }
 
-ZEND_METHOD(appnetServer, close) {
+ZEND_METHOD(AppnetServer, close) {
   long fd;
+
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &fd) == FAILURE) {
     RETURN_FALSE;
-    ;
   }
 
   if (fd <= 0) {
@@ -256,8 +257,8 @@ ZEND_METHOD(appnetServer, close) {
     RETURN_FALSE;
   }
 
-  aeServer *appserv = APPNET_G(appserv);
-  aeConnection *uc = &appserv->connlist[fd];
+  appnetServer *appserv = APPNET_G(appserv);
+  appnetConnection *uc = &appserv->connlist[fd];
   if (uc == NULL) {
     php_printf("close error,client obj is null");
     RETURN_FALSE;
@@ -267,7 +268,7 @@ ZEND_METHOD(appnetServer, close) {
   RETURN_TRUE;
 }
 
-ZEND_METHOD(appnetServer, on) {
+ZEND_METHOD(AppnetServer, on) {
   size_t type_len, i, ret;
   char *type;
   zval *cb;
@@ -304,8 +305,7 @@ static int appnet_set_callback(int key, zval *cb TSRMLS_DC) {
   return AE_OK;
 }
 
-// task worker专用函数,用于回调工作进程
-ZEND_METHOD(appnetServer, taskCallback) {
+ZEND_METHOD(AppnetServer, taskCallback) {
   char *data;
   size_t data_len;
   long to, taskid;
@@ -314,19 +314,13 @@ ZEND_METHOD(appnetServer, taskCallback) {
                             &taskid, &to) == FAILURE) {
     RETURN_FALSE;
   }
-  //$data , $taskid , $to, $callback
   taskCallback(data, data_len, taskid, to);
 
   RETURN_TRUE;
 }
 
-// data异步任务数据，
-// len异步任务数据长度，二进制安全
-// id任务id
-// from逻辑wokerid
-// callback回调函数
 void appnetServer_onTask(char *data, int len, int id, int from) {
-  aeServer *appserv = APPNET_G(appserv);
+  appnetServer *appserv = APPNET_G(appserv);
   zval retval;
   zval *args;
   zval *zserv = (zval *)appserv->ptr2;
@@ -348,6 +342,7 @@ void appnetServer_onTask(char *data, int len, int id, int from) {
   if (call_user_function_ex(EG(function_table), NULL,
                             appnet_serv_callback[APPNET_SERVER_CB_onTask],
                             &retval, 4, args, 0, NULL) == FAILURE) {
+
     php_error_docref(NULL TSRMLS_CC, E_WARNING,
                      "call_user_function_ex task error");
   }
@@ -367,7 +362,7 @@ void appnetServer_onTask(char *data, int len, int id, int from) {
 }
 
 void appnetServer_onTaskCallback(char *data, int len, int id, int from) {
-  aeServer *appserv = APPNET_G(appserv);
+  appnetServer *appserv = APPNET_G(appserv);
   zval retval;
   zval *args;
   zval *zserv = (zval *)appserv->ptr2;
@@ -389,6 +384,7 @@ void appnetServer_onTaskCallback(char *data, int len, int id, int from) {
   if (call_user_function_ex(EG(function_table), NULL,
                             appnet_serv_callback[APPNET_SERVER_CB_onTask_CB],
                             &retval, 4, args, 0, NULL) == FAILURE) {
+
     php_error_docref(NULL TSRMLS_CC, E_WARNING,
                      "call_user_function_ex taskcallback error");
   }
@@ -407,8 +403,10 @@ void appnetServer_onTaskCallback(char *data, int len, int id, int from) {
   }
 }
 
-void appnetServer_onRecv(aeServer *s, aeConnection *c, sds buff, int len) {
-  aeServer *appserv = APPNET_G(appserv);
+void appnetServer_onRecv(appnetServer *s, appnetConnection *c, sds buff,
+                         int len) {
+
+  appnetServer *appserv = APPNET_G(appserv);
   zval retval;
   zval *args;
   zval *zserv = (zval *)appserv->ptr2;
@@ -416,7 +414,7 @@ void appnetServer_onRecv(aeServer *s, aeConnection *c, sds buff, int len) {
   zval zfd;
   args = safe_emalloc(sizeof(zval), 3, 0);
 
-  ZVAL_LONG(&zfd, (long)c->fd);
+  ZVAL_LONG(&zfd, (long)c->connfd);
   ZVAL_STRINGL(&zdata, buff, len);
   ZVAL_COPY(&args[0], zserv);
   ZVAL_COPY(&args[1], &zfd);
@@ -425,20 +423,19 @@ void appnetServer_onRecv(aeServer *s, aeConnection *c, sds buff, int len) {
   if (call_user_function_ex(EG(function_table), NULL,
                             appnet_serv_callback[APPNET_SERVER_CB_onReceive],
                             &retval, 3, args, 0, NULL) == FAILURE) {
+
     php_error_docref(NULL TSRMLS_CC, E_WARNING,
                      "call_user_function_ex recv error");
   }
 
   if (EG(exception)) {
     php_error_docref(NULL, E_WARNING,
-                     "bind recv callback failed,fd=%d,data=%s \n", c->fd, buff);
+                     "bind recv callback failed,fd=%d,data=%s \n", c->connfd, buff);
   }
 
   zval_ptr_dtor(&zfd);
   zval_ptr_dtor(&zdata);
 
-  // zval_ptr_dtor(&args[1]);
-  // zval_ptr_dtor(&args[2]);
   efree(args);
   // sdsfree( buff );
   if (&retval != NULL) {
@@ -446,20 +443,20 @@ void appnetServer_onRecv(aeServer *s, aeConnection *c, sds buff, int len) {
   }
 }
 
-void appnetServer_onClose(aeServer *s, aeConnection *c) {
+void appnetServer_onClose(appnetServer *s, appnetConnection *c) {
   if (c == NULL) {
     printf("Error appnetServer_onClose Connection is NULL\n");
     return;
   }
 
-  aeServer *appserv = APPNET_G(appserv);
+  appnetServer *appserv = APPNET_G(appserv);
   zval retval;
   zval *args;
   zval *zserv = (zval *)appserv->ptr2;
   zval zfd;
 
   args = safe_emalloc(sizeof(zval), 2, 0);
-  ZVAL_LONG(&zfd, (long)c->fd);
+  ZVAL_LONG(&zfd, (long)c->connfd);
 
   ZVAL_COPY(&args[0], zserv);
   ZVAL_COPY(&args[1], &zfd);
@@ -467,6 +464,7 @@ void appnetServer_onClose(aeServer *s, aeConnection *c) {
   if (call_user_function_ex(EG(function_table), NULL,
                             appnet_serv_callback[APPNET_SERVER_CB_onClose],
                             &retval, 2, args, 0, NULL) == FAILURE) {
+
     php_error_docref(NULL TSRMLS_CC, E_WARNING,
                      "call_user_function_ex connect error");
   }
@@ -474,16 +472,18 @@ void appnetServer_onClose(aeServer *s, aeConnection *c) {
   if (EG(exception)) {
     php_error_docref(NULL, E_WARNING, "bind accept callback failed");
   }
+
   zval_ptr_dtor(&zfd);
   efree(args);
+
   if (&retval != NULL) {
     zval_ptr_dtor(&retval);
   }
   // s->close( c );
 }
 
-void appnetServer_onConnect(aeServer *s, int fd) {
-  aeServer *appserv = APPNET_G(appserv);
+void appnetServer_onConnect(appnetServer *s, int fd) {
+  appnetServer *appserv = APPNET_G(appserv);
   zval retval;
   zval *args;
   zval *zserv = (zval *)appserv->ptr2;
@@ -498,6 +498,7 @@ void appnetServer_onConnect(aeServer *s, int fd) {
   if (call_user_function_ex(EG(function_table), NULL,
                             appnet_serv_callback[APPNET_SERVER_CB_onConnect],
                             &retval, 2, args, 0, NULL) == FAILURE) {
+
     php_error_docref(NULL TSRMLS_CC, E_WARNING,
                      "call_user_function_ex connect error");
   }
@@ -507,13 +508,14 @@ void appnetServer_onConnect(aeServer *s, int fd) {
   }
   zval_ptr_dtor(&zfd);
   efree(args);
+
   if (&retval != NULL) {
     zval_ptr_dtor(&retval);
   }
 }
 
-void appnetServer_onStart(aeServer *s) {
-  aeServer *appserv = APPNET_G(appserv);
+void appnetServer_onStart(appnetServer *s) {
+  appnetServer *appserv = APPNET_G(appserv);
   zval retval;
   zval *args;
   zval *zserv = (zval *)appserv->ptr2;
@@ -524,6 +526,7 @@ void appnetServer_onStart(aeServer *s) {
   if (call_user_function_ex(EG(function_table), NULL,
                             appnet_serv_callback[APPNET_SERVER_CB_onStart],
                             &retval, 1, args, 0, NULL) == FAILURE) {
+
     php_error_docref(NULL TSRMLS_CC, E_WARNING,
                      "call_user_function_ex onStart error");
   }
@@ -531,23 +534,26 @@ void appnetServer_onStart(aeServer *s) {
   if (EG(exception)) {
     php_error_docref(NULL, E_WARNING, "bind onStart callback failed");
   }
+
   efree(args);
   if (&retval != NULL) {
     zval_ptr_dtor(&retval);
   }
 }
 
-void appnetServer_onFinal(aeServer *s) {
-  aeServer *appserv = APPNET_G(appserv);
+void appnetServer_onFinal(appnetServer *s) {
+  appnetServer *appserv = APPNET_G(appserv);
   zval retval;
   zval *args;
   zval *zserv = (zval *)appserv->ptr2;
 
   args = safe_emalloc(sizeof(zval), 1, 0);
   ZVAL_COPY(&args[0], zserv);
+
   if (call_user_function_ex(EG(function_table), NULL,
                             appnet_serv_callback[APPNET_SERVER_CB_onFinal],
                             &retval, 1, args, 0, NULL) == FAILURE) {
+
     php_error_docref(NULL TSRMLS_CC, E_WARNING,
                      "call_user_function_ex onFinal error");
   }
@@ -562,8 +568,8 @@ void appnetServer_onFinal(aeServer *s) {
   }
 }
 
-aeServer *appnetServInit(char *listen_ip, int port) {
-  serv = aeServerCreate(listen_ip, port);
+appnetServer *appnetServInit(char *listen_ip, int port) {
+  serv = appnetServerCreate(listen_ip, port);
   serv->onConnect = &appnetServer_onConnect;
   serv->onRecv = &appnetServer_onRecv;
   serv->onClose = &appnetServer_onClose;

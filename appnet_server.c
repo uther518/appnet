@@ -9,10 +9,10 @@
 #include "php_appnet.h"
 #include <stdio.h>
 
+
 zval* appnet_serv_callback[APPNET_SERVER_CALLBACK_NUM];
 static int appnet_set_callback(int key, zval* cb TSRMLS_DC);
 aeServer* serv;
-
 
 typedef struct _timerArgs
 {

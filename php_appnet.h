@@ -24,27 +24,28 @@
 extern zend_module_entry appnet_module_entry;
 #define phpext_appnet_ptr &appnet_module_entry
 
-#define PHP_APPNET_VERSION "0.1.0" /* Replace with version number for your extension */
+#define PHP_APPNET_VERSION                                                     \
+  "0.1.0" /* Replace with version number for your extension */
 
 #ifdef PHP_WIN32
-#	define PHP_APPNET_API __declspec(dllexport)
+#define PHP_APPNET_API __declspec(dllexport)
 #elif defined(__GNUC__) && __GNUC__ >= 4
-#	define PHP_APPNET_API __attribute__ ((visibility("default")))
+#define PHP_APPNET_API __attribute__((visibility("default")))
 #else
-#	define PHP_APPNET_API
+#define PHP_APPNET_API
 #endif
 
 #ifdef ZTS
 #include "TSRM.h"
 #endif
-#include "include/aeserver.h"
+#include "include/appnet_server.h"
 /*
-  	Declare any global variables you may need between the BEGIN
-	and END macros here:
+        Declare any global variables you may need between the BEGIN
+        and END macros here:
 
 ZEND_BEGIN_MODULE_GLOBALS(appnet)
-	zend_long  global_value;
-	char *global_string;
+        zend_long  global_value;
+        char *global_string;
 ZEND_END_MODULE_GLOBALS(appnet)
 */
 
@@ -70,55 +71,52 @@ ZEND_TSRMLS_CACHE_EXTERN();
  * vim<600: noet sw=4 ts=4
  */
 
+#define APPNET_SERVER_CALLBACK_NUM 8
+#define APPNET_SERVER_CB_onConnect 0 // accept new connection(worker)
+#define APPNET_SERVER_CB_onReceive 1 // receive data(worker)
+#define APPNET_SERVER_CB_onClose 2   // close tcp connection(worker)
+#define APPNET_SERVER_CB_onStart 3
+#define APPNET_SERVER_CB_onFinal 4
+#define APPNET_SERVER_CB_onTimer 5 // timer call(master)
+#define APPNET_SERVER_CB_onTask 6
+#define APPNET_SERVER_CB_onTask_CB 7
 
-#define APPNET_SERVER_CALLBACK_NUM              8
-#define APPNET_SERVER_CB_onConnect              0 //accept new connection(worker)
-#define APPNET_SERVER_CB_onReceive              1 //receive data(worker)
-#define APPNET_SERVER_CB_onClose                2 //close tcp connection(worker)
-#define APPNET_SERVER_CB_onStart		3
-#define APPNET_SERVER_CB_onFinal		4
-#define APPNET_SERVER_CB_onTimer                5 //timer call(master)
-#define APPNET_SERVER_CB_onTask                 6               
-#define APPNET_SERVER_CB_onTask_CB		7
+#define APPNET_EVENT_CONNECT "connect"
+#define APPNET_EVENT_RECV "receive"
+#define APPNET_EVENT_CLOSE "close"
+#define APPNET_EVENT_START "start"
+#define APPNET_EVENT_FINAL "final"
+#define APPNET_EVENT_TIMER "timer"
+#define APPNET_EVENT_TASK "task"
+#define APPNET_EVENT_TASK_CB "task_cb"
 
-#define APPNET_EVENT_CONNECT  "connect"
-#define APPNET_EVENT_RECV     "receive"
-#define APPNET_EVENT_CLOSE    "close"
-#define APPNET_EVENT_START    "start"
-#define APPNET_EVENT_FINAL    "final"
-#define APPNET_EVENT_TIMER    "timer"
-#define APPNET_EVENT_TASK     "task"
-#define APPNET_EVENT_TASK_CB  "task_cb"
+extern zval *appnet_serv_callback[APPNET_SERVER_CALLBACK_NUM];
 
-extern zval* appnet_serv_callback[APPNET_SERVER_CALLBACK_NUM];
+zend_class_entry *AppnetServer;
 
-zend_class_entry *appnetServer;
+ZEND_METHOD(AppnetServer, __construct);
+ZEND_METHOD(AppnetServer, on);
+ZEND_METHOD(AppnetServer, run);
+ZEND_METHOD(AppnetServer, send);
+ZEND_METHOD(AppnetServer, close);
+ZEND_METHOD(AppnetServer, getHeader);
+ZEND_METHOD(AppnetServer, setHeader);
+ZEND_METHOD(AppnetServer, httpRedirect);
+ZEND_METHOD(AppnetServer, httpRespCode);
+ZEND_METHOD(AppnetServer, timerAdd);
+ZEND_METHOD(AppnetServer, timerRemove);
+ZEND_METHOD(AppnetServer, setOption);
+ZEND_METHOD(AppnetServer, getInfo);
+ZEND_METHOD(AppnetServer, setEventCallback);
+ZEND_METHOD(AppnetServer, addEventListener);
+ZEND_METHOD(AppnetServer, addAsynTask);
+ZEND_METHOD(AppnetServer, taskCallback);
 
-ZEND_METHOD( appnetServer , __construct );
-ZEND_METHOD( appnetServer , on );
-ZEND_METHOD( appnetServer , run );
-ZEND_METHOD( appnetServer , send );
-ZEND_METHOD( appnetServer , close );
-ZEND_METHOD( appnetServer , getHeader );
-ZEND_METHOD( appnetServer , setHeader );
-ZEND_METHOD( appnetServer , httpRedirect );
-ZEND_METHOD( appnetServer , httpRespCode );
-ZEND_METHOD( appnetServer , timerAdd  );
-ZEND_METHOD( appnetServer , timerRemove  );
-ZEND_METHOD( appnetServer , setOption  );
-ZEND_METHOD( appnetServer , getInfo );
-ZEND_METHOD( appnetServer , setEventCallback);
-ZEND_METHOD( appnetServer , addEventListener);
-ZEND_METHOD( appnetServer , addAsynTask );
-ZEND_METHOD( appnetServer , taskCallback );
-
-
-aeServer* appnetServInit( char* serv_host , int serv_port );
+appnetServer *appnetServInit(char *serv_host, int serv_port);
 void appnetServRun();
- 
 
 ZEND_BEGIN_MODULE_GLOBALS(appnet)
-        aeServer* appserv;
+appnetServer *appserv;
 ZEND_END_MODULE_GLOBALS(appnet)
 
 extern ZEND_DECLARE_MODULE_GLOBALS(appnet);
@@ -135,4 +133,4 @@ extern ZEND_DECLARE_MODULE_GLOBALS(appnet);
 ZEND_TSRMLS_CACHE_EXTERN();
 #endif
 
-#endif  /* PHP_APPNET_H */
+#endif /* PHP_APPNET_H */

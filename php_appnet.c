@@ -22,10 +22,11 @@
 #include "config.h"
 #endif
 
-#include "ext/standard/info.h"
+
 #include "php.h"
-#include "php_appnet.h"
 #include "php_ini.h"
+#include "ext/standard/info.h"
+#include "php_appnet.h"
 
 /* If you declare any globals in php_appnet.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(appnet)
@@ -149,43 +150,66 @@ ZEND_END_ARG_INFO()
  */
 const zend_function_entry appnet_functions[] = {
     PHP_FE(confirm_appnet_compiled, NULL) /* For testing, remove later. */
-    PHP_ME(appnetServer, __construct, arginfo_appnet_server_construct,
-           ZEND_ACC_PUBLIC | ZEND_ACC_CTOR) PHP_ME(appnetServer, on,
-                                                   arginfo_appnet_server_on,
-                                                   ZEND_ACC_PUBLIC)
-        PHP_MALIAS(appnetServer, setEventCallback, on, arginfo_appnet_server_on,
-                   ZEND_ACC_PUBLIC) PHP_MALIAS(appnetServer, addEventListener,
-                                               on, arginfo_appnet_server_on,
-                                               ZEND_ACC_PUBLIC)
-            PHP_ME(appnetServer, run, NULL, ZEND_ACC_PUBLIC) PHP_ME(
-                appnetServer, send, arginfo_appnet_server_send,
-                ZEND_ACC_PUBLIC) PHP_ME(appnetServer, close,
-                                        arginfo_appnet_server_close,
-                                        ZEND_ACC_PUBLIC)
-                PHP_ME(appnetServer, getHeader, NULL, ZEND_ACC_PUBLIC) PHP_ME(
-                    appnetServer, setHeader, arginfo_appnet_set_header,
-                    ZEND_ACC_PUBLIC) PHP_ME(appnetServer, timerAdd,
-                                            arginfo_appnet_server_timer_add,
-                                            ZEND_ACC_PUBLIC)
-                    PHP_ME(appnetServer, timerRemove,
-                           arginfo_appnet_server_timer_remove, ZEND_ACC_PUBLIC)
-                        PHP_ME(appnetServer, setOption,
-                               arginfo_appnet_server_set_option,
-                               ZEND_ACC_PUBLIC)
-                            PHP_ME(appnetServer, getInfo, NULL, ZEND_ACC_PUBLIC)
-                                PHP_ME(appnetServer, addAsynTask,
-                                       arginfo_appnet_server_add_task,
-                                       ZEND_ACC_PUBLIC)
-                                    PHP_ME(appnetServer, taskCallback,
-                                           arginfo_appnet_server_task_cb,
-                                           ZEND_ACC_PUBLIC)
-                                        PHP_ME(appnetServer, httpRedirect,
-                                               arginfo_appnet_http_redirect,
-                                               ZEND_ACC_PUBLIC)
-                                            PHP_ME(appnetServer, httpRespCode,
-                                                   arginfo_appnet_http_code,
-                                                   ZEND_ACC_PUBLIC){NULL, NULL,
-                                                                    NULL}};
+
+    PHP_ME(AppnetServer, __construct, arginfo_appnet_server_construct,
+           ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
+
+    /*on event*/
+    PHP_ME(AppnetServer, on, arginfo_appnet_server_on, ZEND_ACC_PUBLIC)
+
+    /*on event alias*/
+    PHP_MALIAS(AppnetServer, setEventCallback, on, arginfo_appnet_server_on,
+               ZEND_ACC_PUBLIC)
+
+    /*on event alias*/
+    PHP_MALIAS(AppnetServer, addEventListener, on, arginfo_appnet_server_on,
+               ZEND_ACC_PUBLIC)
+
+    /*run server*/
+    PHP_ME(AppnetServer, run, NULL, ZEND_ACC_PUBLIC)
+
+    /*send*/
+    PHP_ME(AppnetServer, send, arginfo_appnet_server_send, ZEND_ACC_PUBLIC)
+
+    /*close*/
+    PHP_ME(AppnetServer, close, arginfo_appnet_server_close, ZEND_ACC_PUBLIC)
+
+    /*get header*/
+    PHP_ME(AppnetServer, getHeader, NULL, ZEND_ACC_PUBLIC)
+
+    /*set response header */
+    PHP_ME(AppnetServer, setHeader, arginfo_appnet_set_header, ZEND_ACC_PUBLIC)
+
+    /*add timer*/
+    PHP_ME(AppnetServer, timerAdd, arginfo_appnet_server_timer_add,
+           ZEND_ACC_PUBLIC)
+
+    /*remove timer */
+    PHP_ME(AppnetServer, timerRemove, arginfo_appnet_server_timer_remove,
+           ZEND_ACC_PUBLIC)
+
+    /*set option */
+    PHP_ME(AppnetServer, setOption, arginfo_appnet_server_set_option,
+           ZEND_ACC_PUBLIC)
+
+    /* get info */
+    PHP_ME(AppnetServer, getInfo, NULL, ZEND_ACC_PUBLIC)
+
+    /* add task*/
+    PHP_ME(AppnetServer, addAsynTask, arginfo_appnet_server_add_task,
+           ZEND_ACC_PUBLIC)
+
+    /* task callback */
+    PHP_ME(AppnetServer, taskCallback, arginfo_appnet_server_task_cb,
+           ZEND_ACC_PUBLIC)
+
+    /*redirect url*/
+    PHP_ME(AppnetServer, httpRedirect, arginfo_appnet_http_redirect,
+           ZEND_ACC_PUBLIC)
+
+    /*response http code */
+    PHP_ME(AppnetServer, httpRespCode, arginfo_appnet_http_code,
+           ZEND_ACC_PUBLIC){NULL, NULL, NULL}};
 /* }}} */
 
 static void php_appnet_init_globals(zend_appnet_globals *appnet_globals) {}
@@ -199,21 +223,21 @@ PHP_MINIT_FUNCTION(appnet) {
   ZEND_INIT_MODULE_GLOBALS(appnet, php_appnet_init_globals, NULL);
 
   zend_class_entry ce;
-  INIT_CLASS_ENTRY(ce, "appnetServer", appnet_functions);
-  appnetServer = zend_register_internal_class(&ce TSRMLS_CC);
+  INIT_CLASS_ENTRY(ce, "AppnetServer", appnet_functions);
+  AppnetServer = zend_register_internal_class(&ce TSRMLS_CC);
 
 #define REGISTER_APPNET_CLASS_CONST_LONG(const_name, value)                    \
-  zend_declare_class_constant_long(appnetServer, const_name,                   \
+  zend_declare_class_constant_long(AppnetServer, const_name,                   \
                                    sizeof(const_name) - 1, (zend_long)value);
 
 #define REGISTER_APPNET_CLASS_CONST_STRING(const_name, value)                  \
-  zend_declare_class_constant_stringl(appnetServer, const_name,                \
+  zend_declare_class_constant_stringl(AppnetServer, const_name,                \
                                       sizeof(const_name) - 1, value,           \
                                       sizeof(value) - 1);
 
   REGISTER_STRING_CONSTANT("APPNET_OPT_WORKER_NUM", OPT_WORKER_NUM,
                            CONST_CS | CONST_PERSISTENT);
-  REGISTER_STRING_CONSTANT("APPNET_OPT_ATASK_WORKER_NUM", OPT_ATASK_WORKER_NUM,
+  REGISTER_STRING_CONSTANT("APPNET_OPT_TASK_WORKER_NUM", OPT_TASK_WORKER_NUM,
                            CONST_CS | CONST_PERSISTENT);
   REGISTER_STRING_CONSTANT("APPNET_OPT_REACTOR_NUM", OPT_REACTOR_NUM,
                            CONST_CS | CONST_PERSISTENT);
@@ -336,20 +360,15 @@ PHP_MINFO_FUNCTION(appnet) {
 
 /* {{{ appnet_module_entry
  */
-zend_module_entry appnet_module_entry = {STANDARD_MODULE_HEADER, "appnet",
-                                         appnet_functions, PHP_MINIT(appnet),
-                                         PHP_MSHUTDOWN(appnet),
-                                         PHP_RINIT(
-                                             appnet), /* Replace with NULL if
-                                                         there's nothing to do
-                                                         at request start */
-                                         PHP_RSHUTDOWN(
-                                             appnet), /* Replace with NULL if
-                                                         there's nothing to do
-                                                         at request end */
-                                         PHP_MINFO(appnet),
-                                         PHP_APPNET_VERSION,
-                                         STANDARD_MODULE_PROPERTIES};
+zend_module_entry appnet_module_entry = {
+    STANDARD_MODULE_HEADER, "appnet", appnet_functions, PHP_MINIT(appnet),
+    PHP_MSHUTDOWN(appnet), PHP_RINIT(appnet), /* Replace with NULL if
+                                                 there's nothing to do
+                                                 at request start */
+    PHP_RSHUTDOWN(appnet),                    /* Replace with NULL if
+                                                 there's nothing to do
+                                                 at request end */
+    PHP_MINFO(appnet), PHP_APPNET_VERSION, STANDARD_MODULE_PROPERTIES};
 /* }}} */
 
 #ifdef COMPILE_DL_APPNET

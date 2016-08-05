@@ -83,20 +83,20 @@ if test "$PHP_APPNET" != "no"; then
 
   PHP_SUBST(APPNET_SHARED_LIBADD)
   PHP_ADD_LIBRARY(pthread, 1, APPNET_SHARED_LIBADD)
-  app_source="src/network/appnet_server.c \
-	src/network/ae_epoll.c \
-	src/network/anet.c \
-	src/network/worker.c \
-	src/network/ae.c \
-	src/network/zmalloc.c \
-	src/network/sds.c \
-	src/network/dict.c \
-	src/network/adlist.c \
-	src/network/http_request.c \
-	src/network/sha1.c \
-	src/network/base64.c \
-	src/network/websocket.c \
-	src/network/share_memory.c \
-	src/network/http_response.c"
+  app_source="src/appnet_server.c \
+	src/ae_epoll.c \
+	src/anet.c \
+	src/appnet_worker.c \
+	src/ae.c \
+	src/zmalloc.c \
+	src/sds.c \
+	src/dict.c \
+	src/adlist.c \
+	src/http_request.c \
+	src/sha1.c \
+	src/base64.c \
+	src/websocket.c \
+	src/share_memory.c \
+	src/http_response.c"
   PHP_NEW_EXTENSION(appnet, $app_source php_appnet.c  php_appnet_server.c,  $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1)
 fi

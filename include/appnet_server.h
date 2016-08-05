@@ -1,6 +1,7 @@
 
-#ifndef __AE_SERVER_H__
-#define __AE_SERVER_H__
+#ifndef __APPNET_SERVER_H__
+#define __APPNET_SERVER_H__
+
 #include "ae.h"
 #include "dict.h"
 #include "http_request.h"
@@ -10,6 +11,7 @@
 #include "websocket.h"
 #include <pthread.h>
 #include <signal.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -20,7 +22,7 @@
 #define AE_FALSE 0
 
 #define OPT_WORKER_NUM "opt_worker_num"
-#define OPT_ATASK_WORKER_NUM "opt_atask_worker_num"
+#define OPT_TASK_WORKER_NUM "opt_task_worker_num"
 #define OPT_REACTOR_NUM "opt_reactor_num"
 #define OPT_MAX_CONNECTION "opt_max_connection"
 #define OPT_PROTOCOL_TYPE "opt_protocol_type"
@@ -51,23 +53,22 @@
 #define __SLEEP_WAIT__ usleep(10000)
 struct aeEventLoop;
 
-typedef struct _aeConnection {
-  int flags;
-  int fd;
+typedef struct {
   char disable;
+  char proto_type;
   char *client_ip;
-  int client_port;
-  sds send_buffer; // send to client
-  sds recv_buffer; // recv from client
-  char protoType;
-} aeConnection;
+  uint16_t client_port;
+  uint16_t worker_id;
+  uint8_t reactor_id;
+  sds send_buffer;
+  sds recv_buffer;
+  int connfd;
+} appnetConnection;
 
-typedef struct _aeServer aeServer;
-typedef struct _aeReactor aeReactor;
+typedef struct _appnetServer appnetServer;
 typedef struct _reactorThreadParam reactorThreadParam;
 
-// reactor结构体
-struct _aeReactor {
+typedef struct {
   int epfd;
   int id;
   int event_num;
@@ -75,57 +76,51 @@ struct _aeReactor {
   int running : 1;
   void *object;
   void *ptr;
-  aeEventLoop *eventLoop;
-};
+  aeEventLoop *event_loop;
+} appnetReactor;
 
-//主进程中的worker数组
-//这个数组被N个线程共享访问
-typedef struct _aeWorkerProcess {
+typedef struct {
   pid_t pid;
   int pipefd[2];
-
-  //这里是自旋锁好，还是mutex好
   pthread_mutex_t w_mutex;
   pthread_mutex_t r_mutex;
-  sds send_buffer; // send to worker pipe
-  sds recv_buffer; // recv from worker pipe
+  sds send_buffer; /* worker send to pipe */
+  sds recv_buffer; /* worker recv from pipe */
+} appnetWorkerProcess;
 
-} aeWorkerProcess;
+typedef struct _appnetWorkerPipes { int pipefd[2]; } appnetWorkerPipes;
 
-typedef struct _aeWorkerPipes { int pipefd[2]; } aeWorkerPipes;
-
-typedef struct _aeWorker {
-  char proto; // current request protocol type
-  int pidx;   //主进程中分的编号0-x
+typedef struct {
+  char proto; /* current request protocol type */
+  int pidx;   /* process index */
   pid_t pid;
   int pipefd;
   int running;
-  int maxEvent;
+  int max_event;
   int connfd;
   int start;
   int task_id;
   aeEventLoop *el;
-  sds send_buffer; // send to master pipe
-  sds recv_buffer; // recv from master pipe
-  sds response;    // response
+  sds send_buffer; /* master send to pipe */
+  sds recv_buffer; /* master recv from pipe */
+  sds response;
   dict *resp_header;
   httpHeader req_header;
-} aeWorker;
+} appnetWorker;
 
-// reactor thread info..
-typedef struct _aeReactorThread {
+typedef struct {
   pthread_t thread_id;
-  aeReactor reactor;
+  appnetReactor reactor;
   reactorThreadParam *param;
-  handshake *hs;  // websocket握手数据
-  httpHeader *hh; // http/websocket header
-} aeReactorThread;
+  handshake *hs;
+  httpHeader *hh; /* http/websocket header */
+} appnetReactorThread;
 
 typedef enum {
   PIPE_EVENT_CONNECT = 1,
   PIPE_EVENT_MESSAGE,
   PIPE_EVENT_CLOSE,
-  PIPE_EVENT_ATASK
+  PIPE_EVENT_TASK
 } PipeEventType;
 
 typedef enum {
@@ -136,59 +131,53 @@ typedef enum {
   PROTOCOL_TYPE_WEBSOCKET_MIX,
 } ProtocolType;
 
-struct _aeServer {
+struct _appnetServer {
   char *listen_ip;
-  int listenfd;
-  int port;
-  int running;
-  int daemon;
+  uint16_t listenfd;
+  uint16_t port;
+  uint8_t running;
+  uint8_t daemon;
   void *ptr2;
-  int reactorNum;
-  int workerNum;
-  int ataskWorkerNum;
-  int maxConnect;
-  int connectNum;
-  int exit_code;
-  int protocolType;
-  int http_keep_alive;
+  uint16_t reactor_num;
+  uint16_t worker_num;
+  uint16_t task_worker_num;
+  uint32_t connect_max;
+  uint32_t connect_num;
+  uint8_t exit_code;
+  uint8_t proto_type;
+  uint8_t http_keep_alive;
   char http_404_page[64];
   char http_50x_page[64];
   char http_docs_root[255];
   char http_upload_dir[255];
 
-  aeReactor *mainReactor;
-  aeConnection *connlist;
-  aeReactorThread *reactorThreads;
+  appnetReactor *main_reactor;
+  appnetConnection *connlist;
+  appnetReactorThread *reactor_threads;
   // pthread_barrier_t barrier;
-  aeWorkerProcess *workers;    //处理客户端请求
-  aeWorkerPipes *worker_pipes; //每个worker对应各线程均有一个pipe
-
-  aeWorker
-      *worker; //子进程中的全局变量,子进程是独立空间，所以只要一个标识当前进程
+  appnetWorkerProcess *workers;
+  appnetWorkerPipes *worker_pipes;
+  appnetWorker *worker;
   int sigPipefd[2];
-  // reactor->client
   int (*sendToClient)(int fd, char *data, int len);
-  void (*closeClient)(aeConnection *c);
-  // worker->reactor
+  void (*closeClient)(appnetConnection *conn);
   int (*send)(int fd, char *data, int len);
   int (*close)(int fd);
   int (*setOption)(char *key, char *val);
   int (*setHeader)(char *key, char *val);
-
-  void (*onConnect)(aeServer *serv, int fd);
-  void (*onRecv)(aeServer *serv, aeConnection *c, char *buff, int len);
+  void (*onConnect)(appnetServer *serv, int fd);
+  void (*onRecv)(appnetServer *serv, appnetConnection *c, char *buff, int len);
   void (*onTask)(char *data, int len, int id, int from);
   void (*onTaskCallback)(char *data, int len, int id, int from);
-  void (*onClose)(aeServer *serv, aeConnection *c);
-  void (*onStart)(aeServer *serv);
-  void (*onFinal)(aeServer *serv);
-
-  void (*runForever)(aeServer *serv);
+  void (*onClose)(appnetServer *serv, appnetConnection *c);
+  void (*onStart)(appnetServer *serv);
+  void (*onFinal)(appnetServer *serv);
+  void (*runForever)(appnetServer *serv);
 };
 
 struct _reactorThreadParam {
   int thid;
-  aeServer *serv;
+  appnetServer *serv;
 };
 
 #define PIPE_DATA_HEADER_LENG 2 + 3 * sizeof(int)
@@ -198,14 +187,14 @@ struct _reactorThreadParam {
 #define CLOSE_CONNECT 3
 
 #pragma pack(1)
-typedef struct _aePipeData {
+typedef struct {
   char type;
   char proto;
   int header_len;
   int len;
   int connfd;
   sds data;
-} aePipeData;
+} appnetPipeData;
 
 typedef struct {
   int id;
@@ -214,53 +203,59 @@ typedef struct {
 } asyncTask;
 
 void initOnLoopStart(struct aeEventLoop *el);
+
 void initThreadOnLoopStart(struct aeEventLoop *el);
+
 void onSignEvent(aeEventLoop *el, int fd, void *privdata, int mask);
-void freeClient(aeConnection *c);
-void onCloseByClient(aeEventLoop *el, void *privdata, aeServer *serv,
-                     aeConnection *conn);
+void freeClient(appnetConnection *c);
+void onCloseByClient(aeEventLoop *el, void *privdata, appnetServer *serv,
+                     appnetConnection *conn);
+
 void onClientWritable(aeEventLoop *el, int fd, void *privdata, int mask);
 void onClientReadable(aeEventLoop *el, int fd, void *privdata, int mask);
 int setPipeWritable(aeEventLoop *el, void *privdata, int worker_id);
-void acceptCommonHandler(aeServer *serv, int fd, char *client_ip,
-                         int client_port, int flags);
+
+/*accept connection from client*/
+void acceptCommonHandler(appnetServer *serv, int connfd, char *client_ip,
+                         int client_port );
+
 void onAcceptEvent(aeEventLoop *el, int fd, void *privdata, int mask);
-void runMainReactor(aeServer *serv);
+void runMainReactor(appnetServer *serv);
 void masterSignalHandler(int sig);
 void addSignal(int sig, void (*handler)(int), int restart);
-void installMasterSignal(aeServer *serv);
-aeServer *aeServerCreate(char *ip, int port);
-void createReactorThreads(aeServer *serv);
-aeReactorThread getReactorThread(aeServer *serv, int i);
-void readBodyFromPipe(aeEventLoop *el, int fd, aePipeData data);
+void installMasterSignal(appnetServer *serv);
+appnetServer *aeServerCreate(char *ip, int port);
+void createReactorThreads(appnetServer *serv);
+appnetReactorThread getReactorThread(appnetServer *serv, int i);
+void readBodyFromPipe(aeEventLoop *el, int fd, appnetPipeData data);
 void onMasterPipeReadable(aeEventLoop *el, int fd, void *privdata, int mask);
 void onMasterPipeWritable(aeEventLoop *el, int pipe_fd, void *privdata,
                           int mask);
 void *reactorThreadRun(void *arg);
 int socketSetBufferSize(int fd, int buffer_size);
-void createWorkerProcess(aeServer *serv);
-void stopReactorThread(aeServer *serv);
-void freeWorkerBuffer(aeServer *serv);
-int freeConnectBuffers(aeServer *serv);
-void destroyServer(aeServer *serv);
-int startServer(aeServer *serv);
+void createWorkerProcess(appnetServer *serv);
+void stopReactorThread(appnetServer *serv);
+void freeWorkerBuffer( appnetServer *serv);
+int freeConnectBuffers(appnetServer *serv);
+void destroyServer(appnetServer *serv);
+int startServer(appnetServer *serv);
 void initWorkerOnLoopStart(aeEventLoop *l);
 int sendMessageToReactor(int connfd, char *buff, int len);
-void readWorkerBodyFromPipe(int pipe_fd, aePipeData data);
+void readWorkerBodyFromPipe(int pipe_fd, appnetPipeData data);
 void onWorkerPipeWritable(aeEventLoop *el, int fd, void *privdata, int mask);
 void onWorkerPipeReadable(aeEventLoop *el, int fd, void *privdata, int mask);
 int sendCloseEventToReactor(int connfd);
 int socketWrite(int __fd, void *__data, int __len);
-int send2ReactorThread(int connfd, aePipeData data);
+int send2ReactorThread(int connfd, appnetPipeData data);
 int timerCallback(struct aeEventLoop *l, long long id, void *data);
 void finalCallback(struct aeEventLoop *l, void *data);
 void childTermHandler(int sig);
 void childChildHandler(int sig);
 void runWorkerProcess(int pidx);
-void createWorkerTask(int connfd, char *buffer, int len, int eventType,
+void appendWorkerData(int connfd, char *buffer, int len, int event_type,
                       char *from);
-void createHttpTask(int connfd, char *header, int header_len, char *body,
-                    int body_len, int eventType, char *from);
+void appendHttpData(int connfd, char *header, int header_len, char *body,
+                    int body_len, int event_type, char *from);
 aeEventLoop *getThreadEventLoop(int connfd);
 int setHeader(char *key, char *val);
 int setOption(char *key, char *val);
@@ -270,7 +265,7 @@ sds getRespHeaderString(sds header);
 int setRespHeader(char *key, char *val);
 void appendToClientSendBuffer(int connfd, char *buffer, int len);
 
-aeServer *servG;
+appnetServer *servG;
 int getPipeIndex(int connfd);
 
 #endif
