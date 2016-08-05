@@ -1,20 +1,20 @@
 /*
-  +----------------------------------------------------------------------+
-  | PHP Version 7                                                        |
-  +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2015 The PHP Group                                |
-  +----------------------------------------------------------------------+
-  | This source file is subject to version 3.01 of the PHP license,      |
-  | that is bundled with this package in the file LICENSE, and is        |
-  | available through the world-wide-web at the following url:           |
-  | http://www.php.net/license/3_01.txt                                  |
-  | If you did not receive a copy of the PHP license and are unable to   |
-  | obtain it through the world-wide-web, please send a note to          |
-  | license@php.net so we can mail you a copy immediately.               |
-  +----------------------------------------------------------------------+
-  | Author:                                                              |
-  +----------------------------------------------------------------------+
-*/
+ +----------------------------------------------------------------------+
+ | PHP Version 7                                                        |
+ +----------------------------------------------------------------------+
+ | Copyright (c) 1997-2015 The PHP Group                                |
+ +----------------------------------------------------------------------+
+ | This source file is subject to version 3.01 of the PHP license,      |
+ | that is bundled with this package in the file LICENSE, and is        |
+ | available through the world-wide-web at the following url:           |
+ | http://www.php.net/license/3_01.txt                                  |
+ | If you did not receive a copy of the PHP license and are unable to   |
+ | obtain it through the world-wide-web, please send a note to          |
+ | license@php.net so we can mail you a copy immediately.               |
+ +----------------------------------------------------------------------+
+ | Author:                                                              |
+ +----------------------------------------------------------------------+
+ */
 
 /* $Id$ */
 
@@ -40,27 +40,27 @@ extern zend_module_entry appnet_module_entry;
 #endif
 #include "include/appnet_server.h"
 /*
-        Declare any global variables you may need between the BEGIN
-        and END macros here:
+ Declare any global variables you may need between the BEGIN
+ and END macros here:
 
-ZEND_BEGIN_MODULE_GLOBALS(appnet)
-        zend_long  global_value;
-        char *global_string;
-ZEND_END_MODULE_GLOBALS(appnet)
-*/
+ ZEND_BEGIN_MODULE_GLOBALS(appnet)
+ zend_long  global_value;
+ char *global_string;
+ ZEND_END_MODULE_GLOBALS(appnet)
+ */
 
 /* Always refer to the globals in your function as APPNET_G(variable).
-   You are encouraged to rename these macros something shorter, see
-   examples in any other php module directory.
-*/
+ You are encouraged to rename these macros something shorter, see
+ examples in any other php module directory.
+ */
 /*
-#define APPNET_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(appnet, v)
+ #define APPNET_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(appnet, v)
 
-#if defined(ZTS) && defined(COMPILE_DL_APPNET)
-ZEND_TSRMLS_CACHE_EXTERN();
-#endif
+ #if defined(ZTS) && defined(COMPILE_DL_APPNET)
+ ZEND_TSRMLS_CACHE_EXTERN();
+ #endif
 
-#endif	/* PHP_APPNET_H */
+ #endif	/* PHP_APPNET_H */
 
 /*
  * Local variables:
@@ -94,39 +94,39 @@ extern zval *appnet_serv_callback[APPNET_SERVER_CALLBACK_NUM];
 
 zend_class_entry *AppnetServer;
 
-ZEND_METHOD(AppnetServer, __construct);
-ZEND_METHOD(AppnetServer, on);
-ZEND_METHOD(AppnetServer, run);
-ZEND_METHOD(AppnetServer, send);
-ZEND_METHOD(AppnetServer, close);
-ZEND_METHOD(AppnetServer, getHeader);
-ZEND_METHOD(AppnetServer, setHeader);
-ZEND_METHOD(AppnetServer, httpRedirect);
-ZEND_METHOD(AppnetServer, httpRespCode);
-ZEND_METHOD(AppnetServer, timerAdd);
-ZEND_METHOD(AppnetServer, timerRemove);
-ZEND_METHOD(AppnetServer, setOption);
-ZEND_METHOD(AppnetServer, getInfo);
-ZEND_METHOD(AppnetServer, setEventCallback);
-ZEND_METHOD(AppnetServer, addEventListener);
-ZEND_METHOD(AppnetServer, addAsynTask);
-ZEND_METHOD(AppnetServer, taskCallback);
+ZEND_METHOD( AppnetServer , __construct );
+ZEND_METHOD( AppnetServer , on );
+ZEND_METHOD( AppnetServer , run );
+ZEND_METHOD( AppnetServer , send );
+ZEND_METHOD( AppnetServer , close );
+ZEND_METHOD( AppnetServer , getHeader );
+ZEND_METHOD( AppnetServer , setHeader );
+ZEND_METHOD( AppnetServer , httpRedirect );
+ZEND_METHOD( AppnetServer , httpRespCode );
+ZEND_METHOD( AppnetServer , timerAdd );
+ZEND_METHOD( AppnetServer , timerRemove );
+ZEND_METHOD( AppnetServer , setOption );
+ZEND_METHOD( AppnetServer , getInfo );
+ZEND_METHOD( AppnetServer , setEventCallback );
+ZEND_METHOD( AppnetServer , addEventListener );
+ZEND_METHOD( AppnetServer , addAsynTask );
+ZEND_METHOD( AppnetServer , taskCallback );
 
-appnetServer *appnetServInit(char *serv_host, int serv_port);
+appnetServer *appnetServInit( char *serv_host , int serv_port );
 void appnetServRun();
 
-ZEND_BEGIN_MODULE_GLOBALS(appnet)
+ZEND_BEGIN_MODULE_GLOBALS( appnet )
 appnetServer *appserv;
-ZEND_END_MODULE_GLOBALS(appnet)
+ZEND_END_MODULE_GLOBALS( appnet )
 
-extern ZEND_DECLARE_MODULE_GLOBALS(appnet);
+extern ZEND_DECLARE_MODULE_GLOBALS( appnet );
 /*
-#ifdef ZTS
-#define APPNET_G(v) TSRMG(appnet_globals_id, zend_appnet_globals *, v)
-#else
-#define APPNET_G(v) (appnet_globals.v)
-#endif
-*/
+ #ifdef ZTS
+ #define APPNET_G(v) TSRMG(appnet_globals_id, zend_appnet_globals *, v)
+ #else
+ #define APPNET_G(v) (appnet_globals.v)
+ #endif
+ */
 
 #define APPNET_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(appnet, v)
 #if defined(ZTS) && defined(COMPILE_DL_APPNET)

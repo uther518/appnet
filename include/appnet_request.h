@@ -3,8 +3,8 @@
 #ifndef __HTTP_REQUEST_H_
 #define __HTTP_REQUEST_H_
 
-#include "sds.h"
-#include "websocket.h"
+#include "appnet_sds.h"
+#include "appnet_websocket.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

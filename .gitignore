@@ -54,5 +54,10 @@ core
 /mkinstalldirs
 /run-tests.php
 
+/.autotools
+/.cproject
+/.project
+/.settings/
+
 # Debug files
 *.dSYM/
