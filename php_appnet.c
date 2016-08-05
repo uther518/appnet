@@ -373,15 +373,15 @@ PHP_MINFO_FUNCTION( appnet )
 /* {{{ appnet_module_entry
  */
 zend_module_entry appnet_module_entry =
-{
-		STANDARD_MODULE_HEADER,"appnet",appnet_functions,PHP_MINIT( appnet ),
-		PHP_MSHUTDOWN( appnet ),PHP_RINIT( appnet ), /* Replace with NULL if
-		 there's nothing to do
-		 at request start */
-		PHP_RSHUTDOWN( appnet ), /* Replace with NULL if
-		 there's nothing to do
-		 at request end */
-		PHP_MINFO( appnet ),PHP_APPNET_VERSION,STANDARD_MODULE_PROPERTIES};
+		{
+				STANDARD_MODULE_HEADER,"appnet",appnet_functions,PHP_MINIT( appnet ),
+				PHP_MSHUTDOWN( appnet ),PHP_RINIT( appnet ), /* Replace with NULL if
+				 there's nothing to do
+				 at request start */
+				PHP_RSHUTDOWN( appnet ), /* Replace with NULL if
+				 there's nothing to do
+				 at request end */
+				PHP_MINFO( appnet ),PHP_APPNET_VERSION,STANDARD_MODULE_PROPERTIES};
 /* }}} */
 
 #ifdef COMPILE_DL_APPNET
