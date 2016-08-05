@@ -3,31 +3,30 @@
 
 #include <errno.h>
 
-typedef struct {
-    int length;
-    int start;
-    int end;
-    int use_shm;
-    char *buffer;
+typedef struct
+{
+	int length;
+	int start;
+	int end;
+	int use_shm;
+	char *buffer;
 } ringBuffer;
 
+ringBuffer *ringBuffer_create( int length , int use_shm );
 
-ringBuffer *ringBuffer_create(int length , int use_shm );
+void ringBuffer_destroy( ringBuffer * buffer );
 
-void ringBuffer_destroy(ringBuffer * buffer);
+int ringBuffer_read( ringBuffer * buffer , char *target , int amount );
 
-int ringBuffer_read(ringBuffer * buffer, char *target, int amount);
+int ringBuffer_write( ringBuffer * buffer , char *data , int length );
 
-int ringBuffer_write(ringBuffer * buffer, char *data, int length);
+int ringBuffer_empty( ringBuffer * buffer );
 
-int ringBuffer_empty(ringBuffer * buffer);
+int ringBuffer_full( ringBuffer * buffer );
 
-int ringBuffer_full(ringBuffer * buffer);
+int ringBuffer_available_data( ringBuffer * buffer );
 
-int ringBuffer_available_data(ringBuffer * buffer);
-
-int ringBuffer_available_space(ringBuffer * buffer);
-
+int ringBuffer_available_space( ringBuffer * buffer );
 
 #define ringBuffer_available_data(B) (\
         (B)->end % (B)->length - (B)->start)
