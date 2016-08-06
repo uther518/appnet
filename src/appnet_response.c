@@ -97,7 +97,7 @@ int appendHeaderBuffer( headerOut *header_out , char *data , int len )
 int appendRespHeader( headerOut *header_out , int line_type , ... )
 {
 	char line[1024] =
-	{0};
+			{0};
 	int len = 0;
 	char *arg_string;
 	int arg_int;
@@ -109,38 +109,32 @@ int appendRespHeader( headerOut *header_out , int line_type , ... )
 		case HEADER_STATUS:
 			// error_code,
 			arg_string = va_arg(ap, char *);
-			len = snprintf( line , sizeof( line ) , header_formats[HEADER_STATUS] ,
-					header_out->req->version , arg_string );
+			len = snprintf( line , sizeof( line ) , header_formats[HEADER_STATUS] , header_out->req->version , arg_string );
 		break;
 		case HEADER_SERVER:
 			len = snprintf( line , sizeof( line ) , http_server_full_string );
 		break;
 		case HEADER_CONTENT_TYPE:
-			len = snprintf( line , sizeof( line ) , header_formats[HEADER_CONTENT_TYPE] ,
-					header_out->req->mime_type );
+			len = snprintf( line , sizeof( line ) , header_formats[HEADER_CONTENT_TYPE] , header_out->req->mime_type );
 		break;
 		case HEADER_CONTENT_LENGTH:
 			// content-length
 			arg_int = va_arg(ap, int);
-			len = snprintf( line , sizeof( line ) , header_formats[HEADER_CONTENT_LENGTH] ,
-					arg_int );
+			len = snprintf( line , sizeof( line ) , header_formats[HEADER_CONTENT_LENGTH] , arg_int );
 		break;
 		case HEADER_LOCATION:
 			// content-length
 			arg_string = va_arg(ap, char *);
-			len = snprintf( line , sizeof( line ) , header_formats[HEADER_LOCATION] ,
-					arg_string );
+			len = snprintf( line , sizeof( line ) , header_formats[HEADER_LOCATION] , arg_string );
 		break;
 		case HEADER_KEEP_ALIVE:
 			if (header_out->req->keep_alive == 0)
 			{
-				len = snprintf( line , sizeof( line ) , header_formats[HEADER_KEEP_ALIVE] ,
-						"close" );
+				len = snprintf( line , sizeof( line ) , header_formats[HEADER_KEEP_ALIVE] , "close" );
 			}
 			else
 			{
-				len = snprintf( line , sizeof( line ) , header_formats[HEADER_KEEP_ALIVE] ,
-						"keep-alive" );
+				len = snprintf( line , sizeof( line ) , header_formats[HEADER_KEEP_ALIVE] , "keep-alive" );
 			}
 		break;
 		case HEADER_END_LINE:
@@ -181,7 +175,7 @@ void httpRedirect( httpHeader *req_header , char *uri )
 int pageIsDefined( char *page )
 {
 	char path[128] =
-	{0};
+			{0};
 	getFilePath( page , path );
 	if (isFile( path ))
 	{
@@ -198,7 +192,7 @@ int respDefinedErrorPage( headerOut *header_out , int err_code )
 	{
 		case 404:
 			if (pageIsDefined( servG->http_404_page ) == 0)
-				return 0;
+			return 0;
 			httpRedirect( header_out->req , servG->http_404_page );
 		break;
 		case 500:
@@ -208,7 +202,7 @@ int respDefinedErrorPage( headerOut *header_out , int err_code )
 			case 504:
 			case 505:
 			if (pageIsDefined( servG->http_50x_page ) == 0)
-				return 0;
+			return 0;
 			httpRedirect( header_out->req , servG->http_50x_page );
 		break;
 		default:
@@ -278,7 +272,7 @@ void httpResponseStaticProc( httpHeader *req_header )
 	
 	int len,cllen,ctlen;
 	char path[1024] =
-	{0};
+			{0};
 	headerOut header_out;
 	memset( &header_out , 0 , sizeof( header_out ) );
 	header_out.req = req_header;

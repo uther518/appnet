@@ -57,7 +57,7 @@ void onCloseByClient( aeEventLoop *el , void *privdata , appnetServer *serv ,
 	}
 	
 	appnetPipeData data =
-	{0};
+			{0};
 	data.type = PIPE_EVENT_CLOSE;
 	data.connfd = conn->connfd;
 	data.len = 0;
@@ -126,7 +126,7 @@ void appendWorkerData( int connfd , char *buffer , int len , int event_type ,
 {
 	
 	appnetPipeData data =
-	{0};
+			{0};
 	unsigned int datalen;
 	data.len = len;
 	data.proto = servG->connlist[connfd].proto_type;
@@ -166,7 +166,7 @@ void appendHttpData( int connfd , char *header , int header_len , char *body ,
 {
 	
 	appnetPipeData data =
-	{0};
+			{0};
 	unsigned int datalen;
 	data.header_len = header_len;
 	data.len = header_len + body_len;
@@ -180,7 +180,7 @@ void appendHttpData( int connfd , char *header , int header_len , char *body ,
 	
 	int ret = setPipeWritable( reactor_el , worker_id , connfd );
 	if (ret == 0)
-		printf( "setPipeWritable error \n" );
+	printf( "setPipeWritable error \n" );
 	
 	pthread_mutex_lock( &servG->workers[worker_id].w_mutex );
 	
@@ -401,7 +401,7 @@ void acceptCommonHandler( appnetServer *serv , int connfd , char *client_ip ,
 		}
 		
 		appnetPipeData data =
-		{0};
+				{0};
 		data.type = PIPE_EVENT_CONNECT;
 		data.connfd = connfd;
 		data.len = 0;
@@ -413,7 +413,7 @@ void acceptCommonHandler( appnetServer *serv , int connfd , char *client_ip ,
 				AE_WRITABLE , onMasterPipeWritable , worker_id );
 		
 		if (ret == AE_ERR)
-			printf( "Accept setPipeWritable Error \n" );
+		printf( "Accept setPipeWritable Error \n" );
 		
 		int sendlen = PIPE_DATA_HEADER_LENG;
 		
@@ -449,7 +449,6 @@ void onAcceptEvent( aeEventLoop *el , int fd , void *privdata , int mask )
 				}
 				return;
 			}
-			
 			acceptCommonHandler( servG , connfd , client_ip , client_port );
 		}
 	}
@@ -515,7 +514,6 @@ void masterTermHandler( int signo )
 
 void installMasterSignal( appnetServer *serv )
 {
-	
 	signal( SIGPIPE , SIG_IGN );
 	addSignal( SIGINT , masterKillHandler , 1 );
 	signal( SIGTERM , masterTermHandler );
@@ -878,7 +876,6 @@ void createWorkerProcess( appnetServer *serv )
 	
 	for (i = 0; i < total_worker; i++)
 	{
-		
 		serv->workers[i].pid = fork();
 		if (serv->workers[i].pid < 0)
 		{
@@ -1149,7 +1146,7 @@ void initServer( appnetServer *serv )
 void set_daemon( appnetServer *serv )
 {
 	if (serv->daemon == 0)
-		return;
+	return;
 	
 	int ret;
 	if (serv->daemon == 1)

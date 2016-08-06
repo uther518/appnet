@@ -242,8 +242,7 @@ void createReactorThreads( appnetServer *serv );
 appnetReactorThread getReactorThread( appnetServer *serv , int i );
 void readBodyFromPipe( aeEventLoop *el , int fd , appnetPipeData data );
 void onMasterPipeReadable( aeEventLoop *el , int fd , void *privdata , int mask );
-void onMasterPipeWritable( aeEventLoop *el , int pipe_fd , void *privdata ,
-		int mask );
+void onMasterPipeWritable( aeEventLoop *el , int pipe_fd , void *privdata , int mask );
 void *reactorThreadRun( void *arg );
 int socketSetBufferSize( int fd , int buffer_size );
 void createWorkerProcess( appnetServer *serv );
@@ -265,8 +264,7 @@ void finalCallback( struct aeEventLoop *l , void *data );
 void childTermHandler( int sig );
 void childChildHandler( int sig );
 void runWorkerProcess( int pidx );
-void appendWorkerData( int connfd , char *buffer , int len , int event_type ,
-		char *from );
+void appendWorkerData( int connfd , char *buffer , int len , int event_type , char *from );
 void appendHttpData( int connfd , char *header , int header_len , char *body ,
 		int body_len , int event_type , char *from );
 aeEventLoop *getThreadEventLoop( int connfd );

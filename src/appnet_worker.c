@@ -43,14 +43,14 @@ void dictSdsDestructor( void *privdata , void *val )
 }
 
 dictType headerDictType =
-{
-		dictSdsCaseHash, /* hash function */
-		NULL, /* key dup */
-		NULL, /* val dup */
-		dictSdsKeyCaseCompare, /* key compare */
-		dictSdsDestructor, /* key destructor */
-		dictSdsDestructor, /* val destructor */
-};
+		{
+				dictSdsCaseHash, /* hash function */
+				NULL, /* key dup */
+				NULL, /* val dup */
+				dictSdsKeyCaseCompare, /* key compare */
+				dictSdsDestructor, /* key destructor */
+				dictSdsDestructor, /* val destructor */
+		};
 
 int isValidConnfd( int connfd )
 {
@@ -80,7 +80,7 @@ void timerAdd( int ms , void *cb , void *params )
 int taskCallback( char *task_data , int data_len , int taskid , int to )
 {
 	appnetPipeData data =
-	{0};
+			{0};
 	data.type = PIPE_EVENT_TASK;
 	
 	asyncTask task;
@@ -118,7 +118,7 @@ int taskCallback( char *task_data , int data_len , int taskid , int to )
 int addAsyncTask( char *params , int task_worker_id )
 {
 	appnetPipeData data =
-	{0};
+			{0};
 	data.type = PIPE_EVENT_TASK;
 	
 	asyncTask task;
@@ -173,7 +173,7 @@ int appendSendBuffer( const char *buff , size_t len )
 int httpRedirectUrl( char *uri , int code )
 {
 	if (code != 301)
-		code = 302;
+	code = 302;
 	return httpRespCode( code , uri );
 }
 
@@ -334,7 +334,7 @@ void readTaskFromPipe( int pipe_fd , appnetPipeData data )
 	if (data.len > 0)
 	{
 		char buff[TMP_BUFFER_LENGTH] =
-		{0};
+				{0};
 		
 		while (( readlen = read( pipe_fd , buff , data.len ) ) > 0)
 		{
@@ -346,7 +346,7 @@ void readTaskFromPipe( int pipe_fd , appnetPipeData data )
 		
 		asyncTask task;
 		char param[1024] =
-		{0};
+				{0};
 		memcpy( &task , buff , sizeof(asyncTask) );
 		memcpy( &param , buff + sizeof(asyncTask) , data.len - sizeof(asyncTask) );
 		
@@ -380,7 +380,7 @@ void readWorkerBodyFromPipe( int pipe_fd , appnetPipeData data )
 			data.data = sdscatlen( data.data , buff , readlen );
 			bodylen += readlen;
 			if (bodylen == data.len)
-				break;
+			break;
 		}
 	}
 	
@@ -595,7 +595,7 @@ static int httpHeaderIsValidValue( const char *value )
 		
 		/* we expect a space or tab for continuation */
 		if (*p != ' ' && *p != '\t')
-			return ( 0 );
+		return ( 0 );
 	}
 	return ( 1 );
 }
