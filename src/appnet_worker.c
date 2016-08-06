@@ -188,10 +188,10 @@ int httpRespCode( int status , char *val )
 	createCommonHeader( &header_out , status );
 	if (status == 301 || status == 302)
 	{
-		respAppendHeader( &header_out , HEADER_LOCATION , val );
+		appendRespHeader( &header_out , HEADER_LOCATION , val );
 	}
-	respAppendHeader( &header_out , HEADER_CONTENT_LENGTH , 0 );
-	respAppendHeader( &header_out , HEADER_END_LINE );
+	appendRespHeader( &header_out , HEADER_CONTENT_LENGTH , 0 );
+	appendRespHeader( &header_out , HEADER_END_LINE );
 	
 	int connfd = servG->worker->req_header.connfd;
 	appnetPipeData data;
