@@ -125,6 +125,12 @@ void createWorkerTask(  int connfd , char* buffer , int len , int eventType , ch
     data.proto = servG->connlist[connfd].protoType;
     data.type = eventType;
     data.connfd = connfd;
+    
+    if( servG->connlist[connfd].protoType == TCP )
+    {
+	int thid = connfd % servG->reactorNum;
+	servG->reactorThreads[thid].hh->complete_length = 0;
+    }
 
     datalen = PIPE_DATA_HEADER_LENG + data.len;
     aeEventLoop* reactor_el = getThreadEventLoop( connfd );
