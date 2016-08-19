@@ -17,9 +17,9 @@ PHP_ARG_ENABLE(appnet, whether to enable appnet support,
 dnl Make sure that the comment is aligned:
 [  --enable-appnet           Enable appnet support])
 
-if test -z "$PHP_DEBUG" ; then 
-	AC_ARG_ENABLE(debug, [--enable-debug compile with debugging system], [PHP_DEBUG=$enableval],[PHP_DEBUG=no] ) 
-fi 
+if test -z "$PHP_DEBUG" ; then
+	AC_ARG_ENABLE(debug, [--enable-debug compile with debugging system], [PHP_DEBUG=$enableval],[PHP_DEBUG=no] )
+fi
 
 AC_MSG_CHECKING([if compiling with clang])
 AC_COMPILE_IFELSE([
@@ -64,8 +64,8 @@ if test "$PHP_APPNET" != "no"; then
 
   dnl # --with-appnet -> check for lib and symbol presence
   dnl LIBNAME=appnet # you may want to change this
-  dnl LIBSYMBOL=appnet # you most likely want to change this 
-  
+  dnl LIBSYMBOL=appnet # you most likely want to change this
+
   dnl PHP_CHECK_LIBRARY($LIBNAME,$LIBSYMBOL,
   dnl [
   dnl   PHP_ADD_LIBRARY_WITH_PATH($LIBNAME, $APPNET_DIR/$PHP_LIBDIR, APPNET_SHARED_LIBADD)
@@ -80,10 +80,10 @@ if test "$PHP_APPNET" != "no"; then
 
   CFLAGS="-Wall -pthread $CFLAGS"
   LDFLAGS="$LDFLAGS -lpthread"
-  
+
   PHP_SUBST(APPNET_SHARED_LIBADD)
-  PHP_ADD_LIBRARY(pthread, 1, APPNET_SHARED_LIBADD)  
-  app_source="src/network/aeserver.c \
+  PHP_ADD_LIBRARY(pthread, 1, APPNET_SHARED_LIBADD)
+  app_source="src/network/appnet_server.c \
 	src/network/ae_epoll.c \
 	src/network/anet.c \
 	src/network/worker.c \
@@ -98,5 +98,5 @@ if test "$PHP_APPNET" != "no"; then
 	src/network/websocket.c \
 	src/network/share_memory.c \
 	src/network/http_response.c"
-  PHP_NEW_EXTENSION(appnet, $app_source appnet.c appnet_server.c,  $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1)
+  PHP_NEW_EXTENSION(appnet, $app_source php_appnet.c  php_appnet_server.c,  $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1)
 fi
