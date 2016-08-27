@@ -394,7 +394,7 @@ void parsePostRequest( httpHeader *header , sds buffer , int len )
 	else
 	{
 		
-		createHttpTask( header->connfd , buffer , header->buffer_pos ,
+		appendHttpData( header->connfd , buffer , header->buffer_pos ,
 				buffer + header->buffer_pos , header->content_length ,
 				PIPE_EVENT_MESSAGE , "parsePostRequest" );
 	}
