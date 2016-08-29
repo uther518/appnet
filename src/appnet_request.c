@@ -24,13 +24,13 @@ static char *findEolChar( const char *s , int len )
 		{
 			if (lf && lf < cr)
 			{
-				return lf; // xxxxx\n\rcccccc           lf:xxxxx
+				return lf;
 			}
-			return cr; // xxxxx\r\ncccccc\r\n       cr:xxxxx
+			return cr;
 		}
 		else if (lf)
 		{
-			return lf; // xxxxx\ncccccccccc\r\n     lf:xxxxx
+			return lf;
 		}
 		s += CHUNK_SZ;
 	}
@@ -43,7 +43,7 @@ static int getLeftEolLength( const char *s )
 	int i,pos = 0;
 	for (i = 0; i < strlen( s ); i++)
 	{
-		if (memcmp( "\r" , s + i , 1 ) == 0 || memcmp( "\n" , s + i , 1 ) == 0 ||
+		if (	memcmp( "\r" , s + i , 1 ) == 0 || memcmp( "\n" , s + i , 1 ) == 0 ||
 				memcmp( " " , s + i , 1 ) == 0)
 		{
 			pos++;
@@ -219,14 +219,15 @@ static int readingHeaders( httpHeader *header , const char *buffer , int len )
 		ret = readingSingleLine( header , buffer + header->buffer_pos , offset );
 		if (ret < AE_OK)
 		{
+			printf( "readingSingleLine error 22222 \n" );
 			return AE_ERR;
 		}
-		
 		//如果解析好了，指针往后移
 		header->buffer_pos += offset;
 	};
 	
 	header->buffer_pos += strlen( AE_HEADER_END );
+	printf( "readingHeaders len=%d , buffer_pos=%d \n" , len , header->buffer_pos );
 	return AE_OK;
 }
 
@@ -234,8 +235,7 @@ int readingSingleLine( httpHeader *header , const char *org , int len )
 {
 	char *ret;
 	int value_len = 0;
-	char value[1024] =
-	{0};
+	char value[1024] = {0};
 	int upgrade = 0;
 	
 	ret = findChar( ':' , org , len );
@@ -270,21 +270,36 @@ int readingSingleLine( httpHeader *header , const char *org , int len )
 	// multipart/form-data
 	value_len = len - ( ret - org ) - 1; //:
 	int eolen = 0;
+
 	eolen = getLeftEolLength( ret + 1 );
 	
-	header->fileds[header->filed_nums].val.pos = ret + eolen + 1;
-	header->fileds[header->filed_nums].val.len = value_len - eolen;
-	
-	memcpy( value , ret + eolen + 1 , sizeof( value ) );
-	if (value_len - eolen > sizeof( value ))
+	if( value_len - eolen < 0 )
 	{
-		printf( "Error Header Line Is Too Long len=%d!! \n" , value_len - eolen );
+	    printf( "value_len empty = [%s] \n" , ret + 1 ); 
+	    if(value_len>0)memcpy( value , ret + 1 , value_len );
 	}
+	else
+	{
+        value_len=value_len - eolen;
+		if( value_len <= sizeof( value ))
+		{
+			memcpy( value , ret + eolen + 1 , value_len );
+		}
+		else
+		{
+			printf( "header value too long len=%d \n" , value_len );
+			memcpy( value , ret + eolen + 1 , sizeof( value ) );
+		}
+	}
+
+	header->fileds[header->filed_nums].val.pos = ret + eolen + 1;
+	header->fileds[header->filed_nums].val.len = value_len;
+
 	
 	if (upgrade == 1)
 	{
-		if (memcmp( value , "websocket" , value_len - eolen ) == 0 ||
-				memcmp( value , "Websocket" , value_len - eolen ) == 0)
+		if (memcmp( value , "websocket" , value_len ) == 0 ||
+			memcmp( value , "Websocket" , value_len ) == 0)
 		{
 			header->protocol = WEBSOCKET;
 		}
@@ -322,6 +337,8 @@ int readingSingleLine( httpHeader *header , const char *org , int len )
 			header->multipart_data = MULTIPART_TYPE_FORM_DATA;
 		}
 	}
+
+	if( header->protocol == WEBSOCKET )printf( "header key=%s \n" , keys );	
 	
 	header->filed_nums += 1;
 	return AE_OK;
@@ -362,9 +379,9 @@ int httpHeaderParse( httpHeader *header , sds buffer , int len )
 	ret = readingHeaders( header , buffer , len );
 	if (ret < AE_OK)
 	{
+		printf( "ReadingHeaders Error Header=[%s] \n" , buffer );	
 		return AE_ERR;
 	}
-	
 	return AE_OK;
 }
 
@@ -407,17 +424,14 @@ int parse_trunked_body( httpHeader *header , sds buffer )
 
 static int httpBodyParse( httpHeader *header , sds buffer , int len )
 {
-	
 	header->nobody = AE_FALSE;
 	if (strncmp( header->method , "POST" , 4 ) == 0)
 	{
-		
 		//判断包体是否完整
 		//包的总长-包头 < content_length,半包
 		//包的总长-包头 > content_length,粘包
 		if (header->content_length > 0)
 		{
-			
 			//半包
 			if (sdslen( buffer ) - header->buffer_pos < header->content_length)
 			{
@@ -428,7 +442,6 @@ static int httpBodyParse( httpHeader *header , sds buffer , int len )
 			else
 			{
 				header->complete_length = header->buffer_pos + header->content_length;
-				
 				parsePostRequest( header , buffer , header->complete_length );
 				return BREAK_RECV;
 			}
@@ -436,7 +449,6 @@ static int httpBodyParse( httpHeader *header , sds buffer , int len )
 		}
 		else if (header->trunked == AE_TRUE) // trunk模式
 		{
-			
 			printf( "Http trunk body,Not Support ....\n" );
 			return BREAK_RECV;
 		}
@@ -525,12 +537,9 @@ int httpRequestParse( int connfd , sds buffer , int len )
 	}
 	else
 	{
-		memset( servG->reactor_threads[thid].hs , 0 ,
-				sizeof( servG->reactor_threads[thid].hs ) );
-		
+		memset( servG->reactor_threads[thid].hs , 0 , sizeof( servG->reactor_threads[thid].hs ) );
 		servG->reactor_threads[thid].hs->state = WS_STATE_OPENING;
-		ret = wesocketRequestRarse( connfd , buffer , len , header ,
-				servG->reactor_threads[thid].hs );
+		ret = wesocketRequestRarse( connfd , buffer , len , header , servG->reactor_threads[thid].hs );
 	}
 	return ret;
 }
@@ -582,10 +591,8 @@ int wesocketRequestRarse( int connfd , sds buffer , int len , httpHeader *header
 {
 	if (hs->state == WS_STATE_OPENING)
 	{
-		
 		hs->frame_type = parseHandshake( header , hs );
 		header->complete_length = header->buffer_pos;
-		
 	}
 	else
 	{
