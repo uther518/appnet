@@ -164,12 +164,23 @@ ZEND_METHOD( AppnetServer , getHeader )
 	add_assoc_string( return_value , "Version" , header->version );
 	
 	char key[64];
-	char val[1024];
+	char val[1024]={0};
+	int valen = 0;
 	for (i = 0; i < header->filed_nums; i++)
 	{
 		memset( key , 0 , sizeof( key ) );
 		memset( val , 0 , sizeof( val ) );
 		memcpy( key , header->fileds[i].key.pos , header->fileds[i].key.len );
+		
+		if( header->fileds[i].val.len > sizeof( val ))
+        {
+			valen = sizeof( val );
+        }
+        else
+        {
+            valen = header->fileds[i].val.len;
+        }
+		
 		memcpy( val , header->fileds[i].val.pos , header->fileds[i].val.len );
 		add_assoc_string( return_value , key , val );
 	}
