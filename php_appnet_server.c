@@ -173,15 +173,15 @@ ZEND_METHOD( AppnetServer , getHeader )
 		memcpy( key , header->fileds[i].key.pos , header->fileds[i].key.len );
 		
 		if( header->fileds[i].val.len > sizeof( val ))
-        {
+		{
 			valen = sizeof( val );
-        }
-        else
-        {
-            valen = header->fileds[i].val.len;
-        }
+		}
+		else
+		{
+			valen = header->fileds[i].val.len;
+		}
 		
-		memcpy( val , header->fileds[i].val.pos , header->fileds[i].val.len );
+		memcpy( val , header->fileds[i].val.pos , valen );
 		add_assoc_string( return_value , key , val );
 	}
 }
