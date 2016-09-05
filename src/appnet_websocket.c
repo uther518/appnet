@@ -1,5 +1,6 @@
 /*
  * https://github.com/m8rge/cwebsocket/blob/master/lib/websocket.c
+   http://gtsss.marketminer.org/Doxygen/TradingSystem/docs/code/lib_2websocket_8c_source.html
  */
 #include "appnet_websocket.h"
 #include <assert.h>
@@ -9,6 +10,7 @@ void nullHandshake( handshake *hs )
 {
 	hs->frame_type = WS_EMPTY_FRAME;
 }
+
 void freeHandshake( handshake *hs )
 {
 	if (hs->host)
@@ -110,13 +112,13 @@ void wsMakeFrame( const uint8_t *data , size_t dataLength , uint8_t *outFrame ,
 	}
 	else
 	{
+		printf( "Websocket wsMakeFrame Large Data dataLength = %d  \n" , dataLength );
 		assert( dataLength <= 0xFFFF );
-		/* implementation for 64bit systems
+		// implementation for 64bit systems
 		 outFrame[1] = 127;
 		 dataLength = htonll(dataLength);
 		 memcpy(&outFrame[2], &dataLength, 8);
-		 *outLength = 10;
-		 */
+		 outLength = 10;
 	}
 	
 	memcpy( &outFrame[*outLength] , data , dataLength );
@@ -153,18 +155,17 @@ static size_t getPayloadLength( const uint8_t *inputFrame , size_t inputLength ,
 	}
 	else if (payloadLength == 0x7F) // 127
 	{
-		*frame_type = WS_ERROR_FRAME;
-		return 0;
-		/* // implementation for 64bit systems
-		 uint64_t payloadLength64b = 0;
-		 *payloadFieldExtraBytes = 8;
-		 memcpy(&payloadLength64b, &inputFrame[2], *payloadFieldExtraBytes);
-		 if (payloadLength64b > SIZE_MAX) {
-		 *frame_type = WS_ERROR_FRAME;
-		 return 0;
-		 }
-		 payloadLength = (size_t)ntohll(payloadLength64b);
-		 */
+		printf( "Websocket getPayloadLength Large Data payloadLength=%d  \n" , payloadLength );
+		 // implementation for 64bit systems
+		uint64_t payloadLength64b = 0;
+		*payloadFieldExtraBytes = 8;
+		memcpy(&payloadLength64b, &inputFrame[2], *payloadFieldExtraBytes);
+		if (payloadLength64b > SIZE_MAX)
+		{
+			*frame_type = WS_ERROR_FRAME;
+			return 0;
+		}
+		payloadLength = (size_t)ntohll(payloadLength64b);
 	}
 	return payloadLength;
 }
