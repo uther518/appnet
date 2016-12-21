@@ -338,7 +338,6 @@ int readingSingleLine( httpHeader *header , const char *org , int len )
 		}
 	}
 
-	if( header->protocol == WEBSOCKET )printf( "header key=%s \n" , keys );	
 	
 	header->filed_nums += 1;
 	return AE_OK;
