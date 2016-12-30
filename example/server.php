@@ -315,10 +315,8 @@ $server->listenWebsocket( 3200 );
 $server->setOption( APPNET_OPT_DAEMON , 1);
 $server->setOption( APPNET_OPT_WORKER_NUM , WORKER_NUM );
 $server->setOption( APPNET_OPT_TASK_WORKER_NUM , 0 );
-
 $server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
 $server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
-
 $server->setOption( APPNET_HTTP_DOCS_ROOT , $_SERVER['PWD']."/example/www/" );
 $server->setOption( APPNET_HTTP_UPLOAD_DIR, "/home/upload/"  );
 $server->setOption( APPNET_HTTP_404_PAGE , "404.html" );
