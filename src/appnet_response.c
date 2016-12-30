@@ -16,14 +16,14 @@ void httpResponseStatic( httpHeader *req_header )
 {
 	int thid = req_header->connfd % servG->reactor_num;
 	aeEventLoop *el = servG->reactor_threads[thid].reactor.event_loop;
-	
+
 	httpHeader *header = malloc( sizeof(httpHeader) );
 	memcpy( header , req_header , sizeof(httpHeader) );
-	
+
 	if (aeCreateFileEvent( el , req_header->connfd , AE_WRITABLE , onRespWritable ,
 			header ) == -1)
 	{
-		
+
 		printf( "setPipeWritable_error %s:%d \n" , __FILE__ , __LINE__ );
 		return;
 	}
@@ -47,23 +47,23 @@ headerStatus getHttpStatus( int status )
 	{
 		return header_status;
 	}
-	
+
 	int code_i = status % 100;
 	if (status < http_status_300)
 	{
 		return http_status_20x[code_i];
 	}
-	
+
 	if (status < http_status_400)
 	{
 		return http_status_30x[code_i];
 	}
-	
+
 	if (status < http_status_500)
 	{
 		return http_status_40x[code_i];
 	}
-	
+
 	if (status < http_status_max)
 	{
 		return http_status_50x[code_i];
@@ -103,7 +103,7 @@ int appendRespHeader( headerOut *header_out , int line_type , ... )
 	int arg_int;
 	va_list ap;
 	va_start( ap , line_type );
-	
+
 	switch (line_type)
 	{
 		case HEADER_STATUS:
@@ -162,12 +162,12 @@ void httpRedirect( httpHeader *req_header , char *uri )
 	memset( &header_out , 0 , sizeof( header_out ) );
 	header_out.req = req_header;
 	headerStatus error_page = getHttpStatus( 301 ); // header append
-			
+
 	createCommonHeader( &header_out , 301 );
 	appendRespHeader( &header_out , HEADER_LOCATION , uri );
 	appendRespHeader( &header_out , HEADER_CONTENT_LENGTH , 0 );
 	appendRespHeader( &header_out , HEADER_END_LINE );
-	
+
 	httpResponseWrite( req_header->connfd , header_out.data , header_out.length );
 	httpClose( req_header , 0 );
 }
@@ -234,16 +234,16 @@ void respErrorPage( headerOut *header_out , int status_code )
 			return;
 		}
 	}
-	
+
 	// get header info
 	headerStatus error_page = getHttpStatus( status_code );
 	int datalen = strlen( error_page.data );
-	
+
 	// header append
 	createCommonHeader( header_out , status_code );
 	headerAppendLength( header_out , datalen );
 	appendRespHeader( header_out , HEADER_END_LINE );
-	
+
 	// send
 	httpResponseWrite( header_out->req->connfd , header_out->data ,
 			header_out->length );
@@ -257,7 +257,7 @@ void respErrorPage( headerOut *header_out , int status_code )
 
 void httpClose( httpHeader *req_header , int force )
 {
-	
+
 	if (req_header->keep_alive == AE_FALSE ||
 			servG->http_keep_alive == AE_FALSE || force == AE_TRUE)
 	{
@@ -269,28 +269,26 @@ void httpClose( httpHeader *req_header , int force )
 
 void httpResponseStaticProc( httpHeader *req_header )
 {
-	
 	int len,cllen,ctlen;
-	char path[1024] =
-			{0};
+	char path[1024] = {0};
 	headerOut header_out;
 	memset( &header_out , 0 , sizeof( header_out ) );
 	header_out.req = req_header;
-	
+
 	getFilePath( req_header->uri , path );
 	struct stat stat_file;
 	int ret = stat( path , &stat_file );
-	
+
 	if (ret < 0)
 	{
 		respErrorPage( &header_out , 404 );
 		return;
 	}
-	
+
 	createCommonHeader( &header_out , 200 );
 	headerAppendLength( &header_out , stat_file.st_size );
 	appendRespHeader( &header_out , HEADER_END_LINE );
-	
+
 	int nwritten = write( req_header->connfd , header_out.data , header_out.length );
 	if (nwritten <= 0)
 	{
@@ -298,28 +296,26 @@ void httpResponseStaticProc( httpHeader *req_header )
 				req_header->connfd , header_out.length , strerror( errno ) );
 		return;
 	}
-	
+
 	if (req_header->nobody == AE_TRUE)
 	{
 		httpClose( req_header , 1 );
 		return;
 	}
-	
+
 	int fd = open( path , O_RDONLY );
 	if (fd < 0)
 	{
 		printf( "Open file Error:%s,errno=%d \n" , strerror( errno ) , errno );
 		return;
 	}
-	
+
 	// setsockopt (fd, SOL_TCP, TCP_CORK, &on, sizeof (on));
 	off_t offset = 0;
 	int force_close = 0;
 	while (offset < stat_file.st_size)
 	{
-		int sendn =
-				sendfile( req_header->connfd , fd , &offset , stat_file.st_size - offset );
-		
+		int sendn = sendfile( req_header->connfd , fd , &offset , stat_file.st_size - offset );
 		if (sendn < 0)
 		{
 			//如果socket缓冲区不可用，则挂起等待可用
@@ -350,10 +346,10 @@ void httpResponseStaticProc( httpHeader *req_header )
 
 void getFilePath( char *uri , char *path )
 {
-	
+
 	char *pos = strstr( uri , "?" );
 	memcpy( path , servG->http_docs_root , strlen( servG->http_docs_root ) );
-	
+
 	if (pos == NULL)
 	{
 		memcpy( path + strlen( servG->http_docs_root ) , uri , strlen( uri ) );

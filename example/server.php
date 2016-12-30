@@ -310,7 +310,7 @@ function onTimer( $server , $timer_id ,  $flag )
 //dl( "appnet.so");
 $server = new AppnetServer( "0.0.0.0" , 3011 );
 
-$server->setOption( APPNET_OPT_DAEMON , 0 );
+$server->setOption( APPNET_OPT_DAEMON , 1);
 $server->setOption( APPNET_OPT_WORKER_NUM , WORKER_NUM );
 $server->setOption( APPNET_OPT_TASK_WORKER_NUM , 0 );
 

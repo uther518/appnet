@@ -24,7 +24,7 @@ ZEND_METHOD( AppnetServer , __construct )
 	size_t host_len = 0;
 	char *serv_host;
 	long serv_port;
-	
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sl", &serv_host,
 			&host_len, &serv_port) == FAILURE)
 	{
@@ -42,7 +42,7 @@ ZEND_METHOD( AppnetServer , setOption )
 	size_t val_len;
 	char *key;
 	char *val;
-	
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &key, &key_len,
 			&val, &val_len) == FAILURE)
 	{
@@ -63,13 +63,13 @@ ZEND_METHOD( AppnetServer , setHeader )
 	size_t val_len;
 	char *key;
 	char *val;
-	
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &key, &key_len,
 			&val, &val_len) == FAILURE)
 	{
 		return;
 	}
-	
+
 	appnetServer *appserv = APPNET_G(appserv);
 	int ret = appserv->setHeader( key , val );
 	if (ret == AE_TRUE)
@@ -84,16 +84,16 @@ ZEND_METHOD( AppnetServer , httpRedirect )
 	size_t len;
 	char *url;
 	long status;
-	
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &url, &len,
 			&status) == FAILURE)
 	{
 		return;
 	}
-	
+
 	// appnetServer* appserv = APPNET_G( appserv );
 	int ret = httpRedirectUrl( url , status );
-	
+
 	if (ret == AE_TRUE)
 	{
 		RETURN_TRUE;
@@ -109,7 +109,7 @@ ZEND_METHOD( AppnetServer , httpRespCode )
 	{
 		return;
 	}
-	
+
 	// appnetServer* appserv = APPNET_G( appserv );
 	int ret = httpRespCode( status , "" );
 	if (ret == AE_TRUE)
@@ -145,11 +145,11 @@ ZEND_METHOD( AppnetServer , getHeader )
 	int i;
 	int connfd = appserv->worker->connfd;
 	httpHeader *header = &appserv->worker->req_header;
-	if (appserv->worker->proto == HTTP)
+	if (appserv->worker->proto == LISTEN_TYPE_HTTP )
 	{
 		add_assoc_string( return_value , "Protocol" , "HTTP" );
 	}
-	else if (appserv->worker->proto == WEBSOCKET)
+	else if (appserv->worker->proto == LISTEN_TYPE_WS )
 	{
 		add_assoc_string( return_value , "Protocol" , "WEBSOCKET" );
 	}
@@ -158,11 +158,11 @@ ZEND_METHOD( AppnetServer , getHeader )
 		add_assoc_string( return_value , "Protocol" , "TCP" );
 		return;
 	}
-	
+
 	add_assoc_string( return_value , "Method" , header->method );
 	add_assoc_string( return_value , "Uri" , header->uri );
 	add_assoc_string( return_value , "Version" , header->version );
-	
+
 	char key[64];
 	char val[1024]={0};
 	int valen = 0;
@@ -171,7 +171,7 @@ ZEND_METHOD( AppnetServer , getHeader )
 		memset( key , 0 , sizeof( key ) );
 		memset( val , 0 , sizeof( val ) );
 		memcpy( key , header->fileds[i].key.pos , header->fileds[i].key.len );
-		
+
 		if( header->fileds[i].val.len > sizeof( val ))
 		{
 			valen = sizeof( val );
@@ -180,7 +180,7 @@ ZEND_METHOD( AppnetServer , getHeader )
 		{
 			valen = header->fileds[i].val.len;
 		}
-		
+
 		memcpy( val , header->fileds[i].val.pos , valen );
 		add_assoc_string( return_value , key , val );
 	}
@@ -205,23 +205,23 @@ ZEND_METHOD( AppnetServer , send )
 int onTimer( aeEventLoop *l , int id , void *data )
 {
 	timerArgs *timerArg = (timerArgs *) data;
-	
+
 	appnetServer *appserv = APPNET_G(appserv);
 	zval retval;
-	
+
 	zval *args;
 	zval *zserv = (zval *) appserv->ptr2;
 	zval zid;
 	zval zparam;
 	args = safe_emalloc( sizeof(zval) , 3 , 0 );
-	
+
 	ZVAL_STRINGL( &zparam , timerArg->params , strlen( timerArg->params ) );
 	ZVAL_LONG( &zid , (long) id );
-	
+
 	ZVAL_COPY( &args[0] , zserv );
 	ZVAL_COPY( &args[1] , &zid );
 	ZVAL_COPY( &args[2] , &zparam );
-	
+
 	if (call_user_function_ex( EG( function_table ) , NULL ,
 			appnet_serv_callback[APPNET_SERVER_CB_onTimer] ,
 			&retval , 3 , args , 0 , NULL ) == FAILURE)
