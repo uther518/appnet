@@ -20,12 +20,15 @@
 #define AE_TRUE 1
 #define AE_FALSE 0
 
+
 #define OPT_WORKER_NUM "opt_worker_num"
 #define OPT_TASK_WORKER_NUM "opt_task_worker_num"
 #define OPT_REACTOR_NUM "opt_reactor_num"
 #define OPT_MAX_CONNECTION "opt_max_connection"
 #define OPT_PROTOCOL_TYPE "opt_protocol_type"
 #define OPT_DAEMON "opt_daemon"
+#define OPT_PORT_HTTP "opt_port_http"
+#define OPT_PORT_WEBSOCKET "opt_port_websocket"
 
 #define APPNET_HTTP_DOCS_ROOT "http_docs_root"
 #define APPNET_HTTP_404_PAGE "http_404_page"
@@ -272,6 +275,7 @@ sds getRespHeaderString( sds header );
 int setRespHeader( char *key, char *val );
 void appendToClientSendBuffer( int connfd, char *buffer, int len );
 int getPipeIndex( int connfd );
+int checkPort( appnetServer *serv , int proto_type ,  int port );
 
 appnetServer *servG;
 #endif

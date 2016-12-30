@@ -1034,6 +1034,29 @@ int setOption( char *key, char *val )
         }
         servG->daemon = daemon;
     }
+    else if (strcmp( key, OPT_PORT_HTTP ) == 0)
+    {
+	char p[8];
+	sprintf( p , "%d" , val  );
+        int port = atoi( p );
+	int http = OPT_PORT_HTTP;
+        if( checkPort( servG , http , port ) == AE_FALSE )
+        {
+            return AE_FALSE;
+        }
+	servG->ports[LISTEN_TYPE_HTTP] = port;
+    }
+    else if (strcmp( key, OPT_PORT_WEBSOCKET ) == 0)
+    {
+	char p[8];
+        sprintf( p , "%d" , val  );
+        int port = atoi(p);
+        if ( checkPort( servG , OPT_PORT_WEBSOCKET , port ) == AE_FALSE )
+	{
+            return AE_FALSE;
+        }
+        servG->ports[LISTEN_TYPE_WS] = port;
+    }
     else
     {
         printf( "Unkown Option %s \n", key );
@@ -1043,6 +1066,28 @@ int setOption( char *key, char *val )
     if (servG->reactor_num > servG->worker_num)
     {
         servG->reactor_num = servG->worker_num;
+    }
+    return AE_TRUE;
+}
+
+int checkPort( appnetServer *serv , int proto_type ,  int port )
+{
+    if ( port < 0 || port > 65535 )
+    {
+       return AE_FALSE;
+    }
+
+    int i;
+    for( i=0; i<LISTEN_TYPE_MAX;i++)
+    {
+	if( serv->ports[i] == 0 )
+	{
+	   continue;
+	}
+        if( serv->ports[i] == port && i != proto_type  )
+	{
+	    return AE_FALSE;
+	}
     }
     return AE_TRUE;
 }
@@ -1085,9 +1130,6 @@ void set_daemon( appnetServer *serv )
 void listenPorts( appnetServer* serv )
 {
     int sock_count = 0;
-    serv->ports[LISTEN_TYPE_TCP] = 3100;
-    serv->ports[LISTEN_TYPE_WS] = 3200;
-    serv->ports[LISTEN_TYPE_HTTP] = 8080;
     int i;
     for( i = 0; i < LISTEN_TYPE_MAX ; i++ )
     {
@@ -1130,6 +1172,7 @@ appnetServer *appnetServerCreate( char *ip, int port )
     serv->port = port;
     memset( serv->ports, 0, sizeof( serv->ports ));
     memset( serv->listen_fds, 0, sizeof( serv->listen_fds ));
+    serv->ports[LISTEN_TYPE_TCP] = port;
     serv->connect_num = 0;
     serv->reactor_num = 1;
     serv->worker_num = 1;

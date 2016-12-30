@@ -145,6 +145,11 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_http_code, 0, 0, 1)
 ZEND_ARG_INFO(0, status)
 ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_appnet_listen_port, 0, 0, 1)
+ZEND_ARG_INFO(0, port )
+ZEND_END_ARG_INFO()
+
 /* {{{ appnet_functions[]
  *
  * Every user visible function must have an entry in appnet_functions[].
@@ -189,6 +194,9 @@ const zend_function_entry appnet_functions[] =
 	/*set option */
 	PHP_ME(AppnetServer, setOption, arginfo_appnet_server_set_option, ZEND_ACC_PUBLIC)
 
+	PHP_ME(AppnetServer, listenHttp, arginfo_appnet_listen_port, ZEND_ACC_PUBLIC)
+
+	PHP_ME(AppnetServer, listenWebsocket, arginfo_appnet_listen_port, ZEND_ACC_PUBLIC)
 	/* get info */
 	PHP_ME(AppnetServer, getInfo, NULL, ZEND_ACC_PUBLIC)
 

@@ -106,6 +106,8 @@ ZEND_METHOD( AppnetServer , httpRespCode );
 ZEND_METHOD( AppnetServer , timerAdd );
 ZEND_METHOD( AppnetServer , timerRemove );
 ZEND_METHOD( AppnetServer , setOption );
+ZEND_METHOD( AppnetServer , listenWebsocket );
+ZEND_METHOD( AppnetServer , listenHttp );
 ZEND_METHOD( AppnetServer , getInfo );
 ZEND_METHOD( AppnetServer , setEventCallback );
 ZEND_METHOD( AppnetServer , addEventListener );

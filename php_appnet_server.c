@@ -57,6 +57,40 @@ ZEND_METHOD( AppnetServer , setOption )
 	RETURN_FALSE;
 }
 
+ZEND_METHOD( AppnetServer,listenHttp )
+{
+	long port;
+        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &port ) == FAILURE)
+        {
+	     RETURN_FALSE;
+        }
+        appnetServer *appserv = APPNET_G(appserv);
+        int ret = appserv->setOption( OPT_PORT_HTTP , port );
+        if (ret == AE_TRUE)
+        {
+             RETURN_TRUE;
+        }
+        RETURN_FALSE;
+}
+
+ZEND_METHOD( AppnetServer,listenWebsocket )
+{
+        long port;
+        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &port ) == FAILURE)
+        {
+        	RETURN_FALSE;
+        }
+        appnetServer *appserv = APPNET_G(appserv);
+        int ret = appserv->setOption( OPT_PORT_WEBSOCKET , port );
+        if (ret == AE_TRUE)
+        {
+                RETURN_TRUE;
+        }
+        RETURN_FALSE;
+}
+
+
+
 ZEND_METHOD( AppnetServer , setHeader )
 {
 	size_t key_len;
@@ -64,8 +98,7 @@ ZEND_METHOD( AppnetServer , setHeader )
 	char *key;
 	char *val;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &key, &key_len,
-			&val, &val_len) == FAILURE)
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &key, &key_len, &val, &val_len) == FAILURE)
 	{
 		return;
 	}

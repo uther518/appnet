@@ -309,6 +309,8 @@ function onTimer( $server , $timer_id ,  $flag )
 
 //dl( "appnet.so");
 $server = new AppnetServer( "0.0.0.0" , 3011 );
+$ret = $server->listenHttp( 80 );
+$server->listenWebsocket( 3200 );
 
 $server->setOption( APPNET_OPT_DAEMON , 1);
 $server->setOption( APPNET_OPT_WORKER_NUM , WORKER_NUM );
@@ -316,7 +318,6 @@ $server->setOption( APPNET_OPT_TASK_WORKER_NUM , 0 );
 
 $server->setOption( APPNET_OPT_REACTOR_NUM, 1 );
 $server->setOption( APPNET_OPT_MAX_CONNECTION , 10000 );
-//$server->setOption( APPNET_OPT_PROTO_TYPE , APPNET_PROTO_MIX );
 
 $server->setOption( APPNET_HTTP_DOCS_ROOT , $_SERVER['PWD']."/example/www/" );
 $server->setOption( APPNET_HTTP_UPLOAD_DIR, "/home/upload/"  );
