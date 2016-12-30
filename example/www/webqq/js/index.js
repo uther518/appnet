@@ -12,7 +12,7 @@ var ip = document.domain;
 var port = location.port;
 
 //ip = "192.168.68.131";
-port = "3011";
+port = "3200";
 
 function getRequest()
 {

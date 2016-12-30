@@ -101,7 +101,7 @@ void onClientWritable( aeEventLoop *el, int connfd, void *privdata, int mask )
         aeDeleteFileEvent( el, connfd, AE_WRITABLE );
 
         if (servG->connlist[connfd].disable == 2 ||
-                servG->connlist[connfd].listen_type == LISTEN_TYPE_HTTP )
+                servG->connlist[connfd].proto_type == LISTEN_TYPE_HTTP )
         {
             /* if connfd is http or disabled, free and close it */
             freeClient( &servG->connlist[connfd] );
@@ -968,7 +968,7 @@ int setOption( char *key, char *val )
     else if (strcmp( key, OPT_PROTOCOL_TYPE ) == 0)
     {
         int type = atoi( val );
-        if (type < 0 || type > PROTOCOL_TYPE_WEBSOCKET_MIX)
+        if (type < 0 || type >= LISTEN_TYPE_MAX )
         {
             return AE_FALSE;
         }
@@ -1138,7 +1138,7 @@ appnetServer *appnetServerCreate( char *ip, int port )
     serv->exit_code = 0;
     serv->daemon = 0;
     serv->http_keep_alive = 1;
-    serv->listen_type = LISTEN_TYPE_TCP;
+    serv->proto_type = LISTEN_TYPE_TCP;
     serv->runForever = startServer;
     serv->send = sendMessageToReactor;
     serv->close = sendCloseEventToReactor;
