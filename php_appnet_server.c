@@ -204,7 +204,9 @@ ZEND_METHOD( AppnetServer , getHeader )
 		memset( key , 0 , sizeof( key ) );
 		memset( val , 0 , sizeof( val ) );
 		memcpy( key , header->fileds[i].key.pos , header->fileds[i].key.len );
-
+		
+		printf("header key====%s \n" , key );
+		
 		if( header->fileds[i].val.len > sizeof( val ))
 		{
 			valen = sizeof( val );
@@ -215,6 +217,8 @@ ZEND_METHOD( AppnetServer , getHeader )
 		}
 
 		memcpy( val , header->fileds[i].val.pos , valen );
+		
+		printf("header key=%s,value=%s \n" , key , val );
 		add_assoc_string( return_value , key , val );
 	}
 }
