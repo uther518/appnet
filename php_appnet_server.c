@@ -185,6 +185,7 @@ ZEND_METHOD( AppnetServer , getHeader )
 	else if (appserv->worker->proto == LISTEN_TYPE_WS )
 	{
 		add_assoc_string( return_value , "Protocol" , "WEBSOCKET" );
+		return;
 	}
 	else
 	{
